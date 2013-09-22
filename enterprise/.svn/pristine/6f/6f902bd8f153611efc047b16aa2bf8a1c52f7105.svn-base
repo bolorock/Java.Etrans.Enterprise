@@ -1,0 +1,173 @@
+package com.etrans.bubiao.repository;
+
+import java.util.HashMap;
+import java.util.Queue;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64ThreadLocal;
+
+/**
+ * 附加信息处理线程
+ * @author lujunyong
+ * 2013-6-8
+ * @version 1.0
+ */
+public class AffxationHandleThread implements Runnable{
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	private HashMap<String,AffixationBean> affixationHashMap;// 附加数据储存map  格式：<车辆ID，数据对象>
+	private AffixationQueue affixationQueue; //附加信息数据接收队列
+	AffixationBean affixationBean = new AffixationBean();
+	private final Log logger = LogFactory.getLog(AffxationHandleThread.class);
+	Base64ThreadLocal base64;
+	
+	/***************构造方法***************/
+	public AffxationHandleThread() {
+		super();
+	}
+	public AffxationHandleThread(
+			HashMap<String, AffixationBean> affixationHashMap,
+			AffixationQueue affixationQueue) {
+		super();
+		this.affixationHashMap = affixationHashMap;
+		this.affixationQueue = affixationQueue;
+	}
+
+	@Override
+	public void run() {
+		try {
+			base64 = base64Local.get();
+			if (base64 == null) {
+				base64 = new Base64ThreadLocal();
+				base64Local.set(base64);
+			}
+
+		} catch (Exception e) {
+		  e.printStackTrace();
+		}
+		logger.error("---------附加信息数据处理线程启动!---------");
+		
+		while (true) {
+			/*
+			 *	车辆ID，
+				上传时间，
+				附加数据类型
+					0：油位比值
+					1：油位检测方式电压/电阻
+					2：
+					3：转鼓状态转向
+					4：转鼓状态转速秒/圈
+					5：出租车状态重载/空载
+					6
+					7 温度1
+					8 温度2
+					9 司机IC卡号
+					10 司机驾驶证号
+					11司机姓名
+					12 人工确认报警事件的ID
+					13 超速报警
+					14 进出区域
+					15 路段行驶时间
+					16 信号强度
+					17 自定义状态及模拟量
+					18 终端司机编号
+					19 终端是否插入IC卡
+	
+				,附加内容
+			 */
+			try{
+				String message = affixationQueue.consume();//附加信息数据
+				if (StringUtils.isNotEmpty(message)) {
+					
+					String[] business = message.split(",");
+					//解密数据
+					String decoderStr =base64.decoderMessage(business[3].toString());
+					/**生成affixationBean对象**/
+					affixationBean=getaffixationHashMap(business[2],decoderStr);
+					
+					affixationHashMap.put(business[2], affixationBean);
+					
+				}else{
+
+					Thread.sleep(1);
+				}
+				
+			}catch(Exception e){
+				  e.printStackTrace();
+				  logger.error("附加信息数据入HashMap出错:" + e);
+			}
+		}
+		
+	}
+	
+	
+	/***
+	 * 保存数据到
+	 * vehicleId 车辆id
+	 * decoderStr 解密数据
+	 * @return
+	 */
+	public AffixationBean getaffixationHashMap(String vehicleId,String decoderStr){
+		
+		//取对象
+		AffixationBean affixationBean =affixationBean = affixationHashMap.get(vehicleId);
+		
+		if(affixationBean==null){//对象不等于空
+			affixationBean = new AffixationBean();
+			addAffixationBeanInfoByTypeId(decoderStr,affixationBean);
+		}else{
+			addAffixationBeanInfoByTypeId(decoderStr,affixationBean);
+		}
+		return affixationBean;
+	}
+	
+	
+	
+	/**
+	 * 根据附加数据类型id完善affixationBean实体
+	 * decoderStr 解码数据
+	 * affixationBean 附加数据实体
+	 */
+	public void addAffixationBeanInfoByTypeId(String decoderStr,AffixationBean affixationBean){
+		
+		String[] val = decoderStr.split(",");
+		String typeId = val[2];//数据类型
+		String value="";//附加内容
+		if(val.length==4){
+			value = val[3];
+		}
+		affixationBean.setVehicleID(val[0]);//车辆id
+		affixationBean.setDate(val[1]);//上传时间
+		
+		if(typeId.equals("9")){ //司机IC卡号
+			affixationBean.setDriverIC(value);
+		}else if(typeId.equals("10")){//司机驾驶证号
+			affixationBean.setDrivingLicence(value);
+		}else if(typeId.equals("11")){//司机姓名
+			affixationBean.setDrivinName(value);
+		}else if(typeId.equals("12")){//人工确认报警事件的ID
+			affixationBean.setAlarmAffairID(value);
+		}else if(typeId.equals("13")){//超速报警
+			affixationBean.setOverspeedAlarm(value);
+		}else if(typeId.equals("14")){//进出区域
+			affixationBean.setTurnoverArea(value);
+		}else if(typeId.equals("18")){//终端司机编号
+			affixationBean.setZdDriverCode(value);
+		}else if(typeId.equals("19")){// 终端是否插入IC卡
+			affixationBean.setZdWhetherIC(value);
+		}
+		
+	}
+	
+	
+	public static void main(String[] args) {
+		
+		String str = "1243624,2013-06-14 10:00:47,10,";
+		String[] val = str.split(",");
+		System.out.println("长度："+val.length);
+	}
+	
+	
+}

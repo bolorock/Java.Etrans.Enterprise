@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--企业管理员用户查询 车辆上线率统计 start  -->
+ <select id="VehicleUplinePercentListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		 SELECT * FROM 
+		(
+		 Select a.id
+       ,a.workUnitID
+       ,a.RegistrationNo
+	   ,a.RegistrationNOColor
+	   ,a.platformName 
+       ,a.workUnitName
+	   ,a.customKindName 
+	   ,a.areaName
+       ,a.Recday
+	   ,a.onLineCnt
+       ,a.fullID 
+       ,144*(datediff(dd,#RecdayStart#,#RecdayEnd#) + 1) AS TotalQty 
+       ,(case when isnull(a.onLineCnt,0)>0 then 1 else 0 end) AS UplineQty 
+      ,CONVERT(DECIMAL(10,4), (CONVERT(DECIMAL(10,4), case when isnull(a.onLineCnt,0)>0 then 1 else 0 end)/CONVERT(DECIMAL(10,4),144*(datediff(dd, #RecdayStart#,#RecdayEnd#) + 1))))*100 AS UplinePercent
+
+     from( 
+           select pv.id
+			       ,pv.workUnitID
+			       ,pv.RegistrationNo
+				   ,prc.name AS RegistrationNOColor
+				   ,pf.name AS platformName 
+			       ,pw.name AS workUnitName
+				   ,pc.Name AS customKindName 
+				   ,pa.Name AS areaName
+			       ,tr.Recday AS Recday
+				   ,sum(tr.dayOlCount) AS onLineCnt
+			       ,pw.fullID 
+				    FROM pub_vehicle pv 
+				   	LEFT  JOIN Pub_RegistrationNOColor AS prc  ON prc.ID=pv.RegistrationNOColorID 
+				   	LEFT  JOIN pub_platform pf  ON pv.platFormId=pf.Id 
+				   	LEFT  JOIN pub_Area AS pa ON pv.AreaID=pa.id
+				   	LEFT  JOIN pub_customTradeKind  pc  ON pv.customTradeKindID=pc.ID 
+				   	LEFT  JOIN pub_workUnit pw ON pv.workUnitID=pw.ID 	
+			        LEFT  JOIN TDailyRecord tr on tr.VehicleID=pv.id
+			        LEFT  JOIN dbo.Sys_HistoricalCommand SHC ON SHC.VehicleID = PV.ID
+			        LEFT  JOIN dbo.Pub_User PU on SHC.userID=PU.ID 
+			group by pv.id
+				   ,pv.workUnitID
+				   ,pv.RegistrationNo
+				   ,prc.name
+				   ,pf.name
+				   ,pw.name
+				   ,pc.Name
+				   ,pa.Name
+				   ,tr.Recday
+		           ,pw.fullID ) A
+		) C where 1=1
+		
+        <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            
+            <isNotEmpty property="registrationNo" prepend="and">
+      			C.RegistrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            
+              <isNotEmpty property="workUnitName" prepend="and">
+      			C.workUnitName like '%$workUnitName$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayStart" prepend="and">
+      			C.Recday >=#RecdayStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayEnd" prepend="and">
+      			 #RecdayEnd#>=C.Recday
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!-- 车辆上线率统计 总数量SQL	-->
+	<select id="VehicleUplinePercentCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	   Select a.id
+       ,a.workUnitID
+       ,a.RegistrationNo
+	   ,a.RegistrationNOColor
+	   ,a.platformName 
+       ,a.workUnitName
+	   ,a.customKindName 
+	   ,a.areaName
+       ,a.Recday
+	   ,a.onLineCnt
+       ,a.fullID 
+       ,144*(datediff(dd,#RecdayStart#,#RecdayEnd#) + 1) AS TotalQty 
+       ,(case when isnull(a.onLineCnt,0)>0 then 1 else 0 end) AS UplineQty 
+      ,CONVERT(DECIMAL(10,4), (CONVERT(DECIMAL(10,4), case when isnull(a.onLineCnt,0)>0 then 1 else 0 end)/CONVERT(DECIMAL(10,4),144*(datediff(dd, #RecdayStart#,#RecdayEnd#) + 1))))*100 AS UplinePercent
+
+     from( 
+           select pv.id
+			       ,pv.workUnitID
+			       ,pv.RegistrationNo
+				   ,prc.name AS RegistrationNOColor
+				   ,pf.name AS platformName 
+			       ,pw.name AS workUnitName
+				   ,pc.Name AS customKindName 
+				   ,pa.Name AS areaName
+			       ,tr.Recday AS Recday
+				   ,sum(tr.dayOlCount) AS onLineCnt
+			       ,pw.fullID 
+				    FROM pub_vehicle pv 
+				   	LEFT  JOIN Pub_RegistrationNOColor AS prc  ON prc.ID=pv.RegistrationNOColorID 
+				   	LEFT  JOIN pub_platform pf  ON pv.platFormId=pf.Id 
+				   	LEFT  JOIN pub_Area AS pa ON pv.AreaID=pa.id
+				   	LEFT  JOIN pub_customTradeKind  pc  ON pv.customTradeKindID=pc.ID 
+				   	LEFT  JOIN pub_workUnit pw ON pv.workUnitID=pw.ID 	
+			        LEFT  JOIN TDailyRecord tr on tr.VehicleID=pv.id
+			        LEFT  JOIN dbo.Sys_HistoricalCommand SHC ON SHC.VehicleID = PV.ID
+			        LEFT  JOIN dbo.Pub_User PU on SHC.userID=PU.ID 
+			group by pv.id
+				   ,pv.workUnitID
+				   ,pv.RegistrationNo
+				   ,prc.name
+				   ,pf.name
+				   ,pw.name
+				   ,pc.Name
+				   ,pa.Name
+				   ,tr.Recday
+		           ,pw.fullID ) A) C where 1=1
+      
+     <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            
+            <isNotEmpty property="registrationNo" prepend="and">
+      			C.RegistrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            
+              <isNotEmpty property="workUnitName" prepend="and">
+      			C.workUnitName like '%$workUnitName$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayStart" prepend="and">
+      			C.Recday >=#RecdayStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayEnd" prepend="and">
+      			 #RecdayEnd#>=C.Recday
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--企业管理员用户查询 车辆上线率统计 end  -->	
+
+
+
+<!--普通用户查询  车辆上线率统计 start  -->
+<select id="UserVehicleUplinePercentListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		 SELECT * FROM 
+		(
+		 Select a.id
+       ,a.workUnitID
+       ,a.RegistrationNo
+	   ,a.RegistrationNOColor
+	   ,a.platformName 
+       ,a.workUnitName
+	   ,a.customKindName 
+	   ,a.areaName
+       ,a.Recday
+	   ,a.onLineCnt
+       ,a.fullID 
+       ,144*(datediff(dd,#RecdayStart#,#RecdayEnd#) + 1) AS TotalQty 
+       ,(case when isnull(a.onLineCnt,0)>0 then 1 else 0 end) AS UplineQty 
+      ,CONVERT(DECIMAL(10,4), (CONVERT(DECIMAL(10,4), case when isnull(a.onLineCnt,0)>0 then 1 else 0 end)/CONVERT(DECIMAL(10,4),144*(datediff(dd, #RecdayStart#,#RecdayEnd#) + 1))))*100 AS UplinePercent
+
+     from( 
+           select pv.id
+			       ,pv.workUnitID
+			       ,pv.RegistrationNo
+				   ,prc.name AS RegistrationNOColor
+				   ,pf.name AS platformName 
+			       ,pw.name AS workUnitName
+				   ,pc.Name AS customKindName 
+				   ,pa.Name AS areaName
+			       ,tr.Recday AS Recday
+				   ,sum(tr.dayOlCount) AS onLineCnt
+			       ,pw.fullID 
+				    FROM pub_vehicle pv 
+				   	LEFT  JOIN Pub_RegistrationNOColor AS prc  ON prc.ID=pv.RegistrationNOColorID 
+				   	LEFT  JOIN pub_platform pf  ON pv.platFormId=pf.Id 
+				   	LEFT  JOIN pub_Area AS pa ON pv.AreaID=pa.id
+				   	LEFT  JOIN pub_customTradeKind  pc  ON pv.customTradeKindID=pc.ID 
+				   	LEFT  JOIN pub_workUnit pw ON pv.workUnitID=pw.ID 	
+			        LEFT  JOIN TDailyRecord tr on tr.VehicleID=pv.id
+			        LEFT  JOIN dbo.Sys_HistoricalCommand SHC ON SHC.VehicleID = PV.ID
+			        LEFT  JOIN dbo.Pub_User PU on SHC.userID=PU.ID 
+			        LEFT  JOIN ent_UserVehicle ev ON EV.VehicleID=PV.ID
+			group by pv.id
+				   ,pv.workUnitID
+				   ,pv.RegistrationNo
+				   ,prc.name
+				   ,pf.name
+				   ,pw.name
+				   ,pc.Name
+				   ,pa.Name
+				   ,tr.Recday
+		           ,pw.fullID ) A
+		) C where 1=1
+		
+        <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            
+            <isNotEmpty property="registrationNo" prepend="and">
+      			C.RegistrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            
+              <isNotEmpty property="workUnitName" prepend="and">
+      			C.workUnitName like '%$workUnitName$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayStart" prepend="and">
+      			C.Recday >=#RecdayStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayEnd" prepend="and">
+      			 #RecdayEnd#>=C.Recday
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!-- 车辆上线率统计 总数量SQL	-->
+	<select id="UserVehicleUplinePercentCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	   Select a.id
+       ,a.workUnitID
+       ,a.RegistrationNo
+	   ,a.RegistrationNOColor
+	   ,a.platformName 
+       ,a.workUnitName
+	   ,a.customKindName 
+	   ,a.areaName
+       ,a.Recday
+	   ,a.onLineCnt
+       ,a.fullID 
+       ,144*(datediff(dd,#RecdayStart#,#RecdayEnd#) + 1) AS TotalQty 
+       ,(case when isnull(a.onLineCnt,0)>0 then 1 else 0 end) AS UplineQty 
+      ,CONVERT(DECIMAL(10,4), (CONVERT(DECIMAL(10,4), case when isnull(a.onLineCnt,0)>0 then 1 else 0 end)/CONVERT(DECIMAL(10,4),144*(datediff(dd, #RecdayStart#,#RecdayEnd#) + 1))))*100 AS UplinePercent
+
+     from( 
+           select pv.id
+			       ,pv.workUnitID
+			       ,pv.RegistrationNo
+				   ,prc.name AS RegistrationNOColor
+				   ,pf.name AS platformName 
+			       ,pw.name AS workUnitName
+				   ,pc.Name AS customKindName 
+				   ,pa.Name AS areaName
+			       ,tr.Recday AS Recday
+				   ,sum(tr.dayOlCount) AS onLineCnt
+			       ,pw.fullID 
+				    FROM pub_vehicle pv 
+				   	LEFT  JOIN Pub_RegistrationNOColor AS prc  ON prc.ID=pv.RegistrationNOColorID 
+				   	LEFT  JOIN pub_platform pf  ON pv.platFormId=pf.Id 
+				   	LEFT  JOIN pub_Area AS pa ON pv.AreaID=pa.id
+				   	LEFT  JOIN pub_customTradeKind  pc  ON pv.customTradeKindID=pc.ID 
+				   	LEFT  JOIN pub_workUnit pw ON pv.workUnitID=pw.ID 	
+			        LEFT  JOIN TDailyRecord tr on tr.VehicleID=pv.id
+			        LEFT  JOIN dbo.Sys_HistoricalCommand SHC ON SHC.VehicleID = PV.ID
+			        LEFT  JOIN dbo.Pub_User PU on SHC.userID=PU.ID 
+			        LEFT  JOIN ent_UserVehicle ev ON EV.VehicleID=PV.ID
+			group by pv.id
+				   ,pv.workUnitID
+				   ,pv.RegistrationNo
+				   ,prc.name
+				   ,pf.name
+				   ,pw.name
+				   ,pc.Name
+				   ,pa.Name
+				   ,tr.Recday
+		           ,pw.fullID ) A) C where 1=1
+      
+     <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            
+            <isNotEmpty property="registrationNo" prepend="and">
+      			C.RegistrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            
+              <isNotEmpty property="workUnitName" prepend="and">
+      			C.workUnitName like '%$workUnitName$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayStart" prepend="and">
+      			C.Recday >=#RecdayStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="RecdayEnd" prepend="and">
+      			 #RecdayEnd#>=C.Recday
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--普通用户用户查询 车辆上线率统计 end  -->	
+</sqlMap>
+

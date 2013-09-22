@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <select id="findANA_ParamOverSpeedRoadSQL" resultClass="java.util.HashMap">
+  	  SELECT * FROM (
+						SELECT    ROW_NUMBER() OVER ( order by
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>	
+							) RowNo,A.* from (
+		      select 
+				    A.Id as id
+				   ,A.name as name
+				   ,A.speed as speed
+				   ,A.bounceOverSpeed as bounceOverSpeed
+				   ,A.markIntralNum as markIntralNum
+				   ,A.analyseId as analyseId
+				   ,B.name as analyseName
+				from ANA_ParamOverSpeedRoad A
+				left join ANA_AnalyserOverSpeedRoad B on A.analyseId=B.id) A where 1=1
+        
+        	<dynamic prepend="and">	
+			 <isNotNull property="name" >
+	           A.Name like '%$name$%'
+	         </isNotNull>
+	         </dynamic>	   
+		)X
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				X.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+   </select>
+   
+   <select id="findANA_ParamOverSpeedRoadCountSQL" resultClass="java.lang.Long">
+      select count(1) from  ANA_ParamOverSpeedRoad as A
+      where   A.Name like '%$name$%'
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_ParamOverSpeedRoadByIdSQL"  resultClass="java.util.HashMap">
+      SELECT 
+	       [id]		
+	      ,[name]
+	      ,[speed]
+	      ,[bounceOverSpeed]
+	      ,[markIntralNum]
+	      ,[analyseId]
+     FROM ANA_ParamOverSpeedRoad
+     where id=#id# 
+   </select>
+	
+  <!-- 同名检查 -->
+   <select id="checkANA_ParamOverSpeedRoadByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_ParamOverSpeedRoad
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>'$id$']]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+ </sqlMap>
+
+

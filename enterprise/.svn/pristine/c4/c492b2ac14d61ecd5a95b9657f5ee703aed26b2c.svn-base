@@ -1,0 +1,704 @@
+// JavaScript Document
+var map;
+var TempList;//返回cs值
+var showCarList=new Array();//车存取
+var PointList=new Array();//点存取
+var LineList=new Array();//线存取
+var PolygonList=new Array();//面存取
+var Circlelist=new Array();//圆存取
+var Rectlist=new Array();//矩形存取
+//------------
+var toolbar;
+
+
+var newControl=null;
+function loadMap() {
+	$("#mapPanel").css("width", getMapWidth() + "px");
+	$("#mapPanel").css("height",getMapHeight()-185 + "px"); 
+
+
+	//$('mapPanel').style.width = getMapWidth() + "px";
+	//$('mapPanel').style.height = getMapHeight() -185 + "px";
+ 
+	map=new SE.Map("mapPanel");
+    
+	//map.centerAndZoom(new SE.LngLat(116.39885,39.96571),6);
+	 map.centerAndZoom(new SE.LngLat(114.49811,38.03464),10);//石家庄
+	 //map.centerAndZoom(new SE.LngLat(108.33469,22.80656),10);//南宁
+	// 添加标准控件，骨头棒
+	map.addControl(new SE.MapControl());
+	// 添加 卫图, 矢量 和 融合控件
+	var switchControl=new SE.MapTypeControl();
+	map.addControl(switchControl);
+	map.removeMapType(SE.Traffic_MAP);
+	switchControl.setRight(5);
+	// 比例尺
+	var scale = new SE.ScaleControl();
+	scale.setLeft(20);
+	scale.setBottom(30);
+	map.addControl(scale);
+	// 鼠标滚动
+	map.handleMouseScroll(true);
+	// 键盘事件
+	map.handleKeyboard();
+ 
+	//鹰眼
+	var overmap = new SE.OverviewMapControl(4);   
+    map.addControl(overmap); 
+	
+    /*
+	var control=new SE.CopyrightControl();  
+    control.addCopyright({id:1,content:"<a href=\"Http://www.e-trans.com.cn\" target=\"_blank\" style=\"font-size:14;color:red\">广州亿程</a>",bounds:new SE.LngLatBounds([new SE.LngLat(10,30),new SE.LngLat(160,80)])});  
+	control.setLeft(130);  
+    control.setBottom(0);  
+    map.addControl(control); 
+    
+	var bb=new SE.LngLat(116.39885,39.96571);
+	
+	 
+	var cc=map.getOverLayPosition(bb);
+ 
+	var mm=new SE.Point(235,53);
+	 
+	var pp=map.fromDivPixelToLngLat(mm);
+	  
+	MM_preloadImages('mapgis/TileAjax/images/mapTools/AllMap_key.gif','mapgis/TileAjax/images/mapTools/Max_key.gif','mapgis/TileAjax/images/mapTools/Min_key.gif','mapgis/TileAjax/images/mapTools/bz_key.gif','mapgis/TileAjax/images/mapTools/line_key.gif','mapgis/TileAjax/images/mapTools/db_key.gif','mapgis/TileAjax/images/mapTools/Reg_key.gif','mapgis/TileAjax/images/mapTools/ci_key.gif');
+	*/
+	newControl=new SE.ZoomInTool(map);
+	
+}
+
+function test(){
+// carMarker(id,name,lng,lat,state,head,) 
+    carMarker(11,"粤dk4344",113.2342,23.355343,0,2,"hint");
+	/*
+    var LngLat = new SE.LngLat(113.2342,23.355343); 
+	var mm=new carMarker(, 2, 0);
+	 markerArry = new Array();   
+	var text=new txtMaker(LngLat,"车牌号显示")
+	map.addOverLay(mm);   	
+	map.addOverLay(text);
+	showCarList[11]=new LocalCars(11,mm,text);
+*/
+
+}
+
+//浏览器大小改变自动调整
+window.onresize = resizeListener;
+function resizeListener() {
+	//var maparea = $('#mapPanel');
+	$('#mapPanel').css("width", getMapWidth() + "px");
+	$('#mapPanel').css("height",  getMapHeight()-100 + "px"); 
+    //maparea.css.width = getMapWidth() + "px";
+	//maparea.css.height = (getMapHeight()-100) + "px";
+}
+
+//取浏览器宽度
+function getMapWidth() {
+	var width;
+	if (window.innerWidth)
+		width = window.innerWidth;
+	else
+		width = document.body.offsetWidth;
+	return width;
+}
+
+//取浏览器高
+function getMapHeight() {
+	var height;
+	height = document.body.clientHeight;
+	return height;
+}
+
+//取中心点,不设级数，默认为当前级数
+function setCenterZoom(lng,lat){
+	map.setCenter(new SE.LngLat(lng, lat));
+}
+
+
+//车辆标注
+//-----------function carMarker(x,y, head,state) {
+function carMarker(id,name,lng,lat,state,head,hint) {
+	var LngLat=new SE.LngLat(lng,lat);
+	var icon;
+	var w;
+	var h;
+	var src;
+	if (state == 0) {
+		src = "imgs/car/carYellow" + head + ".gif";
+	} else if (state == 1) {
+		src = "imgs/car/car" + head + ".gif";
+	} else {
+		src = "imgs/car/carBlue" + head + ".gif";
+	}
+	if (head == 1 || head == 5) {
+		w = 27;
+		h = 17;
+		icon=new SE.Icon(src,new SE.Size(w,h),new SE.Point(16,16)); 
+	} else if (head == 3 || head == 7) {
+		w = 17;
+		h = 27;
+		icon=new SE.Icon(src,new SE.Size(w,h),new SE.Point(16,16)); 
+	} else {
+		w = 20;
+		h = 20;
+		icon=new SE.Icon(src,new SE.Size(w,h),new SE.Point(16,16)); 
+	}
+	var newMarker = new SE.Marker(LngLat,icon);   
+	var text=new txtMaker(LngLat,name);
+	map.addOverLay(newMarker);   	
+	map.addOverLay(text);
+	showCarList[id]=new LocalCars(id,newMarker,text);
+
+}
+
+//删除车(图标和文字)
+function removeMarker(id){    
+	if(showCarList[id]){
+	 map.removeOverLay(showCarList[id].getMarker());
+	 map.removeOverLay(showCarList[id].getTextMarker());
+	}
+}
+	 
+function removed(id){
+	removeMarker(id);
+	delete showCarList[id];	
+}
+
+
+
+//单独删除图标
+function removeIcoMarker(id){    
+	 map.removeOverLay(showCarList[id].getMarker());
+}   
+
+
+//文字标注
+//function txtMaker(id,name,Lng,Lat){
+function txtMaker(LngLat,name){
+
+  var text = new SE.PointOverlay(LngLat);   
+  text.setLabel(name);    
+  return text;
+}
+//单独删除文字
+function removeTxtMarker(id){   
+	 map.removeOverLay(showCarList[id].getTextMarker());
+}   
+
+
+//取地图高度和宽度
+function getMapSize(){
+	$('#mapPanel').css("width", getMapWidth() + "px");
+	$('#mapPanel').css("height",  getMapHeight() + "px"); 
+
+	//$('mapPanel').style.width = getMapWidth()+ "px";
+	//$('mapPanel').style.height = getMapHeight() + "px";
+	return w,h;
+}
+
+function ePoint(){
+	 
+	 newControl.close();
+	  newControl =new SE.MarkTool(map);
+	  newControl.open();
+	  
+	
+	 SE.Event.addListener(newControl,"mouseup",function(point){
+		 
+		 if(!($("#name").val()=='')){
+			   $("#name").val("");//清空点信息
+		 } 
+	     var lnglat=point;
+		 var src = "../images/car/point.gif";
+		 var lng=lnglat.getLng()/100000;
+	     var lat=lnglat.getLat()/100000;
+		     $("#longitude").val(lng);
+			 $("#latitude").val(lat);
+		 var icon=new SE.Icon(src,new SE.Size(12,12));
+			    icon.removeShadow();
+			    
+	     var lonlat=new SE.LngLat(lng,lat);
+	          
+	     var newMarker = new SE.Marker(lonlat,icon);
+         
+			  map.addOverLay(newMarker);   
+			  showPoint();
+			  
+			 
+		 
+	 });
+	
+}
+
+   function showPoint(){
+	   $("#pointPanel").css("display","block");
+	   $("#pointPanel").css("top",event.clientY);
+	   $("#pointPanel").css("left",event.clientY);
+	 // $("#pointPanel").css.display="block";
+	 // $("#pointPanel").css.top=event.clientY;
+	 // $("#pointPanel").css.left=event.clientX;
+   }
+
+//点添加
+function addPoint(id,name,lng,lat){
+	var lnglatArray=getSHLngLat(lng,lat);
+	lng=lnglatArray[0];
+	lat=lnglatArray[1];
+	var LngLat = new SE.LngLat(lng,lat);
+	var src = "imgs/car/point.gif";
+	
+	var icon=new SE.Icon(src,new SE.Size(12,12),new SE.Point(16,16));
+	    icon.removeShadow();
+	var newMarker = new SE.Marker(LngLat,icon); 
+	 
+	var text=new txtMaker(LngLat,name);
+ 
+	map.addOverLay(newMarker);   	
+	 
+	map.addOverLay(text);
+	 
+	PointList[id]=new LocalCars(id,newMarker,text);	 
+}
+ 
+function addLine(id,name,str){
+	var points = new Array();  
+	var LngLat;
+	var temp=str.split("*");
+	 for(i=0;i<temp.length;i++){
+		 var arr=temp[i].split(",");
+		 arr=getSHLngLat(arr[0],arr[1]);
+		 points.push( new SE.LngLat( arr[0] ,arr[1] ) );
+		 LngLat=new SE.LngLat(arr[0] ,arr[1]);
+	 }
+    var polyLine = new SE.PolyLine( points );   
+    map.addOverLay( polyLine ); 
+	
+	var text=new txtMaker(LngLat,name); 	
+	map.addOverLay(text);
+	LineList[id]=new LocalCars(id,polyLine,text);
+	
+}
+//面添加
+function addPolygon(id,name,str){
+	var points = new Array();  
+	var LngLat;
+	var temp=str.split("*");
+	 for(i=0;i<temp.length;i++){
+		 var arr=temp[i].split(",");
+		 arr=getSHLngLat(arr[0],arr[1]);
+		 points.push( new SE.LngLat( arr[0] ,arr[1] ) );  		 
+		 LngLat=new SE.LngLat(arr[0] ,arr[1]);
+	 }
+    var Polygon = new SE.Polygon( points );   
+    map.addOverLay( Polygon ); 	
+	var text=new txtMaker(LngLat,name); 	
+	map.addOverLay(text);
+	PolygonList[id]=new LocalCars(id,Polygon,text);	
+}
+//圆添加
+function addEllipse(id,name,lng,lat,r){
+	var lnglatArray=getSHLngLat(lng,lat);
+	lng=lnglatArray[0];
+	lat=lnglatArray[1];
+	var LngLat=new SE.LngLat(lng,lat);
+	var Circle = new createGeoEllipse(LngLat,r);
+    map.addOverLay( Circle ); 	
+	var text=new txtMaker(LngLat,name); 	
+	map.addOverLay(text);
+	Circlelist[id]=new LocalCars(id,Circle,text);	
+}
+/**
+ * 画圆. 
+ * 
+ * @param center 中心点坐标
+ * @param radius 圆半径(可选，默认500)
+ * @param color 圆边框颜色(可选，默认蓝色)
+ * @param bgcolor 圆背景色或填充色(可选，默认黄色)
+ * @param weight 圆边框宽度(可选，默认1)
+ * @param opacity 圆背景透明度(可选，默认0.8)
+ */
+function createGeoEllipse(center,radius) {
+	var args=arguments;
+	var i=0;
+	radius=args[++i]?args[i]:500;
+	color=args[++i]?args[i]:"blue";
+	bgcolor=args[++i]?args[i]:"yellow";
+	weight=args[++i]?args[i]:1;
+	opacity=args[++i]?args[i]:0.8;
+	
+	var zoom = map.getCurrentZoom();
+	var zu = map.getZoomUnits(zoom);
+	zu /= Math.pow(2,(18-zoom));
+	var size = (radius + weight*2) / 2;
+	var GeoEllipse;
+	if(!GeoEllipse){
+		var left = center.getMercatorLongitude() - zu * size;
+		var right = center.getMercatorLongitude() + zu * size;
+		var top = center.getMercatorLatitude() + zu * size;
+		var bottom = center.getMercatorLatitude() - zu * size;
+		var bds = new SE.MercatorBounds(left,bottom,right,top);
+
+		GeoEllipse = new SE.Ellipse(bds,color,bgcolor,weight,opacity); 
+	}else{
+		var left = center.getMercatorLongitude() - zu * size;
+		var right = center.getMercatorLongitude() + zu * size;
+		var top = center.getMercatorLatitude() + zu * size;
+		var bottom = center.getMercatorLatitude() - zu * size;
+		var bds = new SE.MercatorBounds(left,bottom,right,top);
+		GeoEllipse.setBounds(bds);
+	}
+	return GeoEllipse;
+	//map.addOverLay(GeoEllipse);
+	//var text=new txtMaker(bottom,tname); 	
+	//map.addOverLay(text);
+	//Circlelist[id]=new LocalCars(tid,GeoEllipse,text);	
+}
+		
+
+
+//矩形添加
+function addRect(id,name,str){
+	var points = new Array();  
+	var LngLat;
+	
+	var temp=str.split("*");
+	 for(i=0;i<temp.length;i++){
+		 var arr=temp[i].split(",");
+		 arr=getSHLngLat(arr[0],arr[1]);
+		 points.push( new SE.LngLat( arr[0] ,arr[1] ) );  		 
+		 LngLat=new SE.LngLat(arr[0] ,arr[1]);
+	 }
+	 var bounds=new SE.LngLatBounds(points);
+    var Polygon = new SE.Rect(bounds);
+    map.addOverLay(Polygon);	
+	var text=new txtMaker(LngLat,name); 	
+	map.addOverLay(text);
+	Rectlist[id]=new LocalCars(id,Polygon,text);	
+}
+
+//删除点
+function delPoint(id){
+     if(PointList[id]){
+	 map.removeOverLay(PointList[id].getMarker());
+	 map.removeOverLay(PointList[id].getTextMarker());
+	}	
+}
+//删除线
+function delLine(id){
+	if(LineList[id]){
+	 map.removeOverLay(LineList[id].getMarker());
+	 map.removeOverLay(LineList[id].getTextMarker());
+	}
+}
+//删除面
+function delPolygon(id){
+	if(PolygonList[id]){
+	 map.removeOverLay(PolygonList[id].getMarker());
+	 map.removeOverLay(PolygonList[id].getTextMarker());
+	}
+}
+
+//删除圆
+function delEllipse(id){	
+	if(Circlelist[id]){
+	 map.removeOverLay(Circlelist[id].getMarker());
+	 map.removeOverLay(Circlelist[id].getTextMarker());
+	}
+}
+//矩形删除
+function delRect(id){
+	if(Rectlist[id]){
+	 map.removeOverLay(Rectlist[id].getMarker());
+	 map.removeOverLay(Rectlist[id].getTextMarker());
+	}
+}
+
+
+///
+//"放大",function (){map.zoomIn()}));   
+//"缩小",function(){map.zoomOut()}));   
+
+//放大
+function mZoom(switchid){
+	newControl.close();
+	if (switchid == 0) {   
+ 		newControl = new SE.ZoomInTool(map);   
+ 		newControl.zoomAdd=1;
+ 		SE.Event.addListener(newControl, "draw", function(){   
+		newControl.close();});   
+ 		newControl.open();    
+ 	}else if (switchid == 1) {   
+		
+ 		newControl = new SE.ZoomInTool(map);   
+		newControl.zoomAdd=-1;
+ 		SE.Event.addListener(newControl, "draw", function(){   
+		newControl.close();});   
+ 		newControl.open();   
+ 	}
+}
+//设置缩放比例中心点
+function setCenterAndZoom(lng,lat,scales){
+	map.centerAndZoom(new SE.LngLat(116.39885,39.96571),6);
+}
+//取地图中心点和缩放级别，逗号隔开
+function getCenterAndZoom(){
+	return str;
+}
+
+//打印
+ function printMap() { 
+	  print_Map(map);
+ }
+ function print_Map(map) {  
+            var html = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n";  
+            html += (document.all)?"<html xmlns:v=\"urn:schemeas-microsoft-com:vml\">":"<html>";  
+            html += "\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=gb2312\">\n<title>Print Maps<\/title>\n";  
+            html += "<style type=\"text\/css\">\nbody {margin: 0px;}\n";  
+            html += (document.all)?"v\\:*{ Behavior:url(#default#VML);}":"";  
+            html += "\n</style>\n";  
+            html += "<\/head>\n";  
+            html += "<body><center>\n";  
+			html +="<a href='#' onclick='javascript:window.print()'>打印</a>\n";
+  
+            html += map.getMapContent(0);  
+            html += "\n<\/center><\/body>\n<\/html>";  
+            var win = document.open("about:blank","win","menubar=1,width="+map.container.offsetWidth+",height="+(map.container.offsetHeight-20));  
+            win.document.writeln(html);  
+            win.document.close();  
+}
+//测面、线工具0、为面1为线
+ function measure(switchid)   
+ {   
+ 	newControl.close();
+ 	if (switchid == 0) {   
+  		newControl = new SE.PolygonTool(map);   
+  		SE.Event.addListener(newControl, "draw", function(){   
+ 		newControl.close();   
+                 });   
+  		newControl.open();   
+  	}else if (switchid == 1) {   
+  		newControl = new SE.PolyLineTool(map);   
+  		SE.Event.addListener(newControl, "draw", function(){   
+ 		newControl.close();   
+                 });   
+  		newControl.open();   
+  	}
+ }
+//全国
+function AllMap(){
+	map.setZoom(3);
+}
+
+
+////画线
+function ePolyLine()   
+{   
+	var points = new Array(); 
+	newControl.close();
+	newControl = new SE.PolyLineTool(map);   
+    newControl.autoClear=false;
+	newControl.showLabel=false;
+ 	SE.Event.addListener(newControl, "draw", function(point){ 
+ 	 for(i=0;i<point.length;i++)
+		{
+			var tmpPoint=point[i];
+			points.push(tmpPoint.lng/100000+","+tmpPoint.lat/100000);
+		}
+	document.title="ePolyLine";
+	  var  lng=(point[point.length-1].lng)/100000;
+	  var  lat=(point[point.length-1].lat)/100000;
+	    var lnglat=new SE.LngLat(lng,lat);
+	       
+	    var  pixel=map.fromLngLatToContainerPixel(lnglat);
+	    linesave(points);
+	/*$("linePanel").style.display="block";
+	$("linePanel").style.top=200;
+	$("linePanel").style.left=300;*/
+	$("#tmpList").val(points.toString());
+	 
+	newControl.close();
+	
+	});   
+ 	newControl.open();  
+}
+
+//画面
+function ePolygon(){
+	newControl.close();
+	newControl = new SE.PolygonTool(map);   
+	newControl.autoClear=false;
+	newControl.showLabel=false;
+	var points = new Array(); 
+ 	SE.Event.addListener(newControl, "draw", function(point,b,c){ 
+		for(i=0;i<point.length;i++)
+		{
+			var tmpPoint=point[i];
+			points.push(tmpPoint.lng/100000+","+tmpPoint.lat/100000);
+		}
+		polySave(points);
+	document.title="ePolygon";
+	$("#tmpList").val(points.toString());
+	newControl.close();	
+	});   
+ 	newControl.open();  
+}
+
+//画矩形
+function rectLine(){
+	var points="";
+	newControl.close();
+	newControl = new SE.RectTool(map); 
+ 	SE.Event.addListener(newControl, "draw", function(point,rect){
+		 var Polygon = new SE.Rect( point );   
+         map.addOverLay( Polygon );
+			 var b1=point.getSouthWest();
+			 var b2=point.getNorthEast();
+			document.title="rect"+(b1.lng/100000)+","+(b1.lat/100000)+","+(b2.lng/100000)+","+(b2.lat/100000);
+			$("#tmpList").value=(b1.lng/100000)+","+(b1.lat/100000)+","+(b2.lng/100000)+","+(b2.lat/100000);
+			
+			points=(b1.lng/100000)+","+(b1.lat/100000)+"*"+(b2.lng/100000)+","+(b2.lat/100000);
+			 
+			regSave(points.toString());
+			newControl.close();
+	
+	});   
+ 	newControl.open();    
+}
+//返回点\线\面\矩形\圆的值
+function getTempList(){
+	var temp=$("#tmpList").val();
+	return temp;
+}
+//画圆
+function eCircle(){
+ 
+	newControl.close();
+	newControl = new SE.PolyLineTool(map);   
+	newControl.showLabel=false;
+	var mySmartEarth = new SmartEarthApplication();   
+
+	function SmartEarthApplication(){   	
+         var isFirst = true;   
+         var mylistener = SE.Event.bind(map,"click", "ddd",function(e){   
+             if (isFirst) {
+            	 var point = map.fromContainerPixelToLatLng(e);   
+				$("#Circle").val(point.lng/100000+","+point.lat/100000);
+                 isFirst = false;   
+               }   
+               else {   
+                 SE.Event.removeListener(mylistener);   
+               }      
+            });   
+      }   
+
+ 	SE.Event.addListener(newControl, "draw", function(points,line_len,pline){ 
+		if(points.length<3){
+		var temp=$("#Circle").val().split(',');
+		var center=new SE.LngLat(temp[0],temp[1]); 	   
+		var vCircle = new  createGeoEllipse(center,line_len*4);
+   		 map.addOverLay( vCircle );
+		 
+		 document.title="eCircle";
+		 $("#tmpList").val(temp[0]+","+temp[1]+","+line_len*4);
+		 //创建圆名称弹出框
+		 var r=line_len*4;
+		  roundSave(points,r);
+		 
+	     
+		 
+		}else{
+			alert("点过多，支持两点！");
+		}
+		newControl.close();   
+                });   
+ 	    newControl.open();  
+}
+
+function MM_preloadImages() { //v3.0
+	  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+	    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+	    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+	}
+
+	function MM_findObj(n, d) { //v4.01
+	  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+	    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+	  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+	  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+	  if(!x && d.getElementById) x=d.getElementById(n); return x;
+	}
+
+	function MM_nbGroup(event, grpName) { //v6.0
+	  var i,img,nbArr,args=MM_nbGroup.arguments;
+	  if (event == "init" && args.length > 2) {
+	    if ((img = MM_findObj(args[2])) != null && !img.MM_init) {
+	      img.MM_init = true; img.MM_up = args[3]; img.MM_dn = img.src;
+	      if ((nbArr = document[grpName]) == null) nbArr = document[grpName] = new Array();
+	      nbArr[nbArr.length] = img;
+	      for (i=4; i < args.length-1; i+=2) if ((img = MM_findObj(args[i])) != null) {
+	        if (!img.MM_up) img.MM_up = img.src;
+	        img.src = img.MM_dn = args[i+1];
+	        nbArr[nbArr.length] = img;
+	    } }
+	  } else if (event == "over") {
+	    document.MM_nbOver = nbArr = new Array();
+	    for (i=1; i < args.length-1; i+=3) if ((img = MM_findObj(args[i])) != null) {
+	      if (!img.MM_up) img.MM_up = img.src;
+	      img.src = (img.MM_dn && args[i+2]) ? args[i+2] : ((args[i+1])? args[i+1] : img.MM_up);
+	      nbArr[nbArr.length] = img;
+	    }
+	  } else if (event == "out" ) {
+	    for (i=0; i < document.MM_nbOver.length; i++) {
+	      img = document.MM_nbOver[i]; img.src = (img.MM_dn) ? img.MM_dn : img.MM_up; }
+	  } else if (event == "down") {
+	    nbArr = document[grpName];
+	    if (nbArr)
+	      for (i=0; i < nbArr.length; i++) { img=nbArr[i]; img.src = img.MM_up; img.MM_dn = 0; }
+	    document[grpName] = nbArr = new Array();
+	    for (i=2; i < args.length-1; i+=2) if ((img = MM_findObj(args[i])) != null) {
+	      if (!img.MM_up) img.MM_up = img.src;
+	      img.src = img.MM_dn = (args[i+1])? args[i+1] : img.MM_up;
+	      nbArr[nbArr.length] = img;
+	  } }
+	}
+	
+	
+	/**
+	 * 取偏移经纬度
+	 * @param {} lng
+	 * @param {} lat
+	 * @return 字符串
+	 */
+	function getSHLngLat(lng,lat)
+	{  
+			 var param={
+	    		 date:new Date(),
+	             lnglat:lng+","+lat	 
+	             };
+		var url="monitorCenter/getRealLngLat.action";
+		var lnglagArray=new Array();
+		 $.ajax({
+			url : url,
+			type : "POST",
+			dataType : "xml",
+			data : param,
+			async:false,
+			success : function(req){
+			  var result=req;
+			  var lngElement = result.getElementsByTagName("lng")[0].childNodes[0];
+			  var lng = lngElement.nodeValue;
+			  var latElement = result.getElementsByTagName("lat")[0].childNodes[0];
+			  var lat = latElement.nodeValue;
+		      lnglagArray[0]=lng;
+		      lnglagArray[1]=lat;
+			}
+		});
+		
+		return lnglagArray;
+
+	}
+
+	
+	
+

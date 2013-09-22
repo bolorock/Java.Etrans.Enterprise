@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	<typeAlias alias="workUnit" type="com.etrans.bubiao.entities.WorkUnit"/>  
+<!-- 查询单位ROOT级别数据 -->
+	<select id="getRootWorkUnitSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM  Pub_WorkUnit as w,
+		 Pub_Area as a, Pub_OrganzationKind as o,
+		 Pub_TradeKind as t where  1=1 
+		and w.AreaID=a.id and w.OrganizationKindID=o.id
+		and w.TradeKindID=t.id and IsDeleted!=1
+		<isNotEmpty property="fullId">
+			and  len(w.FullID)=LEN('$fullId$')
+			and w.fullId like '%$fullId$%'
+		</isNotEmpty>
+		<!-- 超级管理员 -->
+		<isNotEmpty property="lengths">
+			and  len(w.FullID)=#lengths#
+			and w.level=1
+		</isNotEmpty>
+		order by w.id desc
+	</select>
+
+
+<!-- 查询单位 Tree -->
+	<select id="getWorkUnitMenuSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM  Pub_WorkUnit as w,
+		 Pub_Area as a, Pub_OrganzationKind as o,
+		 Pub_TradeKind as t where 1=1
+		and w.AreaID=a.id and w.OrganizationKindID=o.id
+		and w.TradeKindID=t.id and IsDeleted!=1
+   		<dynamic>
+			<isNotNull property="parentFullId" prepend="AND">
+				w.fullId like '%$parentFullId$%' 
+				and len(w.FullID) = LEN('$parentFullId$') + 9
+			</isNotNull>
+			<isNotNull property="name" prepend="AND">
+				name like '%$name$%'
+			</isNotNull>
+		</dynamic>
+		order by w.id desc
+	</select>
+
+  
+<!--分页查询工作单位列表-->
+  <select id="getWorkUnitSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+select * from 
+(
+	select  ROW_NUMBER() OVER (
+	<!-- 动态排序查询条件 -->
+	<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+	) RowNo,
+	convert(varchar, b.CreateDatetime,120) as CreateDatetime,
+	convert(varchar, b.ModifyDatetime,120) as ModifyDatetime,
+	b.a_name,b.o_name,b.t_name,b.ID,b.ShortName,b.Code,b.Name,
+	b.CreateUserID,b.ModifyUserID,b.FullID,b.IsLeaf,b.Level,
+	b.OrganizationKindID,b.TradeKindID,b.LinkMan,b.PhoneNO,
+	b.BackupPhoneNO,b.Address,b.PostCode,b.RegAddress,b.AdminUserID,
+	b.IsDeleted,b.ArtificialPerson,b.LicenseNO,b.LicenseOrgan,b.AreaID,
+	b.VehicleSum,b.BusinessScope,b.Memo
+	from
+	(
+		select a.name as a_name,o.name as o_name,t.name as t_name,w.*
+		from  Pub_WorkUnit as w,
+		 Pub_Area as a, Pub_OrganzationKind as o,
+		 Pub_TradeKind as t
+		where 1=1 and w.AreaID=a.id and w.OrganizationKindID=o.id
+		and w.TradeKindID=t.id and IsDeleted!=1 
+		<!-- 动态查询条件 -->
+		<dynamic>
+		<!-- 超级管理员 -->
+		<isNotEmpty property="lengths">
+			and  len(w.FullID)=#lengths#
+			and w.level=1
+		</isNotEmpty>
+		<isNotEmpty property="workUnitName">
+			and w.name like '%$workUnitName$%'
+		</isNotEmpty>
+		<isNotNull property="parentFullId">
+			and w.fullId like '%$parentFullId$%' 
+			and len(w.FullID) = LEN('$parentFullId$') + 9
+		</isNotNull>
+		<isNotNull property="level">
+			<isNotEmpty property="fullId">
+				and  len(w.FullID)=LEN('$fullId$')
+				and w.fullId like '%$fullId$%'
+			</isNotEmpty>
+		</isNotNull>
+		
+		</dynamic>
+	)b
+)r 
+	<!-- 动态查询条件 -->
+	<dynamic prepend="where">
+  	  		<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+  	</dynamic>
+ </select>
+  
+  
+<!--查询工作单位数据总条数-->
+  <select id="getWorkUnitCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	select count(*)
+	from  Pub_WorkUnit as w,
+	 Pub_Area as a, Pub_OrganzationKind as o,
+	 Pub_TradeKind as t
+	where 1=1 and w.AreaID=a.id and w.OrganizationKindID=o.id
+	and w.TradeKindID=t.id and IsDeleted!=1
+		<!-- 动态查询条件 -->
+	<dynamic>
+		<!-- 超级管理员 -->
+		<isNotEmpty property="lengths">
+			and  len(w.FullID)=#lengths#
+			and w.level=1
+		</isNotEmpty>
+		<isNotEmpty property="workUnitName" >
+			and w.name like '%$workUnitName$%'
+		</isNotEmpty>
+		<isNotNull property="parentFullId">
+			and w.fullId like '%$parentFullId$%' 
+			and len(w.FullID) = LEN('$parentFullId$') + 9
+		</isNotNull>
+		<isNotNull property="level">
+			<isNotEmpty property="fullId">
+				and  len(w.FullID)=LEN('$fullId$')
+				and w.fullId like '%$fullId$%'
+			</isNotEmpty>
+		</isNotNull>
+	</dynamic>
+  </select>
+
+
+  <!-- 验证工作单位名称是否重复 -->
+   <select id="getWorkUnitByNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+   	select * from  Pub_WorkUnit where 1=1 
+   	<!-- 动态查询条件 -->
+	<dynamic>
+		<isNotEmpty property="id">
+			and <![CDATA[id<>#id#]]>
+		</isNotEmpty>
+		<isNotEmpty property="name">
+			and name like '$name$' and IsDeleted!=1
+		</isNotEmpty>
+		<isNotEmpty property="fullid">
+			and fullid like '%$fullid$%' 
+			and len(FullID) = LEN('$fullid$') + 9
+		</isNotEmpty>
+	</dynamic>
+   </select>
+  
+   <!-- 新增 begin-->
+    <parameterMap id="insertWorkUnitParam" class="java.util.HashMap"> 
+    	<parameter property="@_shortName"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_code"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_name"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_createDatetime"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_createUserID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_modifyUserID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_isLeaf"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/> 
+        <parameter property="@_level"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/> 
+        <parameter property="@_organizationKindID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_tradeKindID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_linkMan"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_phoneNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_backupPhoneNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_address"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_postCode"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_regAddress"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+<!--        <parameter property="@_adminUserID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/>-->
+        <parameter property="@_isDeleted"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/>
+        <parameter property="@_artificialPerson"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_licenseNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_licenseOrgan"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_areaID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/>
+        <parameter property="@_vehicleSum"   mode="IN" jdbcType="INT" javaType="java.lang.String"/>
+        <parameter property="@_businessScope"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_memo"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_parentID"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_parentOrBoy"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/>
+        <!-- 经营许可证号 -->
+        <parameter property="@_businessLicense"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+<!-- Double   Integer-->
+    </parameterMap>
+    <procedure id="insertWorkUnitProcSQL"  parameterMap="insertWorkUnitParam" resultClass="java.util.HashMap"> 
+    <![CDATA[
+     {call  Add_WorkUnitPro(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}
+    ]]>
+    </procedure>
+  <!-- 新增 end-->
+  
+  <!--由ID查询工作单位详细信息-->
+    <select id="getWorkUnitByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+    	select w.* from  Pub_WorkUnit  as w where 1=1
+		<!-- 动态查询条件 -->
+		<dynamic>
+		<isNotEmpty property="id">
+			and w.id = #id#
+		</isNotEmpty>
+		</dynamic>
+    </select>
+    
+  <!-- 修改 begin-->
+    <parameterMap id="updateWorkUnitParam" class="java.util.HashMap"> 
+        <parameter property="@_shortName"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_code"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_name"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+<!--        <parameter property="@_createDatetime"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> -->
+<!--        <parameter property="@_createUserID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> -->
+        <parameter property="@_modifyUserID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+<!--        <parameter property="@_isLeaf"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/> -->
+<!--        <parameter property="@_level"   mode="IN" jdbcType="INT" javaType="java.lang.Integer"/> -->
+        <parameter property="@_organizationKindID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_tradeKindID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/> 
+        <parameter property="@_linkMan"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_phoneNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_backupPhoneNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_address"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_postCode"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_regAddress"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_artificialPerson"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_licenseNO"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_licenseOrgan"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_areaID"   mode="IN" jdbcType="INT" javaType="java.lang.String"/>
+        <parameter property="@_vehicleSum"   mode="IN" jdbcType="INT" javaType="java.lang.String"/>
+        <parameter property="@_businessScope"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <parameter property="@_memo"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <!-- 最后修改时间 -->
+        <parameter property="@_modifyDatetime"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+         <!-- id -->
+        <parameter property="@_id"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+         <!-- 经营许可证号 -->
+        <parameter property="@_businessLicense"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+    </parameterMap> 
+        
+    <procedure id="updateWorkUnitProcSQL" parameterMap="updateWorkUnitParam" resultClass="java.util.HashMap"> 
+    <![CDATA[
+     {call  update_WorkUnitPro(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}
+    ]]>
+    </procedure>
+  <!-- 修改end -->
+    
+  <!-- 删除begin -->
+	<!--删除企业和子企业-->
+    <delete id="delWorkUnitProcSQL" parameterClass="java.util.HashMap">
+    	update  Pub_WorkUnit 
+    	<!-- 动态删除条件 -->
+		<dynamic>
+			<isNotEmpty property="fullId">
+				set IsDeleted=1 where fullid like '%$fullId$%'
+			</isNotEmpty>
+		</dynamic>
+    </delete>
+    <!--删除SIM卡号信息-->
+    <delete id="delSIMCardSQL" parameterClass="java.util.HashMap">
+    	DELETE FROM dbo.Pub_SIMCard WHERE WorkUnitID in ( $ids$ )
+    </delete>
+    <!--删除终端信息-->
+    <delete id="delTerminalSQL" parameterClass="java.util.HashMap">
+    	 DELETE  FROM dbo.Pub_Terminal WHERE ID in ($ids$)
+    </delete>
+   
+   <!-- 删除end --> 
+    
+   <!-- 其它begin -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <!-- 其他end -->
+   <!-- feltky Star --> 
+    
+   <!-- 根据ID查询企业信息 -->
+	<select id="getWorkUnitById" parameterClass="HashMap" resultClass="workUnit">  
+	  	SELECT 
+	  	   [ID]
+	      ,[ShortName]
+	      ,[Code]
+	      ,[Name]
+	      ,[CreateDatetime]
+	      ,[CreateUserID]
+	      ,[ModifyDatetime]
+	      ,[ModifyUserID]
+	      ,[FullID]
+	      ,[IsLeaf]
+	      ,[Level]
+	      ,[OrganizationKindID]
+	      ,[TradeKindID]
+	      ,[LinkMan]
+	      ,[PhoneNO]
+	      ,[BackupPhoneNO]
+	      ,[Address]
+	      ,[PostCode]
+	      ,[RegAddress]
+	      ,[AdminUserID]
+	      ,[IsDeleted]
+	      ,[ArtificialPerson]
+	      ,[LicenseNO]
+	      ,[LicenseOrgan]
+	      ,[AreaID]
+	      ,[VehicleSum]
+	      ,[BusinessScope]
+	      ,[Memo]
+	  FROM   Pub_WorkUnit
+	  	  WHERE ID=#id# 
+  </select>	
+  
+  <!-- 查询所有企业信息  -->
+  <select id="getAllWorkUnit" resultClass="workUnit" parameterClass="java.util.HashMap">
+  	  	SELECT 
+		  	   [id]
+		      ,[shortName]
+		      ,[code]
+		      ,[name]
+		      ,[createDatetime]
+		      ,[createUserId]
+		      ,[modifyDatetime]
+		      ,[modifyUserId]
+		      ,[fullId]
+		      ,[isLeaf]
+		      ,[level]
+		      ,[organizationKindId]
+		      ,[tradeKindId]
+		      ,[linkMan]
+		      ,[phoneNo]
+		      ,[backupPhoneNo]
+		      ,[address]
+		      ,[postCode]
+		      ,[regAddress]
+		      ,[adminUserId]
+		      ,[isDeleted]
+		      ,[artificialPerson]
+		      ,[licenseNo]
+		      ,[licenseOrgan]
+		      ,[areaId]
+		      ,[vehicleSum]
+		      ,[businessScope]
+		      ,[memo]
+  		FROM  Pub_WorkUnit wu
+  			WHERE 1=1
+  			and IsDeleted != 1
+  			and wu.Name is not null
+<!--  			and wu.shortName is not null-->
+  			<isNotNull prepend="and" property="workUnitID">
+  				wu.id=#workUnitID#
+  			</isNotNull>
+  </select> 
+    
+    <update id="updateWorkUnitAdminId" parameterClass="java.util.HashMap">
+    	UPDATE    Pub_WorkUnit
+    	 	SET
+    	 	<isNull property="userId">
+    	 	 adminUserId = null
+    	 	</isNull>
+    	 	<isNotNull property="userId">
+    	 	 adminUserId = #userId#
+    	 	</isNotNull>
+    	 	WHERE ID=#id#   	   
+    </update>
+    
+    <!-- feltky End -->
+    
+    
+  
+</sqlMap>

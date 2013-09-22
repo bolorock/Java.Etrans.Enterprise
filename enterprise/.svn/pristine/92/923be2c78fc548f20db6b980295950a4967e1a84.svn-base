@@ -1,0 +1,180 @@
+/**
+ * 报警类型工具类
+ */
+package com.etrans.common.util;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wlz
+ * 2012-03-07
+ */
+public class AlarmTypeUtil {
+
+	private static Map<String,String> alarmTypeMap;
+	
+	static {
+		alarmTypeMap = new LinkedHashMap<String,String>();
+		alarmTypeMap.put("2", "超速报警");
+		alarmTypeMap.put("3", "疲劳驾驶报警");
+		alarmTypeMap.put("1", "紧急报警");
+		alarmTypeMap.put("4", "预警");
+		alarmTypeMap.put("5", "GNSS模块发生故障");
+		alarmTypeMap.put("6", "GNSS天线未接或被剪断");
+		alarmTypeMap.put("7", "GNSS天线短路");
+		alarmTypeMap.put("8", "终端主电源欠压");
+		alarmTypeMap.put("9", "终端主电源掉电");
+		alarmTypeMap.put("10", "终端LCD或显示器故障");
+		alarmTypeMap.put("11", "TTS模块故障");
+		alarmTypeMap.put("12", "摄像头故障");
+		alarmTypeMap.put("13", "当天累计驾驶超时");
+		alarmTypeMap.put("14", "超时停车");
+		alarmTypeMap.put("15", "进出区域");
+		alarmTypeMap.put("16", "进出路线");
+		alarmTypeMap.put("17", "路段行驶时间不足/过长");
+		alarmTypeMap.put("18", "路线偏离报警");
+		alarmTypeMap.put("19", "车辆VSS故障");
+		alarmTypeMap.put("20", "车辆油量异常");
+		alarmTypeMap.put("21", "车辆被盗");
+		alarmTypeMap.put("22", "车辆非法点火");
+		alarmTypeMap.put("23", "车辆非法位移");
+		alarmTypeMap.put("24", "碰撞侧翻报警");
+		
+	}
+	
+	/**
+	 * 获取所有警报类型MAP
+	 * @return
+	 */
+	public static Map<String,String> getAlarmTypeMap(){
+		return alarmTypeMap;
+	}
+	
+	/**
+	 * 获取所有警报类型ID的字串
+	 * @return
+	 */
+	public static String getAlarmTypeIds(){
+		String alarmTypeIds = "";
+		Iterator iter = alarmTypeMap.entrySet().iterator();
+		while (iter.hasNext()) {
+		    Map.Entry entry = (Map.Entry) iter.next();
+		    String key = (String)entry.getKey();
+		    alarmTypeIds += key + ",";
+		} 
+		if (alarmTypeIds.length()>1)
+			alarmTypeIds = alarmTypeIds.substring(0,alarmTypeIds.length()-1);
+		return alarmTypeIds;
+	}
+	
+	/**
+	 * 获取所有警报类型ID的LIST
+	 * @return
+	 */
+	public static List<String> getAlarmTypeIdList(){
+		List<String> alarmTypeIds = new ArrayList<String>();
+		for(Map.Entry<String,String> entry:alarmTypeMap.entrySet()){
+			 String key = (String)entry.getKey();
+			 alarmTypeIds.add(key);
+		}
+		return alarmTypeIds;
+	}
+	
+	/**
+	 * 获取所有警报类型NAME的字串
+	 * @return
+	 */
+	public static String getAlarmTypeNames(){
+		String alarmTypeNames = "";
+		Iterator iter = alarmTypeMap.entrySet().iterator();
+		while (iter.hasNext()) {
+		    Map.Entry entry = (Map.Entry) iter.next();
+		    String val = (String)entry.getValue();
+		    alarmTypeNames += val + ",";
+		} 
+		if (alarmTypeNames.length()>1)
+			alarmTypeNames = alarmTypeNames.substring(0,alarmTypeNames.length()-1);
+		return alarmTypeNames;
+	}
+	
+	/**
+	 * 获取所有警报类型NAME的LIST
+	 * @return
+	 */
+	public static List<String> getAlarmTypeNameList(){
+		List<String> alarmTypeNames = new ArrayList<String>();
+		
+		for(Map.Entry<String,String> entry:alarmTypeMap.entrySet()){
+			String val = (String)entry.getValue();
+		    alarmTypeNames.add(val);
+		}
+		return alarmTypeNames;
+	}
+	
+	public static String getAlarmTypeNameById(String id){
+		if(alarmTypeMap.containsKey(id)){
+			return alarmTypeMap.get(id);
+		}else{
+			return "";
+		}
+	}
+	
+	public static String getHAlarmName(int id){
+		String alarmName="";
+		switch (id){
+		case 1:
+			alarmName="超速报警";
+			break;
+		case 2:
+			alarmName="疲劳驾驶报警";
+			break;
+		case 3:
+			alarmName="紧急报警";
+			break;
+		case 4:
+			alarmName="进入指定区域报警";
+			break;
+		case 5:
+			alarmName="离开指定区域报警";
+			break;
+		case 6:
+			alarmName="路段堵塞报警";
+			break;
+		case 7:
+			alarmName="危险路段报警";
+			break;
+		case 8:
+			alarmName="越界报警";
+			break;
+		case 9:
+			alarmName="盗警";
+			break;
+		case 10:
+			alarmName="劫警";
+			break;
+		case 11:
+			alarmName="偏离路线报警";
+			break;
+		case 12:
+			alarmName="车辆移动报警";
+			break;
+		case 13:
+			alarmName="超时驾驶报警";
+			break;
+		case 14:
+			alarmName="其他报警";
+			break;
+		default:
+			alarmName="其他报警";
+		    
+		}
+		return alarmName;
+		
+	}
+	
+	
+}

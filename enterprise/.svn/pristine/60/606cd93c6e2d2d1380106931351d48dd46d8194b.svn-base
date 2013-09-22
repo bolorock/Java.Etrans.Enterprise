@@ -1,0 +1,281 @@
+/**
+ * SessionUser.java
+ * Create on 2012-1-16下午05:40:34
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.auth;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+
+import com.etrans.bubiao.sys.UserContext;
+
+/**
+ * @author Ivan
+ * @version 1.0
+ * @brief 登录用户实体
+ */
+public class SessionUser implements  Serializable {
+	
+	private static final long serialVersionUID = 1L;
+
+	/**
+	 * 用户ID
+	 */
+	private Long userID;
+
+	/**
+	 * 用户名
+	 */
+	private String name;
+
+	/**
+	 * 登录用户名
+	 */
+	private String userName;
+
+	/**
+	 * 用户密码
+	 */
+	private String password;
+
+	/**
+	 * 单位
+	 */
+	private Long workUnitID;
+
+	/**
+	 * 单位名称
+	 */
+	private String workUnitName;
+	
+	/**
+	 * 所属车辆的ID
+	 */
+	private String vehicleId;
+	
+	/**
+	 * 车辆颜色
+	 */
+	private String registrationNoColor;
+	
+	/**
+	 * 车牌
+	 */
+	private String registrationNo;
+	
+	/**
+	 * 系统公告
+	 * */
+	private Boolean systemNotice;
+	
+	public Boolean getSystemNotice() {
+		return systemNotice;
+	}
+
+	public void setSystemNotice(Boolean systemNotice) {
+		this.systemNotice = systemNotice;
+	}
+	
+/**
+ *  操作是否显示
+ */
+	
+	private Boolean isShowHandle;  
+
+	public Boolean getIsShowHandle() {
+		return isShowHandle;
+	}
+
+	public void setIsShowHandle(Boolean isShowHandle) {
+		this.isShowHandle = isShowHandle;
+	}
+	/**
+	 * 是否是企业管理员
+	 */
+	private boolean isWorkUnitSuperAdmin;
+
+	public boolean isWorkUnitSuperAdmin() {
+		return isWorkUnitSuperAdmin;
+	}
+
+	public void setWorkUnitSuperAdmin(boolean isWorkUnitSuperAdmin) {
+		this.isWorkUnitSuperAdmin = isWorkUnitSuperAdmin;
+	}
+
+	public String getWorkUnitName() {
+		return workUnitName;
+	}
+
+	public void setWorkUnitName(String workUnitName) {
+		this.workUnitName = workUnitName;
+	}
+
+	public String getVehicleId() {
+		return vehicleId;
+	}
+
+	public void setVehicleId(String vehicleId) {
+		this.vehicleId = vehicleId;
+	}
+
+	public String getRegistrationNoColor() {
+		return registrationNoColor;
+	}
+
+	public void setRegistrationNoColor(String registrationNoColor) {
+		this.registrationNoColor = registrationNoColor;
+	}
+
+	public String getRegistrationNo() {
+		return registrationNo;
+	}
+
+	public void setRegistrationNo(String registrationNo) {
+		this.registrationNo = registrationNo;
+	}
+
+	/**
+	 * 创建时间
+	 */
+	private String createTime;
+
+	/**
+	 * 是否为超级用户
+	 */
+	private Boolean isSuperUser;
+
+	/**
+	 * 权限列表
+	 */
+	private List<String> authentications;
+
+	/**
+	 * 权限列表
+	 */
+	private String resources;
+
+	/**
+	 * 用户所属平台id
+	 */
+	private List<String> platFormIds;
+	
+	private String workUnitFullId;
+
+	public void setWorkUnitFullId(String workUnitFullId) {
+		this.workUnitFullId = workUnitFullId;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public Long getWorkUnitID() {
+		return workUnitID;
+	}
+
+	public void setWorkUnitID(Long workUnitID) {
+		this.workUnitID = workUnitID;
+	}
+
+	public String getCreateTime() {
+		return createTime;
+	}
+
+	public void setCreateTime(String createTime) {
+		this.createTime = createTime;
+	}
+
+	public boolean getIsSuperUser() {
+		return isSuperUser;
+	}
+
+	public void setIsSuperUser(boolean isSuperUser) {
+		this.isSuperUser = isSuperUser;
+	}
+
+	public Long getUserID() {
+		return userID;
+	}
+
+	public void setUserID(Long userID) {
+		this.userID = userID;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public List<String> getAuthentications() {
+		return authentications;
+	}
+
+	public void setAuthentications(List<String> authentications) {
+		this.authentications = authentications;
+	}
+
+	public List<String> getPlatFormIds() {
+		return platFormIds;
+	}
+
+	public void setPlatFormIds(List<String> platFormIds) {
+		this.platFormIds = platFormIds;
+	}
+
+	public String getResources() {
+		return resources;
+	}
+
+	public void setResources(String resources) {
+		this.resources = resources;
+	}
+
+	//获取用户企业FullId,不考虑父企业ID部分
+	public String getWorkUnitFullId(){
+		return workUnitFullId;
+	}
+	
+	/**
+	 * 添加完整id作为条件
+	 * @param params
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public Map getParamsOrFullid(Map params){
+		
+		if(workUnitID == null){
+			return null;
+		}else{
+			String result = "";
+			String fullId = String.valueOf(workUnitID).trim();
+			result = fullId ;
+			if(fullId.length() < 8){
+				for(int i = 0;i<(8-fullId.length());i++){
+					result = "0" + result;
+				}
+			}
+			params.put("fullId", result);
+			params.put("wuID", workUnitID);//单位id
+			return params;
+		}		
+		
+	}
+
+}

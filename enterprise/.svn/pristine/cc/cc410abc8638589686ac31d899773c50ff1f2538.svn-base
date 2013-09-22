@@ -1,0 +1,339 @@
+package com.etrans.bubiao.action.http;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.entities.HttpResult;
+import com.etrans.bubiao.entities.ParamBean;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.services.TaService;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+
+@SuppressWarnings("serial")
+@Controller("eTGetTADataAction")
+@Scope("prototype")
+@Namespace("/httpService")
+public class ETGetTADataAction extends HttpServiceAction {
+	@Autowired(required = true)
+	private IbatisServices ibatisServices;
+
+	@Autowired
+	private TaService taService;
+
+	/**
+	 * http://localhost:8080/enterprise/httpService/ETGetOverspeed.action?jsonParam={"userID":"1","ticket":"1366797548140-2716",vehicleIdList:["2","3","4"],"startDate":"2013-04-21 01:01:26","endDate":"2013-04-21 23:01:26"}
+	 * 获取超速数据
+	 * 
+	 * @author hgq
+	 */
+	@Action(value = "ETGetOverspeed")
+	public void ETGetOverspeed() throws Exception {
+		// 返回结果
+		HttpResult result = new HttpResult();
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		Date dateStart = null;
+		Date dateEnd = null;
+		try {
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+
+			/**************** 数据验证*********START ***************/
+			// 步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,
+					ParamBean.class);
+
+			// 步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			List<String> vehicleIdList = paramBean.getVehicleIdList();
+			String startDate = paramBean.getStartDate();
+			String endDate = paramBean.getEndDate();
+			dateStart = format.parse(startDate);
+			dateEnd = format.parse(endDate);
+
+			// 步骤三：判断安全票据是否为空
+			if (StringUtils.isEmpty(ticket)) {
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+
+			// 步骤四：验证用户是否失效
+			if (TicketManager.getInstance().checkTicketAble(ticket)) {
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/**************** 数据验证********END ****************/
+			if (flag) {
+				/**************** 返回结果********START ****************/
+				// 步骤五：组装返回对象
+				Map<String, Object> map = new HashMap<String, Object>();
+				// map.put("userID", userID);
+				map.put("vehicleIdList", vehicleIdList);
+				map.put("startDate", dateStart);
+				map.put("endDate", dateEnd);
+
+				List<HashMap<String, Object>> resultls = this.taService
+						.getOverspeed(map);
+
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/**************** 返回结果********END ****************/
+
+				/**************** 更新票据有效时间********START ****************/
+				// 步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+
+				/**************** 更新票据有效时间********START ****************/
+			}
+		} catch (Exception e) {
+			result.setCode(Config.OTHER_ERROR);
+			log.error("[" + Tools.formatDate(new Date()) + "]---->", e);
+		}
+
+		this.renderJSON(result);
+	}
+
+	/**
+	 * http://localhost:8080/enterprise/httpService/ETGetFatiguedrive.action?
+	 * jsonParam
+	 * ={"userID":"1","ticket":"1366797548140-2716",vehicleIdList:["2","3"
+	 * ,"4"],"startDate":"2013-04-21 01:01:26","endDate":"2013-04-21 23:01:26"}
+	 * 获取疲劳驾驶数据
+	 * 
+	 * @throws Exception
+	 */
+	@Action(value = "ETGetFatiguedrive")
+	public void ETGetFatiguedrive() throws Exception {
+		// 返回结果
+		HttpResult result = new HttpResult();
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		Date dateStart = null;
+		Date dateEnd = null;
+		try {
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+
+			/**************** 数据验证*********START ***************/
+			// 步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,
+					ParamBean.class);
+
+			// 步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			List<String> vehicleIdList = paramBean.getVehicleIdList();
+			String startDate = paramBean.getStartDate();
+			String endDate = paramBean.getEndDate();
+			dateStart = format.parse(startDate);
+			dateEnd = format.parse(endDate);
+
+			// 步骤三：判断安全票据是否为空
+			if (StringUtils.isEmpty(ticket)) {
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+
+			// 步骤四：验证用户是否失效
+			if (TicketManager.getInstance().checkTicketAble(ticket)) {
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/**************** 数据验证********END ****************/
+			if (flag) {
+				/**************** 返回结果********START ****************/
+				// 步骤五：组装返回对象
+				Map<String, Object> map = new HashMap<String, Object>();
+				// map.put("userID", userID);
+				map.put("vehicleIdList", vehicleIdList);
+				map.put("startDate", dateStart);
+				map.put("endDate", dateEnd);
+
+				List<HashMap<String, Object>> resultls = this.taService
+						.getFatiguedrive(map);
+
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/**************** 返回结果********END ****************/
+
+				/**************** 更新票据有效时间********START ****************/
+				// 步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+
+				/**************** 更新票据有效时间********START ****************/
+			}
+		} catch (Exception e) {
+			result.setCode(Config.OTHER_ERROR);
+			log.error("[" + Tools.formatDate(new Date()) + "]---->", e);
+		}
+
+		this.renderJSON(result);
+	}
+
+	/**
+	 * http://localhost:8080/enterprise/httpService/ETGetArea.action?
+	 * jsonParam
+	 * ={"userID":"1","ticket":"1366797548140-2716",vehicleIdList:["2","3"
+	 * ,"4"],"startDate":"2013-04-21 01:01:26","endDate":"2013-04-21 23:01:26"}
+	 * 获取区域进出数据
+	 * 
+	 * @throws Exception
+	 */
+	@Action(value = "ETGetArea")
+	public void ETGetArea() throws Exception {
+		// 返回结果
+		HttpResult result = new HttpResult();
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		Date dateStart = null;
+		Date dateEnd = null;
+		try {
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+
+			/**************** 数据验证*********START ***************/
+			// 步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,
+					ParamBean.class);
+
+			// 步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			List<String> vehicleIdList = paramBean.getVehicleIdList();
+			String startDate = paramBean.getStartDate();
+			String endDate = paramBean.getEndDate();
+			dateStart = format.parse(startDate);
+			dateEnd = format.parse(endDate);
+
+			// 步骤三：判断安全票据是否为空
+			if (StringUtils.isEmpty(ticket)) {
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+
+			// 步骤四：验证用户是否失效
+			if (TicketManager.getInstance().checkTicketAble(ticket)) {
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/**************** 数据验证********END ****************/
+			if (flag) {
+				/**************** 返回结果********START ****************/
+				// 步骤五：组装返回对象
+				Map<String, Object> map = new HashMap<String, Object>();
+				// map.put("userID", userID);
+				map.put("vehicleIdList", vehicleIdList);
+				map.put("startDate", dateStart);
+				map.put("endDate", dateEnd);
+
+				List<HashMap<String, Object>> resultls = this.taService
+						.getArea(map);
+
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/**************** 返回结果********END ****************/
+
+				/**************** 更新票据有效时间********START ****************/
+				// 步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+
+				/**************** 更新票据有效时间********START ****************/
+			}
+		} catch (Exception e) {
+			result.setCode(Config.OTHER_ERROR);
+			log.error("[" + Tools.formatDate(new Date()) + "]---->", e);
+		}
+
+		this.renderJSON(result);
+	}
+
+	/**
+	 * http://localhost:8080/enterprise/httpService/ETGetOvertimeParking.action?
+	 * jsonParam
+	 * ={"userID":"1","ticket":"1366797548140-2716",vehicleIdList:["2","3"
+	 * ,"4"],"startDate":"2013-04-21 01:01:26","endDate":"2013-04-21 23:01:26"}
+	 * 获取地点超时停车数据
+	 * 
+	 * @throws Exception
+	 */
+	@Action(value = "ETGetOvertimeParking")
+	public void ETGetOvertimeParking() throws Exception {
+		// 返回结果
+		HttpResult result = new HttpResult();
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		Date dateStart = null;
+		Date dateEnd = null;
+		try {
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+
+			/**************** 数据验证*********START ***************/
+			// 步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,
+					ParamBean.class);
+
+			// 步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			List<String> vehicleIdList = paramBean.getVehicleIdList();
+			String startDate = paramBean.getStartDate();
+			String endDate = paramBean.getEndDate();
+			dateStart = format.parse(startDate);
+			dateEnd = format.parse(endDate);
+
+			// 步骤三：判断安全票据是否为空
+			if (StringUtils.isEmpty(ticket)) {
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+
+			// 步骤四：验证用户是否失效
+			if (TicketManager.getInstance().checkTicketAble(ticket)) {
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/**************** 数据验证********END ****************/
+			if (flag) {
+				/**************** 返回结果********START ****************/
+				// 步骤五：组装返回对象
+				Map<String, Object> map = new HashMap<String, Object>();
+				// map.put("userID", userID);
+				map.put("vehicleIdList", vehicleIdList);
+				map.put("startDate", dateStart);
+				map.put("endDate", dateEnd);
+
+				List<HashMap<String, Object>> resultls = this.taService
+						.getOvertimeParking(map);
+
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/**************** 返回结果********END ****************/
+
+				/**************** 更新票据有效时间********START ****************/
+				// 步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+
+				/**************** 更新票据有效时间********START ****************/
+			}
+		} catch (Exception e) {
+			result.setCode(Config.OTHER_ERROR);
+			log.error("[" + Tools.formatDate(new Date()) + "]---->", e);
+		}
+
+		this.renderJSON(result);
+	}
+
+}

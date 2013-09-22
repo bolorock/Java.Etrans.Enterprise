@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon">
+<title>道路运输车辆卫星定位企业平台</title>
+<link rel="stylesheet" type="text/css" href="css/body.css">
+<script type="text/javascript" src="js/jq/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="js/login.js"></script>
+<!--[if IE 6]>
+<link rel="stylesheet" type="text/css" href="Css/ie6_hack.css">
+<![endif]--> 
+
+<style type="text/css">
+.login_error_tip
+{
+	
+ margin: auto 0;
+ text-align: center;
+ color: #F8B3D0;
+ font-size: 15px;
+ font-weight: bold;
+
+}
+</style>
+
+</head>
+
+<body onkeydown="if(event.keyCode=='13')login();">
+
+<div id="login_box">
+	
+    <div class="login_name">道路运输车辆卫星定位企业平台</div>
+<div class="login_cont">
+    <div id="divErrorTip" class="left login_worry"></div>
+    	<!--登录代码开始-->
+        	<div class="login_tab">
+        	
+        	<form id="loginForm" action="pub/login.action" method="post">
+            	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td height="120" colspan="3" valign="top">
+                    
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="63" height="38" class="ps_word">账&nbsp;&nbsp;&nbsp;号：</td>
+                        <td>
+                          <input type="text" name="username" id="txtUserName" 
+                             class="login_text"/>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td height="38" class="ps_word">密&nbsp;&nbsp;&nbsp;码：</td>
+                        <td>
+                         <input id="txtPassword" name="password"   type="password" class="login_text"></input>
+                          </td>
+                      </tr>
+                      <tr>
+                        <td height="36" class="ps_word">验证码：</td>
+                        <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                          <tr>
+                            <td width="114">
+                              <input id="txtAuthCode"  type="text"   
+                                 style=" width:104px; height:32px; border:1px solid #BCBCBC; 
+                                 line-height:32px; padding-left:10px; background:url(imgs/text_link_bg.jpg) repeat-x;"/>
+                                 </td>
+                            <td width="100" align="center"><img id="imgCode" src="authImg" width="68" height="18" /></td>
+                            <td align="center"><a id="btn_changeCode" style="cursor:hand; cursor:pointer;" >换一张</a></td>
+                          </tr>
+                        </table></td>
+                      </tr>
+                    </table>
+                    
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="130" height="43">
+                    <a id="btnLogin"  target="_self" style="cursor:hand; cursor:pointer;"><img src="imgs/login_in.jpg" width="130" height="50" alt="登录"/></a>
+                    </td>
+                    <td width="130"><a id="btnReset" style="cursor:hand; cursor:pointer;"><img src="imgs/rest.jpg" width="130" height="50" alt="重置"/></a></td>
+                    <td width="73" align="center"><!-- <a href="#">忘记密码</a> --></td>
+                  </tr>
+                </table>
+               </form>
+			</div>
+        <!--登录代码结束-->
+    
+    </div>
+    <div class="login_copy">广州亿程交通信息有限公司<br /><span>2012 <a href="http://www.e-trans.com.cn" target="_blank">E-TRANS</a> All Rights Reserved. This program is protected by China.</span></div>
+</div>
+
+</body>
+</html>

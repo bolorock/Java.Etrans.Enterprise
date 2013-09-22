@@ -1,0 +1,270 @@
+$(function(){
+	$('#userbnt').bind('click', userNext);
+	
+	$('#rolebntBack').bind('click', roleBack);
+	$('#rolebntNext').bind('click', roleNext);
+	
+	$('#vehilceGroupBntBack').bind('click', vehilceGroupBack);
+	$('#vehilceGroupBntNext').bind('click', vehilceGroupNext);
+	
+	$('#authorityBntBack').bind('click', authorityDivBack);
+	$('#authorityBnt').bind('click', authorityDiv);
+	
+	
+	window.frames['userFrame'].$("#formAddUser").validation();
+	window.frames['roleFrame'].$("#formAddRole").validation();
+	
+	
+	
+	
+	
+});
+
+
+function userNext(){
+	var userFrame = window.frames['userFrame'];   
+	var name = userFrame.$("#txtName").val();
+	var userName = userFrame.$("#txtUserName").val(); 
+	
+	
+	var password1 = userFrame.$("#txtPassword1").val(); 
+	
+	var runTime = userFrame.$("#txtRunTime").val(); 
+	var overTime = userFrame.$("#txtOverTime").val(); 
+	
+	var workUnitId = userFrame.$("#workUnitId").val();
+	var workUnitName = userFrame.$("#workUnitIdPram").val(); 
+	
+	var userId =$("#userId").val();
+	
+	 
+	
+	var flag = userFrame.$("#formAddUser").beforeSubmit();
+	if(flag){
+			var jsonParams = {
+			userId : userId,
+			name : name,
+			userName : userName,
+			password : password1,
+			runTime : runTime,
+			overTime : overTime,
+			workUnitId : workUnitId,
+			datetimes : new Date()
+		};
+		$.post("sys/userManage/createUser.action", jsonParams, function(data) {
+			if(data!='false' ){
+				var strs=data;
+				var arry=strs.split("@"); //字符分割      
+				$("#userId").val(arry[0]);
+				$("#workUnitIds").val(workUnitId);
+				$("#workUnitName").val(workUnitName);
+				$("#groupId").val(arry[1]);
+				userFrame.$("#txtUserId").val(arry[0]);
+				
+				document.getElementById("userDiv").style.display="none";
+				document.getElementById("roleDiv").style.display="block";
+				document.getElementById("vehilceGroupDiv").style.display="none";
+				document.getElementById("authorityDiv").style.display="none";
+			}
+			
+		});
+		
+	}	
+}
+
+
+function roleBack(){
+	document.getElementById("userDiv").style.display="block";
+	document.getElementById("roleDiv").style.display="none";
+	document.getElementById("vehilceGroupDiv").style.display="none";
+	document.getElementById("authorityDiv").style.display="none";
+}
+
+function roleNext(){
+	var roleFrame = window.frames['roleFrame'];   
+	var name = roleFrame.$("#txtAddRoleName").val();
+	var shortRoleName = roleFrame.$("#shortRoleName").val();
+	var txtRoleId = roleFrame.$("#txtRoleId").val();
+	var workUnitId =$("#workUnitIds").val();
+	var userId =$("#userId").val();
+	
+	var flag = roleFrame.$("#formAddRole").beforeSubmit();
+	if(flag){
+			var jsonParams = {
+			roleId : txtRoleId,
+			name : name,
+			shortRoleName : shortRoleName,
+			workUnitId : workUnitId,
+			userId : userId,
+			datetimes : new Date()
+		};
+		$.post("sys/userManage/createRole.action", jsonParams, function(data) {
+			if(data!='false' ){
+				var id=data;
+				$("#roleId").val(id);
+				$("#workUnitIds").val(workUnitId);
+				roleFrame.$("#txtRoleId").val(id);
+				
+				document.getElementById("userDiv").style.display="none";
+				document.getElementById("roleDiv").style.display="none";
+				document.getElementById("vehilceGroupDiv").style.display="block";
+				document.getElementById("authorityDiv").style.display="none";
+				addVehicleTree("selectVehicle",true);
+			}
+			
+		});
+		
+	}	
+	
+}
+
+function vehilceGroupBack(){
+	document.getElementById("userDiv").style.display="none";
+	document.getElementById("roleDiv").style.display="block";
+	document.getElementById("vehilceGroupDiv").style.display="none";
+	document.getElementById("authorityDiv").style.display="none";
+}
+
+
+
+
+
+function vehilceGroupNext(){
+	var vehilceGroupFrame = window.frames['vehilceGroupFrame'];   
+	if(vehilceGroupFrame.$("#vehicleName").val()==null || vehilceGroupFrame.$("#vehicleName").val()==""){
+		vehilceGroupFrame.$("#vehicleNamespan").showMessage({
+				type : "error",
+				closeable : false, 
+				text : "名称不能为空！"});
+		    return;
+	}
+    var workId =  $("#workUnitIds").val();
+    var groupId = $("#groupId").val();
+    var roleId = $("#roleId").val();
+    var c="";
+   
+    vehilceGroupFrame.$(".tree-checkbox1").parent().children('.tree-title').each(function(){
+      c+=$(this).parent().attr('node-id')+",";
+    });
+    var str=(c);
+    str=str.substring(0,str.length-1);
+   // alert(str);
+    
+    
+	$.ajax({
+	type:"POST",
+	url:"sys/userManage/createVehicleGroup.action",
+	data:{
+		"vehicleGroupBean.fullId":null,
+		"vehicleGroupBean.parentGroupId":groupId,
+		"vehicleGroupBean.isLeaf":1,
+		"vehicleGroupBean.level":2,
+		"vehicleGroupBean.name":$("#vehicleName").val(),
+		"vehicleGroupBean.workUnitId":workId,
+		"vehicleGroupBean.authorizedGroupId":0,
+		"vehicleGroupBean.kind":4,
+		"vehicleGroupBean.isSourceVisible":0,
+		"vehicleGroupBean.privilegeFlag":0,
+		"vehicles":str,
+		"roleId":roleId
+	},
+	dataType:"JSON",
+	success:function(data){
+		if(data!='false'){
+			
+			document.getElementById("userDiv").style.display="none";
+			document.getElementById("roleDiv").style.display="none";
+			document.getElementById("vehilceGroupDiv").style.display="none";
+			document.getElementById("authorityDiv").style.display="block";
+			
+			authorityTree();
+		}
+	},
+	error:function(data){
+		
+	}
+	
+});
+    
+	
+}
+
+function authorityDivBack(){
+	document.getElementById("userDiv").style.display="none";
+	document.getElementById("roleDiv").style.display="none";
+	document.getElementById("vehilceGroupDiv").style.display="block";
+	document.getElementById("authorityDiv").style.display="none";
+}
+
+function authorityDiv(){
+	document.getElementById("userDiv").style.display="none";
+	document.getElementById("roleDiv").style.display="none";
+	document.getElementById("vehilceGroupDiv").style.display="none";
+	document.getElementById("authorityDiv").style.display="block";
+}
+
+
+function addVehicleTree(TreeId,isAdd) {
+	try{
+		var vehilceGroupFrame = window.frames['vehilceGroupFrame'];   
+		//车组权限
+		vehilceGroupFrame.$("#"+TreeId).html('<img src="imgs/load.gif" />');
+		
+		vehilceGroupFrame.$("#addTheirCustomer").val($("#workUnitName").val());
+		var workId = $("#workUnitIds").val();
+		var groupId = $("#groupId").val();
+		var id=-1;
+		$.ajax({
+		    type : "POST",
+		    url : "sys/userManage/getWorkUnitVehicleList.action",
+		    data : {nodeId:id,workId:workId,groupId:groupId},
+		    dataType : "JSON",
+		    success : function(data) {
+		    	vehilceGroupFrame.$('#'+TreeId).tree({
+		    		data:data,
+		    		checkbox:true,
+		    		animate : true,
+		    		onlyLeafCheck:false   
+		    	});
+		    }
+	    });
+	}catch(e){}
+}
+
+
+var isSetCommand = 1;
+function authorityTree(){
+	 var roleId = $("#roleId").val();
+	var authorityFrame = window.frames['authorityFrame'];   
+	authorityFrame.$("#fnctionAuthTree").html('<img src="imgs/load.gif" />');
+	$.ajax({
+	    type : "POST",
+	    url : "sys/role/findMenusByParent_new.action",
+	    data : {roleId:roleId},
+	    dataType : "JSON",
+	    success : function(data) {
+	    	authorityFrame.$('#fnctionAuthTree').tree({
+	    		data:data,
+	    		checkbox:true,
+	    		animate : true
+	    	});
+	    }
+    });
+	
+	isSetCommand = 0;
+	authorityFrame.$("#configCommandRole").html('<img src="imgs/load.gif" />');
+	$.ajax({
+	    type : "POST",
+	    url : "sys/role/findCommandMenu.action",
+	    data : {roleId:roleId},
+	    dataType : "JSON",
+	    success : function(data) {
+	    	authorityFrame.$('#commandAuthTree').tree({
+	    		data:data,
+	    		checkbox:true,
+	    		animate : true
+	    	});
+	    }
+    });
+
+}

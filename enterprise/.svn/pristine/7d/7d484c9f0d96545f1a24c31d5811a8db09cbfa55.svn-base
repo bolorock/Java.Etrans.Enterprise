@@ -1,0 +1,140 @@
+/**
+ * InitSelectAction.java
+ * Create on 2012-4-26 15:31:34
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.action.sys;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.services.sys.TreeServices;
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys/tree")
+public class TreeAction extends BaseAction {
+
+	private static final long serialVersionUID = 1L;
+	
+	@Autowired
+	private TreeServices treeServices;
+
+	
+	
+	public TreeServices getTreeServices() {
+		return treeServices;
+	}
+
+
+
+	public void setTreeServices(TreeServices treeServices) {
+		this.treeServices = treeServices;
+	}
+
+
+
+	/**
+	 *行业类型树
+	 */
+ 	@Action(value = "getTradeKindTreeList")
+	public void getTradeKindTreeList() {
+		try {
+			String json=null;
+			String id = this.getParameter("id");
+			json = this.treeServices.getTradeKindTree(id);
+			this.renderJSON(json);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+ 	
+
+	/**
+	 *车牌颜色
+	 */
+ 	@Action(value = "getRegistrationNoColorTreeList")
+	public void getRegistrationNoColorTreeList() {
+		try {
+			String json=null;
+			String id = this.getParameter("id");
+			json = this.treeServices.getRegistrationNoColorTree(id);
+			this.renderJSON(json);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+ 	
+ 	
+ 	/**
+ 	 * 区域
+ 	 */
+ 	@Action(value = "getAreaTreeList")
+	public void getAreaTreeList() {
+		try {
+			String ids = this.getParameter("id");
+			String json=null;
+			String id=null;
+			Map<String,Object> sqlWhere= new HashMap<String,Object>();
+			if(ids!="null" && ids!=null){
+				String[] ary = ids.split("\\|");
+				String []str=new String[2];
+				 for (int i = 0; i < ary.length; i++){ 
+					 str[i]=ary[i];
+				 }
+                  
+				 sqlWhere.put("parentFullId", str[1]);
+				 id=str[1];
+				
+			}
+			json = this.treeServices.getAreaTreeList(sqlWhere,id);
+			this.renderJSON(json);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+ 	
+ 	
+	/**
+ 	 * 企业
+ 	 */
+ 	@Action(value = "getWorkUnitTreeList")
+	public void getWorkUnitTreeList() {
+		try {
+			String ids = this.getParameter("id");
+			String json=null;
+			String id=null;
+			Map<String,Object> sqlWhere= new HashMap<String,Object>();
+			if(ids!="null" && ids!=null){
+				String[] ary = ids.split("\\|");
+				String []str=new String[2];
+				 for (int i = 0; i < ary.length; i++){ 
+					 str[i]=ary[i];
+				 }
+                  
+				 sqlWhere.put("parentFullId", str[1]);
+				 id=str[1];
+				
+			}
+			json = this.treeServices.getWorkUnitTreeList(sqlWhere,id);
+			this.renderJSON(json);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	
+}

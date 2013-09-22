@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+<!--  ID desc-->
+	<select id="getLineAwayConfigSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+		SELECT [ID]
+		      ,[Name]
+		      ,[AllowMaxAway]
+		      ,[WorkUnitID]
+			  ,[Description]
+		  FROM [TRoadList]
+		  
+		<dynamic prepend="where">
+			<![CDATA[Mark <> -1 and AllowMaxAway>0]]>
+			<isNotNull property="workunitId">
+				AND [workunitId] = #workunitId#
+			</isNotNull>
+            <isNotEmpty property="name">
+      			AND [Name] like '%$name$%'
+            </isNotEmpty>
+		</dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getLineAwayConfigCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		SELECT 
+			COUNT(*) 
+		 FROM [TRoadList]
+		  
+		<dynamic prepend="where">
+			<![CDATA[Mark <> -1 and AllowMaxAway>0]]>
+			<isNotNull property="workunitId">
+				AND [workunitId] = #workunitId#
+			</isNotNull>
+            <isNotEmpty property="name">
+      			AND [Name] like '%$name$%'
+            </isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="checkLineAwayNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT [ID]
+		      ,[Name]
+		      ,[WorkUnitID]
+			  ,[Description]
+		  FROM [TRoadList]
+		  where 1=1
+		   <![CDATA[ and Mark <> -1 and AllowMaxAway>0]]>
+            <isNotEmpty property="name" prepend="and">
+      			[Name]=#name#
+            </isNotEmpty>
+	</select>
+	
+	<!-- 新增路线偏移设置 start -->
+    <insert id="insertLineAwayConfigSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [TRoadList]
+           ([WorkUnitID]
+           ,[Name]
+           ,[AllowMaxAway]
+           <isNotNull property="description">
+           		<isNotEmpty property="description">,[Description]</isNotEmpty>
+           </isNotNull>
+           ,[Mark])
+     	VALUES
+           (#workunitId#
+           ,#name#
+           ,#allowMaxAway#
+           <isNotNull property="description">
+           		<isNotEmpty property="description">,#description#</isNotEmpty>
+           </isNotNull>
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<insert id="insertTRoadDetailSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [TRoadDetail]
+           ([RoadID]
+           ,[IndexNO]
+           ,[Longitude]
+           ,[Latitude])
+     	SELECT #lineAwayId#,Sequence as IndexNO,Longitude,Latitude from [Pub_CustomMapLinePoint] where MapLineID=#lineId#
+	</insert>
+	<!-- 新增线路偏移设置 end -->
+	
+	<!-- 查询线路偏移设置详细 start -->
+	<select id="getLineAwayConfigByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT tp.[ID]
+		      ,tp.[WorkUnitID]
+		      ,tp.[AllowMaxAway]
+		      ,tp.[Name]
+		      ,tp.[Description]
+		      ,tp.[Mark]
+		      ,tc.[ID] as ConditionID
+		      ,tc.[AnalyseGroupID]
+		      ,tc.[DateTypeID]
+		      ,CONVERT(varchar(10), tc.[BeginDate], 120) as BeginDate
+		      ,CONVERT(varchar(10), tc.[EndDate], 120) as EndDate
+		      ,tc.[WorkingDays]
+		      ,CONVERT(varchar, tc.[BeginTime], 108) as BeginTime
+		      ,CONVERT(varchar, tc.[EndTime], 108) as EndTime
+		      ,tc.[IsAlarm]
+		      ,tc.[AnalyseTypeID]
+		      ,tc.[GeographyID]
+		  FROM [TRoadList] tp
+			LEFT JOIN [TAnalyseCondition] tc on tc.[GeographyID]=tp.[ID] and tc.[AnalyseTypeID]=2
+		WHERE tp.[ID]=#id#
+	</select>
+	
+	<select id="getLinePointByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select Longitude,Latitude from TRoadDetail where RoadID=#id#
+	</select>
+	<!-- 查询线路偏移设置详细 end -->
+	
+	<!-- 删除线路偏移设置 start -->
+	<update id="updateLineAwayConfigSQL" parameterClass="java.util.HashMap">
+		UPDATE [TRoadList]
+           SET [Mark]=#mark#
+        WHERE [ID]=#id#
+	</update>
+	
+	<delete id="deleteTRoadDetailSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [TRoadDetail]
+        WHERE [RoadID]=#id#
+	</delete>
+	<!-- 删除线路偏移设置 end -->
+  
+</sqlMap>

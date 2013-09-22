@@ -1,0 +1,334 @@
+/**
+ * JsonTree.java
+ * Create on 2012-6-5上午10:52:27
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.common.util;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Tree;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+
+
+/**
+ * 根据指定条件递归生成树形Json串
+ * @author feltky
+ * @version1.0
+ * @since 2012-06-05
+ */
+public class RoleJsonTree {
+	
+	/**
+	 * 需要取值的指定字段
+	 */
+	private String[] columnField;
+	
+	/**
+	 * ibatis查询Statement
+	 */
+	private String statement;
+	
+	/**
+	 * ibatis查询Service
+	 */
+	private IbatisServices ibatisServices;
+	
+	/**
+	 * 查询条件字段，父节点
+	 */
+	private String parentFiledName;
+	
+	/**
+	 * c
+	 */
+	private String judgeCheckField;
+	
+	private String appendMapkey;
+	private Object apendMapValue;
+	private int countQueryVehicleSum=0;
+	public RoleJsonTree(){}
+	/**
+	 * 构造函数
+	 * 
+	 * @param columnField       需要取值的指定字段
+	 * @param statement         ibatis查询Statement
+	 * @param ibatisServices    ibatis查询Service
+	 * @param parentFiledName   查询条件字段，父节点
+	 * @param judgeCheckField   查询条件字段，父节点
+	 */
+	public RoleJsonTree(
+			String[] columnField,
+			String statement,
+			IbatisServices ibatisServices,
+			String parentFiledName,
+			String judgeCheckField,
+			String appendMapkey,
+			Object apendMapValue){
+		this.columnField = columnField;
+		this.statement= statement;
+		this.ibatisServices= ibatisServices;
+		this.parentFiledName=parentFiledName;
+		this.judgeCheckField= judgeCheckField;
+		this.appendMapkey = appendMapkey;
+		this.apendMapValue = apendMapValue;
+	}
+ 
+	/**
+	 * buildAsyncTree
+	 * @param listMap
+	 * @param roleId
+	 * @param extend
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<Tree> buildAsyncTree(List<Map> listMap,String extend1,String extend2,String hasChildren)throws Exception{
+		List<Tree> listTree = new ArrayList<Tree>();
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map<String,Object> mapNode = listMap.get(i);
+			tree = new Tree();
+			
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			if(null == mapNode.get(hasChildren) ){
+				tree.setId(extend1+String.valueOf(mapNode.get(columnField[0])));
+				tree.setState("open");		
+			}else{
+				tree.setState("closed");
+				tree.setId(extend2+String.valueOf(mapNode.get(columnField[0])));
+			}
+			if(mapNode.get(judgeCheckField)!=null)tree.setChecked(true);
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+	/**
+	 * 生成Json串方法
+	 * 
+	 * @param listMap 节点集合
+	 * @param roleId  角色ID
+	 * @param extend  扩展字段值
+	 * @return  List<Tree>
+	 * @throws Exception 异常
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Tree> buildJsonTreeCommand(List<Map> listMap,String roleId,String extend,boolean isQueryOne)throws   Exception{	
+		List<Tree> listTree = new ArrayList<Tree>();
+		Map<String,Object> whereMap = new HashMap<String,Object>();
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map mapNode = listMap.get(i);
+			tree = new Tree();
+			tree.setId(String.valueOf(mapNode.get(columnField[0])));
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			tree.setState("closed");					
+			whereMap.put(parentFiledName, mapNode.get(columnField[0]));
+			whereMap.put(columnField[2], Long.parseLong(roleId));
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				whereMap.put("UserId",UserContext.getLoginUserID());
+				if(statement.equals("getTwoCommandMenu")){
+					whereMap.put("flag", 1);
+				}
+				
+			}
+			if(appendMapkey!=null){
+				whereMap.put(appendMapkey,apendMapValue);
+			}
+			List<Map> listMapChildren = null;
+			if(isQueryOne){
+				if(statement.equals("getTwoCommandMenu")){
+					SessionUser user = UserContext.getLoginUser();
+					if(user.isWorkUnitSuperAdmin()){
+						String fullId = user.getWorkUnitFullId();
+						whereMap.put("fullId", fullId);
+						whereMap.put("flag", 0);
+					}
+				}
+				
+				listMapChildren = ibatisServices.queryForList(Map.class, statement,whereMap);
+			}
+			// 判断是否存在叶子节点
+			if(listMapChildren!=null && listMapChildren.size()>0){
+				tree.setChildren(buildJsonTreeCommand(listMapChildren,roleId,extend,false));
+			}else{	
+				if(mapNode.get(judgeCheckField)!=null){
+					tree.setChecked(true);
+				}
+				tree.setState("open");	
+				tree.setChildren(null);		
+				tree.setId(extend+tree.getId());
+			}	
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List<Tree> buildJsonTreeCommand_zl(List<Map> listMap,String roleId,String extend,boolean isQueryOne,String vehicleLists)throws   Exception{	
+		List<Tree> listTree = new ArrayList<Tree>();
+		Map<String,Object> whereMap = new HashMap<String,Object>();
+		whereMap.put("vehiclesStr", vehicleLists);
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map mapNode = listMap.get(i);
+			tree = new Tree();
+			tree.setId(String.valueOf(mapNode.get(columnField[0])));
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			tree.setState("closed");					
+			whereMap.put(parentFiledName, mapNode.get(columnField[0]));
+			whereMap.put(columnField[2], Long.parseLong(roleId));
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				whereMap.put("UserId",UserContext.getLoginUserID());
+				if(statement.equals("getTwoCommandMenu")){
+					whereMap.put("flag", 1);
+				}
+				
+			}
+			if(appendMapkey!=null){
+				whereMap.put(appendMapkey,apendMapValue);
+			}
+			List<Map> listMapChildren = null;
+			if(isQueryOne){
+				if(statement.equals("getTwoCommandMenu")){
+					SessionUser user = UserContext.getLoginUser();
+					if(user.isWorkUnitSuperAdmin()){
+						String fullId = user.getWorkUnitFullId();
+						whereMap.put("fullId", fullId);
+						whereMap.put("flag", 0);
+					}
+				}
+				
+				listMapChildren = ibatisServices.queryForList(Map.class, statement,whereMap);
+			}
+			// 判断是否存在叶子节点
+			if(listMapChildren!=null && listMapChildren.size()>0){
+				tree.setChildren(buildJsonTreeCommand(listMapChildren,roleId,extend,false));
+			}else{	
+				if(mapNode.get(judgeCheckField)!=null){
+					tree.setChecked(true);
+				}
+				tree.setState("open");	
+				tree.setChildren(null);		
+				tree.setId(extend+tree.getId());
+			}	
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+	
+	/**
+	 * 生成Json串方法
+	 * 
+	 * @param listMap 节点集合
+	 * @param roleId  角色ID
+	 * @param extend  扩展字段值
+	 * @return  List<Tree>
+	 * @throws Exception 异常
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Tree> buildJsonTreeVehicleRole(String level,List<Map> listMap,String roleId,String extend)throws   Exception{	
+		List<Tree> listTree = new ArrayList<Tree>();
+		Map<String,Object> whereMap = new HashMap<String,Object>();
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map mapNode = listMap.get(i);
+			tree = new Tree();
+			tree.setId(String.valueOf(mapNode.get(columnField[0])));
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			tree.setState("closed");					
+			whereMap.put(parentFiledName, mapNode.get(columnField[0]));
+			whereMap.put(columnField[2], Long.parseLong(roleId));
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				whereMap.put("UserId",UserContext.getLoginUserID());
+			}
+			if(appendMapkey!=null){
+				whereMap.put(appendMapkey,apendMapValue);
+			}
+			if(level.equals("0")){//递归为原始第一级则恢复原始查询,0-1,1-2,....
+				countQueryVehicleSum=0;
+			}
+			if(countQueryVehicleSum==0){
+				whereMap.put("level","0");
+			}else{
+				whereMap.put("level","1");
+			}
+			countQueryVehicleSum++;
+			List<Map> listMapChildren = ibatisServices.queryForList(Map.class, statement,whereMap);
+			// 判断是否存在叶子节点
+			if(listMapChildren!=null && listMapChildren.size()>0){
+				tree.setChildren(buildJsonTreeVehicleRole("1",listMapChildren,roleId,extend));
+			}else{	
+				if(mapNode.get(judgeCheckField)!=null){
+					tree.setChecked(true);
+				}
+				tree.setState("open");	
+				tree.setChildren(null);		
+				tree.setId(extend+tree.getId());
+			}	
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+	/**
+	 * 生成Json串方法
+	 * 
+	 * @param listMap 节点集合
+	 * @param roleId  角色ID
+	 * @param extend  扩展字段值
+	 * @return  List<Tree>
+	 * @throws Exception 异常
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Tree> buildJsonTree(List<Map> listMap,String roleId,String extend)throws   Exception{	
+		List<Tree> listTree = new ArrayList<Tree>();
+		Map<String,Object> whereMap = new HashMap<String,Object>();
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map mapNode = listMap.get(i);
+			tree = new Tree();
+			tree.setId(String.valueOf(mapNode.get(columnField[0])));
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			tree.setState("closed");					
+			whereMap.put(parentFiledName, mapNode.get(columnField[0]));
+			whereMap.put(columnField[2], Long.parseLong(roleId));
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				whereMap.put("UserId",UserContext.getLoginUserID());
+			}
+			if(appendMapkey!=null){
+				whereMap.put(appendMapkey,apendMapValue);
+			}
+			List<Map> listMapChildren = ibatisServices.queryForList(Map.class, statement,whereMap);
+			// 判断是否存在叶子节点
+			if(listMapChildren!=null && listMapChildren.size()>0){
+				tree.setChildren(buildJsonTree(listMapChildren,roleId,extend));
+			}else{	
+				if(mapNode.get(judgeCheckField)!=null){
+					tree.setChecked(true);
+				}
+				tree.setState("open");	
+				tree.setChildren(null);		
+				tree.setId(extend+tree.getId());
+			}	
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+	
+	public Tree buildTree(Map map){
+		Tree tree = new Tree();
+		tree.setId(String.valueOf(map.get(columnField[0])));
+		tree.setText(String.valueOf(map.get(columnField[1])));
+		tree.setState("closed");
+		return tree;
+	}
+}

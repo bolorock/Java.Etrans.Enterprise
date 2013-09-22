@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 车辆报警统计 -->
+
+<select id="getVehicleAlarmSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (    
+		select 
+		PV.id,
+		PV.RegistrationNO as registrationNO,
+		PW.name AS workUnitName,
+		isnull(VAlarm.AlarmSum,0) AlarmSum, 
+		prc.Name AS RegistrationNOColor,
+		isnull(VAlarm.AlarmHandleSum,0) AlarmHandleSum  
+		from
+		Pub_RegistrationNOColor prc left outer join 
+		Pub_Vehicle PV on prc.id=pv.RegistrationNOColorID LEFT OUTER JOIN
+		Pub_WorkUnit PW ON PV.WorkUnitID=PW.id LEFT OUTER JOIN 
+		<isNotNull property="userId">
+		   (SELECT * FROM Ent_UserVehicle  WHERE UserId=#userId#) UV ON PV.id=UV.VehicleID LEFT OUTER JOIN 
+		</isNotNull>
+		(SELECT VehicleID,sum(AlarmSum)AS AlarmSum,sum(AlarmHandleSum) AS AlarmHandleSum  
+		FROM Ent_AnaVehicleAlarmTypeStat
+		WHERE 1=1  and AlarmOperationID  in(select * from F_StringForSplit('$alarmTypeIds$',',')) 
+		<isNotEmpty property="startDate" prepend="AND">
+		      StatDate>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" prepend="AND">
+		      #endDate#>=StatDate
+        </isNotEmpty>
+		GROUP BY VehicleID) VAlarm
+		on PV.ID=VAlarm.VehicleID
+		where 1=1
+		<![CDATA[ AND PV.isDeleted <> 1]]>
+		 <isNotNull property="isWorkUnitSuperAdmin" >
+		   <isNotNull property="fullId">
+		       <isNotEmpty property="fullId">
+		          AND PW.fullId LIKE '%$fullId$%'
+		       </isNotEmpty>
+		   </isNotNull>
+		 </isNotNull>
+		  <isNotNull property="userId">
+		           AND UV.VehicleID IS NOT null
+		   </isNotNull>
+		  <isNotEmpty property="workUnitName" prepend="AND">
+					 PW.name like '%$workUnitName$%' 
+		 </isNotEmpty>
+		 <isNotEmpty property="registrationNO" prepend="AND">
+					 PV.RegistrationNO like '%$registrationNO$%' 
+		 </isNotEmpty>
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+ </select>
+ 
+ 
+ <select id="getVehicleAlarmCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+    select 
+	count(*)
+	from
+	Pub_Vehicle PV
+	LEFT OUTER JOIN
+	Pub_WorkUnit PW ON PV.WorkUnitID=PW.id LEFT OUTER JOIN
+	<isNotNull property="userId">
+	   (SELECT * FROM Ent_UserVehicle  WHERE UserId=#userId#) UV ON PV.id=UV.VehicleID LEFT OUTER JOIN 
+	</isNotNull>
+	(SELECT VehicleID,sum(AlarmSum)AS AlarmSum,sum(AlarmHandleSum) AS AlarmHandleSum  
+	FROM Ent_AnaVehicleAlarmTypeStat
+	WHERE 1=1 and AlarmOperationID  in(select * from F_StringForSplit('$alarmTypeIds$',',')) 
+	  <isNotEmpty property="startDate" prepend="AND">
+		      StatDate>=#startDate#
+      </isNotEmpty>
+      <isNotEmpty property="endDate" prepend="AND">
+              #endDate#>=StatDate
+      </isNotEmpty>
+     <isNotEqual property="AlarmOperationID" compareValue="-1">
+		  <isNotEqual property="AlarmOperationID" compareValue="0">
+			  and AlarmOperationID  = #AlarmOperationID#
+		  </isNotEqual>
+		</isNotEqual>
+	GROUP BY VehicleID) VAlarm
+	on PV.ID=VAlarm.VehicleID
+	where 1=1
+	<![CDATA[ AND PV.isDeleted <> 1]]>
+	<isNotNull property="isWorkUnitSuperAdmin" >
+		   <isNotNull property="fullId">
+		       <isNotEmpty property="fullId">
+		          AND PW.fullId LIKE '%$fullId$%'
+		       </isNotEmpty>
+		   </isNotNull>
+	</isNotNull>
+    <isNotNull property="userId">
+           AND UV.VehicleID IS NOT null
+    </isNotNull>
+    <isNotEmpty property="workUnitName" prepend="AND">
+					 PW.name like '%$workUnitName$%' 
+    </isNotEmpty>
+	<isNotEmpty property="registrationNO" prepend="AND">
+		  PV.RegistrationNO like '%$registrationNO$%' 
+	</isNotEmpty>
+ </select>
+ 
+ 
+  <select id="getVehicleAlarmChartSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+    select top 100
+	    PV.id,
+		PV.RegistrationNO as registrationNO,
+		isnull(VAlarm.AlarmSum,0) AlarmSum, 
+		isnull(VAlarm.AlarmHandleSum,0) AlarmHandleSum  
+	from
+	Pub_Vehicle PV
+	LEFT OUTER JOIN
+	<isNotNull property="isWorkUnitSuperAdmin" >
+	   <isNotNull property="fullId">
+	      Pub_WorkUnit PW ON PV.WorkUnitID=PW.id LEFT OUTER JOIN  
+	   </isNotNull>
+	</isNotNull>
+	<isNotNull property="userId">
+	   (SELECT * FROM Ent_UserVehicle  WHERE UserId=#userId#) UV ON PV.id=UV.VehicleID LEFT OUTER JOIN 
+	</isNotNull>
+	(SELECT VehicleID,sum(AlarmSum)AS AlarmSum,sum(AlarmHandleSum) AS AlarmHandleSum  
+	FROM Ent_AnaVehicleAlarmTypeStat
+	WHERE 1=1 and AlarmOperationID  in(select * from F_StringForSplit('$alarmTypeIds$',',')) 
+	  <isNotEmpty property="startDate" prepend="AND">
+		      StatDate>=#startDate#
+      </isNotEmpty>
+      <isNotEmpty property="endDate" prepend="AND">
+              #endDate#>=StatDate
+      </isNotEmpty>
+     <isNotEqual property="AlarmOperationID" compareValue="-1">
+		  <isNotEqual property="AlarmOperationID" compareValue="0">
+			  and AlarmOperationID  = #AlarmOperationID#
+		  </isNotEqual>
+		</isNotEqual>
+	GROUP BY VehicleID) VAlarm
+	on PV.ID=VAlarm.VehicleID
+	where 1=1
+	<![CDATA[ AND PV.isDeleted <> 1]]>
+	<isNotNull property="isWorkUnitSuperAdmin" >
+		   <isNotNull property="fullId">
+		       <isNotEmpty property="fullId">
+		          AND PW.fullId LIKE '%$fullId$%'
+		       </isNotEmpty>
+		   </isNotNull>
+	</isNotNull>
+    <isNotNull property="userId">
+           AND UV.VehicleID IS NOT null
+    </isNotNull>
+	<isNotEmpty property="registrationNO" prepend="AND">
+		  PV.RegistrationNO like '%$registrationNO$%' 
+	</isNotEmpty>
+ </select>
+ 
+ 
+  <select id="getVehicleAlarmSumSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+        select PV.ID,PV.RegistrationNO,VA.AlarmOperationID,
+        isnull(VA.AlarmSum,0)AlarmSum,isnull(VA.AlarmHandleSum,0)AlarmHandleSum 
+        from Pub_Vehicle PV 
+		LEFT OUTER JOIN
+		(SELECT VehicleID,AlarmOperationID,
+		sum(AlarmSum)AS AlarmSum,sum(AlarmHandleSum) AS AlarmHandleSum 
+		FROM Ent_AnaVehicleAlarmTypeStat
+		WHERE 1=1 and
+		AlarmOperationID in(select * from F_StringForSplit('$alarmTypeIds$',',')) 
+		<isNotEmpty property="startDate" prepend="AND">
+		      StatDate>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" prepend="AND">
+		      #endDate#>=StatDate
+        </isNotEmpty>
+		GROUP BY VehicleID,AlarmOperationID) VA on PV.ID=VA.VehicleID
+		where 1=1
+		<isNotEmpty property="VehicleID" prepend="AND">
+		  PV.ID = #VehicleID#
+	    </isNotEmpty> 
+     </select>
+ 
+
+  
+</sqlMap>

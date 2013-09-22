@@ -1,0 +1,440 @@
+var  map;
+var pointHashMap = new HashMap();
+
+$(function() {
+	//获取用户设置数据
+	getUserMenu();
+	getUserSet(1,"setAlarm");
+	getUserSet(2,"setTa");
+	
+	getTaCount();
+	getAlarmCount();
+	initAlarmChart();
+	
+	$(".box-title .icon.chevron").click(
+			function() {
+				$(this).toggleClass("icon-chevron-up").toggleClass(
+						"icon-chevron-down");
+				$(this).parents(".box:first").find(".box-content")
+						.toggle('fast');
+			});
+	
+	$("#setMenu").click(function(){
+		$("#frModal").attr("src",basePath+"common/shortcutSet.jsp");
+		$('#setMyMenu').modal();
+	});
+	
+	$("#btnAlarmSet").click(function(){
+		var alarmIds=[];
+		$("#setAlarm").find("input[type='checkbox']").each(function(){
+			if ($(this).attr("checked")){
+				alarmIds.push($(this).attr("alarmId"));
+			}
+		});
+		saveUserSet(alarmIds.toString(),1);
+		$("#setAlarm").modal('hide');
+		getAlarmCount();
+	});
+	
+	$("#btnTaSet").click(function(){
+		var ids=[];
+		$("#setTa").find("input[type='checkbox']").each(function(){
+			if ($(this).attr("checked")){
+				ids.push($(this).attr("taId"));
+			}
+		});
+		saveUserSet(ids.toString(),2);
+		$("#setTa").modal('hide');
+		getTaCount();
+	});
+	
+
+	//关闭后重设iframe的src为空
+	$('#divWin').on('hidden', function () {
+		$("#frWin").attr("src","");
+	});
+	
+	$('#mainMap').css("width", getMapWidth() -935+"px");
+	$('#mainMap').css("height",getMapHeight()-295+ "px");
+	map = new BMap.Map("mainMap");
+	var point = new BMap.Point(113.39885,23.96571);    // 创建点坐标
+	map.centerAndZoom(point,5);                     // 初始化地图,设置中心点坐标和地图级别。
+	map.enableScrollWheelZoom();                            //启用滚轮放大缩小
+	//map.addControl(new BMap.NavigationControl());
+	map.addControl(new BMap.ScaleControl());  
+	//map.addControl(new BMap.OverviewMapControl());   
+
+	showPoint();
+	
+});
+
+/**
+ * 保存用户设置
+ * @param selectIds
+ * @param type
+ */
+function saveUserSet(selectIds,type){
+	$.ajax({
+		type : "POST",
+		url : basePath+"sys/userMenu/saveUserSet.action",
+		data : {
+			selectIds : selectIds,
+			type : type
+		},
+		dataType : "JSON",
+		success : function(data) {
+			
+		}
+	});
+}
+
+/**
+ * 获取用户设置
+ * @param typeCode
+ */
+function getUserSet(typeCode,divId){
+	$.ajax({
+		type : "POST",
+		async: false,
+		url : basePath+"sys/userMenu/getUserSet.action",
+		data : {
+			typeCode : typeCode
+		},
+		dataType : "JSON",
+		success : function(data) {
+			if (data){
+				var json=eval(data);
+				var len=json.length;
+				if (len==0) return;
+				$("#"+divId).find("input[type='checkbox']").each(function(){
+					$(this).removeAttr("checked");
+				});
+				for(var i=0;i<len;i++){
+					$("#ckb_"+typeCode+"_"+json[i].statisticsTypeId).attr("checked","checked");
+				}
+			}
+		}
+	});
+}
+
+/**
+ * 初始化报警图表
+ */
+function initAlarmChart(categories,data){
+	var  chart = new Highcharts.Chart({
+         chart: {
+             renderTo: 'chartAlarm',
+             type: 'column'
+         },
+         title: {
+             text: ''
+         },
+         xAxis: {
+             categories: categories
+         },
+         tooltip: {
+             formatter: function() {
+                 var s;
+                 if (this.point.name) { // the pie chart
+                     s = ''+
+                         this.point.name +': '+ this.y +' fruits';
+                 } else {
+                     s = ''+
+                         this.x  +': '+ this.y;
+                 }
+                 return s;
+             }
+         },
+         labels: {
+             items: [{
+                 html: '报警数目',
+                 style: {
+                     left: '40px',
+                     top: '8px',
+                     color: 'black'
+                 }
+             }]
+         },
+         series: data
+     });
+}
+
+/**
+ * 初始化TA统计图表
+ */
+function initTaChart(data){
+	var chart = new Highcharts.Chart({
+        chart: {
+            renderTo: 'chartTa',
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ''
+        },
+        tooltip: {
+    	    pointFormat: '{series.name}: <b>{point.percentage}%</b>',
+        	percentageDecimals: 1
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    color: '#000000',
+                    connectorColor: '#000000',
+                    formatter: function() {
+                        return '<b>'+ this.point.name +'</b>: '+ this.percentage +' %';
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Browser share',
+            data: data
+        }]
+    });
+}
+
+/**
+ * 获取TA统计
+ */
+function getTaCount(){
+	var names="";
+	var taNames=[];
+	$("#setTa").find("input[type='checkbox']").each(function(){
+		if ($(this).attr("checked")){
+			taNames.push($(this).attr("taName"));
+		}
+	});
+	names=taNames.toString();
+	$.ajax({
+		type : "POST",
+		url : basePath+"sys/userMenu/getTaCountList.action",
+		success : function(data) {
+			if (data) {
+				var json=eval(data);
+				var arrs=[];
+				var len=json.length;
+				var sum=0;
+				for(var j=0;j<len;j++){
+					sum+=Number(json[j].Number);
+				}
+				for(var i=0;i<len;i++){
+					if (names.indexOf(json[i].Code)<0) continue;
+					var item=[];
+					item.push(json[i].Type);
+					if (json[i].Number=="0"){
+						item.push(0);
+					}
+					else{
+						item.push(Math.round(Number(json[i].Number)/sum*1000)/10); //精确到一位小数点
+					}
+					
+					arrs.push(item);
+				}
+				initTaChart(arrs);
+			}
+		}
+	});
+}
+
+/**
+ * 获取报警统计
+ */
+function getAlarmCount(){
+	var alarmIdList="";
+	var alarmIds=[];
+	$("#setAlarm").find("input[type='checkbox']").each(function(){
+		if ($(this).attr("checked")){
+			alarmIds.push($(this).attr("alarmId"));
+		}
+	});
+	alarmIdList=alarmIds.toString();
+
+	$.ajax({
+		type : "POST",
+		url : basePath+"sys/userMenu/getAlarmCount.action",
+		data : {
+			alarmIdList : alarmIdList
+		},
+		dataType : "JSON",
+		success : function(data) {
+			if (data) {
+				var json=eval(data);
+				var arrs=[];
+				var alarmData=[];	//报警数据数组
+				var handleData=[];	//已处理数组
+				var alarmObj={};
+				alarmObj.name="未处理";
+				var handleObj={};
+				handleObj.name="已处理";
+				var categories=[];
+				var len=json.length;
+				for(var i=0;i<len;i++){
+					categories.push(json[i].Name);
+					alarmData.push(json[i].AlarmSum);
+					handleData.push(json[i].HandleSum);
+				}
+				alarmObj.data=alarmData;
+				handleObj.data=handleData;
+				arrs.push(alarmObj);
+				arrs.push(handleObj);
+				
+				initAlarmChart(categories,arrs);
+			}
+		}
+	});
+}
+
+/*
+ * 打开快捷菜单
+ */
+var openWin=function(src,name){
+	//$("#frWin").attr("src",src);
+	//$('#divWin').modal();
+	parent.parent.openDialog(src, 1100, 530,name);
+};
+/**
+ * 关闭窗口
+ */
+var closeWin = function() {
+	$("#setMyMenu").modal('hide');
+};
+
+/**
+ * 获取用户所有的菜单设置
+ */
+function getUserMenu() {
+	var $boxContent = $("#myMenu");
+	$.ajax({
+				type : "POST",
+				url : basePath+"sys/userMenu/getUserMenu.action",
+				success : function(data) {
+					if (data) {
+						var json = eval(data);
+						var len = json.length;
+						if (len == 0) { //默认菜单
+							$boxContent.empty();
+							$boxContent.append($("#defaultMenu").html());
+							return;
+						}
+						var htmlStr = "";
+						for ( var i = 0; i < len; i++) {
+							if (i == 0 || i % 4 == 0) {
+								htmlStr += "<div class='row-fluid'>";
+							}
+							var path=json[i].url.indexOf(".aspx")>0 ? json[i].url:basePath+json[i].url;
+							htmlStr += "<a href='javascript:void(0)' onClick=\"javascript:openWin('"+path+"','"+json[i].functionName
+								+"')\" class='span3'><img src='"
+									+basePath+json[i].imageURL+"' alt='"+ json[i].functionName  + "'><p>"
+									+ json[i].name + "</p></a>";
+							if ((i + 1) % 4 == 0) {
+								htmlStr += "</div>";
+							}
+						}
+
+						$boxContent.empty();
+						$boxContent.append(htmlStr);
+					} else {
+						alert("Fail:" + data);
+					}
+				}
+			});
+}
+
+
+
+//显示标注
+function showPoint(){
+		 var jsonParams = {
+					datetimes : new Date()
+		 };
+		 
+		 $.post("customMapPoint/getEntCustomMapPointByUserList.action", jsonParams, function(data) {
+			 if (data != 'false') {
+				    map.clearOverlays();
+					var arrlist = data ;
+					for ( var a = 0; a < arrlist.length; a++) {
+						var id =arrlist[a].id;
+						var name =arrlist[a].name;
+						var lng =arrlist[a].Longitude;
+						var lat =arrlist[a].Latitude;
+						var imageURL =arrlist[a].imageURL;
+						var nameType=arrlist[a].nameType;
+						addMarkerList(lng,lat,imageURL,id,name,nameType);
+					}
+			  }
+		 });
+	 }	
+
+
+function addMarkerList(lng,lat,imageURL,id,name,nameType){  // 创建图标对象    
+	var point = new BMap.Point(lng,lat); 
+	
+	var basePath = getRootPath();
+	var url= basePath+imageURL;
+	var myIcon = new BMap.Icon(url, new BMap.Size(23, 25), {     
+		// 指定定位位置。    
+		// 当标注显示在地图上时，其所指向的地理位置距离图标左上     
+		// 角各偏移10像素和25像素。您可以看到在本例中该位置即是    
+	   // 图标中央下端的尖角位置。     
+	   offset: new BMap.Size(10, 25),     
+	   // 设置图片偏移。    
+	   // 当您需要从一幅较大的图片中截取某部分作为标注图标时，您    
+	   // 需要指定大图的偏移位置，此做法与css sprites技术类似。     
+	   imageOffset: new BMap.Size(0, 0 * 25)   // 设置图片偏移     
+	 });  
+	
+	// 创建标注对象并添加到地图    
+	 var marker = new BMap.Marker(point, {icon: myIcon});     
+	 map.addOverlay(marker); 
+	 //var labelNmae=name+"-"+nameType;
+	 var labelNmae=name;
+	 var label = new BMap.Label(labelNmae,{offset:new BMap.Size(18,18)});
+		label.setStyle({
+         borderColor:"#808080",
+         color:"#333",
+         cursor:"pointer"
+		});
+	 marker.setLabel(label);
+    
+	 pointHashMap.put(id,marker);
+
+}
+
+
+
+function getMapWidth() {
+	var width;
+	if (window.innerWidth)
+		width = window.innerWidth;
+	else
+		width = document.body.offsetWidth;
+
+	return width;
+}
+function getMapHeight() {
+	var height;
+	height = document.body.clientHeight;
+	return height;
+}
+
+
+function getRootPath(){    
+	//获取当前网址，如： http://192.168.2.133:8080/bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp    
+	var curWwwPath=window.document.location.href;    
+	//获取主机地址之后的目录，如：bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp
+	var pathName=window.document.location.pathname;   
+	var pos=curWwwPath.indexOf(pathName);    
+	//获取主机地址，如：http://192.168.2.133:8080 
+	var localhostPaht=curWwwPath.substring(0,pos);    
+	//获取带"/"的项目名，如：/bubiaoQdn    
+	var projectName=pathName.substring(0,pathName.substr(1).indexOf('/')+1);    
+	return(localhostPaht+projectName);
+	
+}
+

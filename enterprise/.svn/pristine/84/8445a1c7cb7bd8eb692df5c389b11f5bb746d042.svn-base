@@ -1,0 +1,218 @@
+package com.etrans.bubiao.action.sys;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.sys.TerminalServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+
+/**
+ * 终端管理类
+ * 
+ * @author tjb
+ * @version 1.0
+ * @brief
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class TerminalAction extends BaseAction{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	@Autowired
+	private TerminalServices terminalServices;
+
+	
+	public TerminalServices getTerminalServices() {
+		return terminalServices;
+	}
+
+	public void setTerminalServices(TerminalServices terminalServices) {
+		this.terminalServices = terminalServices;
+	}
+
+	/**
+	 * 终端分页查询
+	 */
+	@Action(value = "terminalList")
+	public void terminalList() {	
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(user!=null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", true);
+				}
+				else{
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+				}
+			}
+			this.renderJSON(JSONUtil.toJson(terminalServices.getTerminals(params)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("查询终端信息出错！");
+		}
+	}
+	
+	/**
+	 **新增终端信息详细
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "createTerminal")
+	public void createTerminal() {
+		 
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+
+		try {
+			this.renderJSON(terminalServices.createTerminal(params));
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "终端信息管理", "", "新增终端信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "终端信息管理", "", "新增终端信息");
+			e.printStackTrace();
+			log.debug("新增终端信息出错！");
+		}
+	}
+	
+		/**
+		 * 根据ID查询终端信息详细
+		 */
+		@Action(value = "getTerminalById")
+		public void getTerminalById() {
+
+			String id = getParameter("id");
+			System.out.println(id);
+			Map<String, Object> whereMap = new HashMap<String, Object>();
+			whereMap.put("id", id);
+			try {
+				this.renderJSON(JSONUtil.toJson(terminalServices.getTerminalById(whereMap)));
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.debug("根据ID查询终端信息出错！");
+			}
+		}
+		
+		/**
+		 * 根据ID修改终端信息
+		 */
+		@SuppressWarnings("unchecked")
+		@Action(value = "updateTerminal")
+		public void updateTerminal() {
+			
+			String jsonParams = getParameter("params"); 
+			Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+			try {
+				this.renderJSON(terminalServices.updateTerminal(params));
+				LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "终端信息管理", "", "修改终端信息");
+			} catch (Exception e) {
+				LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "终端信息管理", "", "修改终端信息");
+				e.printStackTrace();
+				log.debug("根据ID修改终端信息出错！");
+			}
+		}
+		
+		
+		
+		/**
+		 * 根据ID删除终端信息
+		 */
+		@Action(value = "deleteTerminal")
+		public void deleteTerminal() {
+
+			String ids= getParameter("ids");
+			Map<String, Object> whereMap = new HashMap<String, Object>();
+			whereMap.put("id", ids);
+			try {
+				this.renderJSON(terminalServices.deleteTerminal(whereMap));
+				LogUtil.insertLog(LogActionTypes.DELETE, "成功", "终端信息管理", "", "删除终端信息");
+			} catch (Exception e) {
+				LogUtil.insertLog(LogActionTypes.DELETE, "失败", "终端信息管理", "", "删除终端信息");
+				e.printStackTrace();
+				log.debug("根据ID删除终端信息出错！");
+			}
+		}	
+		
+		
+		/**
+		 * 验证不能有相同的通信号
+		 */
+		@Action(value = "checkCommNo")
+		public void checkCommNo() {
+			
+			String name = getParameter("name"); 
+			String id = getParameter("id"); 
+			Map<String, Object> whereMap = new HashMap<String, Object>();
+			whereMap.put("name", name);
+			whereMap.put("id", id);
+			try {
+				this.renderJSON(terminalServices.checkCommNo(whereMap));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		/**
+		 * 导出终端列表到EXCEL
+		 */
+		@Action(value = "terminalExport")
+		public void vehicleExport() {
+			
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			params = this.getExportParams(params);
+			
+			try {
+				
+				String[] titleArray = {};
+				titleArray = new String[10];
+				titleArray[0]="企业名称";
+				titleArray[1]="通信号";
+				titleArray[2]="SIM卡";
+				titleArray[3]="终端类型";
+				titleArray[4]="出厂批次";
+				titleArray[5]="平台唯一编号";
+				titleArray[6]="终端厂商唯一编号";
+				titleArray[7]="型号";
+				titleArray[8]="签权码";
+				titleArray[9]="使用状态";
+				
+				
+				
+				String[] columnArray = {};
+				columnArray = new String[21];
+				columnArray[0]="WorkUnitID";
+				columnArray[1]="CommNO";
+				columnArray[2]="SimID";
+				columnArray[3]="TerminalKindID";
+				columnArray[4]="BatchNO";
+				columnArray[5]="PlatformTerminalID";
+				columnArray[6]="ManufacturerTerminalID";
+				columnArray[7]="Model_Type";
+				columnArray[8]="SignCode";
+				columnArray[9]="UseFlag";
+				
+				
+				
+				List<Map<String,Object>> rows = terminalServices.getTerminalList(params);
+				exportExl("terminalList", titleArray, columnArray, rows);
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	
+}

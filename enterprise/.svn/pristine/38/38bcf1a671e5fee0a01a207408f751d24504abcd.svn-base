@@ -1,0 +1,126 @@
+/**    
+ * AlarmHandleThread.java
+ * Create on 2011-4-14
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.util.HashMap;
+import java.util.Queue;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64ThreadLocal;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.HexUtil;
+import com.etrans.common.util.Tools;
+
+/**
+ * 指令信息处理线程
+ * @author lihaiyan
+ * @version 1.0
+ */
+public class CommandResultHandleThread implements Runnable {
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	private Random random = new Random();
+	private HashMap<String,String> commandResultHashMap;// 指令回复数据储存map
+	private HashMap<String,String> specialCommandResultMap;// 指令回复数据储存map(拍摄图片信息)
+	private CommandResultQueue commandResultQueue;//指令回复数据队列
+	private Queue<String> lowerFlatQueue;
+	private ConcurrentHashMap<String, String>  billMap;//电子运单储存map,key=vehicleID,value=bill
+	private static String filePath = Tools.getProjectPath().replaceAll("%20", " ") + "command/upload/";
+	private final Log logger = LogFactory.getLog(CommandResultHandleThread.class.getName());
+	Base64ThreadLocal base64;
+	public CommandResultHandleThread(HashMap<String,String> commandResultHashMap, CommandResultQueue commandResultQueue,HashMap<String,String> specialCommandResultMap,Queue<String> lowerFlatQueue,ConcurrentHashMap<String, String>  billMap) {
+		this.commandResultHashMap = commandResultHashMap;
+		this.commandResultQueue = commandResultQueue;
+		this.specialCommandResultMap = specialCommandResultMap;
+		this.lowerFlatQueue=lowerFlatQueue;
+		this.billMap=billMap;
+	}
+
+	public void run() {
+		logger.error("---------指令回复数据处理线程启动!---------");
+		try {
+			base64 = base64Local.get();
+			if (base64 == null) {
+				base64 = new Base64ThreadLocal();
+				base64Local.set(base64);
+			}
+
+		} catch (Exception e) {
+		  e.printStackTrace();
+		}
+			while (true) {
+				try
+				{    
+					String message = commandResultQueue.consume();//指令回复
+					if (StringUtils.isNotEmpty(message)) {
+						
+							String[] business = message.split(",");
+							String decoderStr =base64.decoderMessage(business[3].toString());
+							// 多媒体数据处理
+							if (business[1].equals("10")) 
+							{
+								 String[] strTemp = decoderStr.split(",");
+								 String fileName = business[2]; // 名称
+
+								 //TODO 判断多媒体数据类型
+								 String fileType=strTemp[8];
+								 if("0".equals(fileType)){//图像
+									 fileType="jpg";
+								 }else if("1".equals(fileType)){//音频
+									 fileType="avi";
+								 }else {//视频
+									 fileType="avi";
+								}
+								 Tools.byteArrayToImage(Tools.hexStringToBytes(strTemp[strTemp.length - 1]), fileName, fileType, filePath);
+								// logger.error("拍照图片==============================================:" +"image|" + fileName + ".jpg|" + System.currentTimeMillis());
+								 specialCommandResultMap.put(business[2], "image|" + fileName +"."+fileType+"|" + System.currentTimeMillis());
+								 
+							}else if(decoderStr.contains(",2304,")||decoderStr.contains(",769,")||decoderStr.contains(",1793,")||decoderStr.contains(",2048,")||decoderStr.contains(",1794,")){//数据透传、事件报告，电子运单,多媒体事件,驾驶员信息
+								while(lowerFlatQueue.size()>100)
+								 {
+									 lowerFlatQueue.poll();
+								 }
+								if(decoderStr.contains(",1793,")){//电子运单
+									String[] strArray=decoderStr.split("\\,");
+									String aciiString=strArray[4];
+									String stringHex=HexUtil.toStringHex(aciiString);
+									lowerFlatQueue.add(decoderStr.replaceAll(strArray[4], stringHex));
+									billMap.put(strArray[0], stringHex);//key=vehicleID,value=bill
+								}else {
+									lowerFlatQueue.add(decoderStr);
+								}
+							}else if(decoderStr.contains(",179,")){
+								String[] oValue = decoderStr.split(",");
+								String value="";
+								if(oValue[4].contains("ACC") || oValue[4].contains("软件版本")){
+									value=oValue[0]+","+oValue[1]+","+oValue[2]+","+oValue[3]+","+Tools.getNewArray(oValue,4,100,"，") + "|" + System.currentTimeMillis();
+								}else{
+									value=decoderStr + "|" + System.currentTimeMillis();
+								}
+								commandResultHashMap.put(business[2], value);
+							} else {
+								String value=decoderStr + "|" + System.currentTimeMillis();
+								commandResultHashMap.put(business[2], value);
+							}
+							
+						    }else{
+
+								Thread.sleep(1);
+							}
+				}catch(Exception e){
+					  e.printStackTrace();
+						logger.error("指令回复数据入HashMap出错:" + e);
+				}
+				
+				}
+
+	}
+    
+}

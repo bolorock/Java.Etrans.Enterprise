@@ -1,0 +1,26 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ page import="com.etrans.bubiao.sys.Constants"%>
+<%@ page import="com.etrans.bubiao.auth.SessionUser"%>
+<%
+	SessionUser user = new SessionUser(); //用户
+	user = (SessionUser)request.getSession().getAttribute(Constants.LOGIN_USER);
+	if(user == null)
+	{
+		response.sendRedirect("../");
+	}
+%>
+<html>
+<head>
+<title>道路运输车辆卫星定位企业平台</title>
+<meta http-equiv=Content-Type content=text/html;charset=utf-8>
+
+</head>
+  <frameset rows="90,*,30"  frameborder="NO" border="0" framespacing="0" id="frame">
+	<frame src="../common/top.jsp" name="topFrame" noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />
+	<frame src="../common/main.jsp" name="mainFrame" id="mainFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />
+<%--		<frame src="../monitorCenter/group.jsp" name="mainFrame" id="mainFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />--%>
+	<frame src="../common/bottom.jsp" name="bottomFrame" id="bottomFrame" marginwidth="0"  marginheight="0" frameborder="0" noresize="noresize"/>
+  </frameset>
+ <body>
+ </body>
+</html>

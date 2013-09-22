@@ -1,0 +1,549 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap>
+
+  	<!--设置报警关注 -->
+  	<insert id="addAlarmAttactionSQL" parameterClass="java.util.HashMap">  
+  	 IF NOt EXISTS (select 1 from Mobile_Alarm_Type_User where User_ID=#userId# and Alarm_Type_ID=#alarmTypeId#)    
+	      INSERT INTO Mobile_Alarm_Type_User
+	      (User_ID
+	      ,Alarm_Type_ID)
+     	VALUES 
+     		(#userId#
+     		,#alarmTypeId#)
+  	</insert>
+  	
+  		<!--删除报警关注-->
+    <delete id="deleteAlarmAttactionSQL" parameterClass="java.util.HashMap">
+    	DELETE FROM Mobile_Alarm_Type_User WHERE
+    	 User_ID=#userId# AND
+    	  Alarm_Type_ID in
+    	   <iterate property="alarmTypeIdList" open="(" close=")" conjunction=",">  
+                   '$alarmTypeIdList[]$'
+            </iterate> 
+    </delete>
+
+   <!-- 获取报警关注-->	   
+	   <select id="getAlarmAttactionSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+			SELECT Alarm_Type_ID as AlarmTypeID FROM Mobile_Alarm_Type_User where user_ID = '$userId$'
+  		</select>   
+
+   <!-- 获取报警类型 -->	   
+	   <select id="getAlarmTypeSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+			SELECT Alarm_Type_ID as alarmTypeID,Name as alarmType FROM Mobile_Alarm_Type 
+  		</select>   
+  		
+    <select id="getUserNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select top 1 pu.userName as name ,pu.password as password ,pu.workunitId as userId from pub_user pu
+        where 1=1
+	      <dynamic>
+			<isNotNull property="userName">
+				<isNotEmpty property="userName" prepend="and">
+					pu.userName = '$userName$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+   </select>
+   
+<!-- 根据车牌 号码验证是否属于这个用户  -->
+       <select id="getRegistrationNoSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select * from
+         (
+         select pv.workunitId,
+          		pv.registrationNo,
+         	    pv.id 
+         from 
+         		pub_vehicle pv ,
+         	    pub_user pu 
+         where pv.workunitId=pu.workunitId)A where 1=1
+       
+	      <dynamic>
+			<isNotNull property="userId">
+				<isNotEmpty property="userId" prepend="and">
+					A.workunitId = '$userId$'
+				</isNotEmpty>
+			</isNotNull>
+			
+			<isNotNull property="RegistrationNo">
+				<isNotEmpty property="RegistrationNo" prepend="and">
+					A.RegistrationNo = '$RegistrationNo$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+   </select>
+   
+<!--  根据车牌号码  查询车牌对应的车牌ID -->
+       <select id="getVehicleIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select top 1 pv.id as id,pr.Name as RegistrationNOColor from pub_vehicle pv,Pub_RegistrationNOColor pr where pr.id=pv.registrationNoColorId and 1=1
+	      <dynamic>
+			<isNotNull property="RegistrationNo">
+				<isNotEmpty property="RegistrationNo" prepend="and">
+					pv.RegistrationNo = '$RegistrationNo$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+   </select>
+   
+
+   <select id="ETGetVehicleListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+        select A.userId as userId,    
+		       A.registrationNo as registrationNo,    
+		       c.commNo as commNo,     
+		       c.code as code,     
+		       pd.name as derverName,    
+		       pvt.name as vehicleName 
+		 from(
+				 (select ev.vehicleId as vehicleId,
+				  pv.id as id,
+				  ev.userId as userId,
+				  pv.registrationNo as registrationNo,
+				  pv.workunitId as workunitId, 
+				  pv.terminalid as terminalid,      
+				  pv.vehicleTeamId as vehicleTeamId  
+				 from dbo.Ent_userVehicle ev        
+				left join dbo.pub_vehicle pv on ev.vehicleId=pv.id)A
+		left join 
+		       (select pt.id as id,
+				pt.commno as commno,
+				pt.workunitId as workunitId ,
+				pt.simId as simid,
+				ps.code as code 
+				from dbo.Pub_Terminal pt
+				left join dbo.Pub_SIMCard ps on pt.simId=ps.id) C
+		on A.terminalid=C.id
+		left join  dbo.Pub_Driver pd on A.workunitId=pd.workunitid
+		left join  Pub_VehicleTeam pvt on pvt.id=A.vehicleTeamId ) where 1=1
+   
+	   <dynamic>
+	       <isNotNull property="userId">
+				<isNotEmpty property="userId" prepend="and">
+					userId = '$userId$'
+				</isNotEmpty>
+			</isNotNull>
+			
+			<isNotNull property="RegistrationNo">
+				<isNotEmpty property="RegistrationNo" prepend="and">
+					registrationNo = '$RegistrationNo$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	   </dynamic>
+   </select>
+
+
+  <!--  根据用户取所有的的车牌id -->
+       <select id="getRegistrationNoIDSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select pv.id as vehicleId,pv.registrationNo as registrationNo from pub_vehicle pv  where 1=1
+	      <dynamic>
+			<isNotNull property="userId">
+				<isNotEmpty property="userId" prepend="and">
+					pv.workunitId = '$userId$'
+				</isNotEmpty>
+			</isNotNull>
+	 </dynamic>
+   </select>		
+<!-- ******************************接口SQL************START***************************/ -->		
+
+<!--  根据用户ID取所有的的车牌id -->
+       <select id="getUserVehicleIDByWorkUnitIDSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+	    SELECT
+ 				ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor
+		      
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+	  
+		where
+		      pv.isDeleted = 0 and pv.workUnitID=#workUnitID#
+		      <dynamic>
+				<isNotNull property="vehicleID">
+					<isNotEmpty property="vehicleID">
+						and pv.id = #vehicleID#
+					</isNotEmpty>
+				</isNotNull>
+	 		</dynamic>
+
+	   </select>
+
+
+        <!--	亿程车管_手机客户端   (报警类型)-->
+	      <select id="getMobileAlarmTypeUsersSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+	        select Alarm_type_ID as alarmTypeId from   dbo.Mobile_Alarm_Type_User  where 1=1 
+		      <dynamic>
+				<isNotNull property="userID">
+					<isNotEmpty property="userID">
+						and User_ID = #userID#
+					</isNotEmpty>
+				</isNotNull>
+				
+	 		</dynamic>
+	 		</select>
+	   <!--  获取某辆车的某段时间内的历史报警数据-->
+       <select id="getHistoryAlarmSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+				select * from ( select pv.registrationNO
+			      ,pr.Name as RegistrationNOColor
+			      ,pa.vehicleID
+			      ,(case pa.alarmKindId when 1 then '超速报警'
+			       when 2 then '疲劳驾驶报警'
+				   when 3 then '紧急报警'
+			       when 4 then '进入指定区域报警'
+			       when 5 then '离开指定区域报警'
+			       when 6 then '路段堵塞报警'
+			       when 7 then '危险路段报警'
+			       when 8 then '越界报警'
+			       when 9 then '盗警'
+			       when 10 then '劫警'
+			       when 11 then '偏离路线报警'
+			       when 12 then '车辆移动报警'
+			       when 13 then '超时驾驶报警'
+			       when 255 then '其他报警'
+			       else '0' end) as alarmType
+			      ,pa.longitude
+			      ,pa.latitude
+			      ,pa.heading as head
+			      ,pa.speed1
+			      ,pa.speed2
+			      ,pa.Mileage1 as gpsMileage1
+				  ,pa.Mileage2 as gpsMileage2
+			      ,pa.alarmTime
+			      ,pa.sourceDesc as alarmDesc
+			   from Pub_AlarmInfo pa
+			     left join pub_vehicle pv on pa.vehicleId=pv.id
+			     left join Pub_RegistrationNOColor pr on pr.id=pv.registrationNoColorId) A where 1=1
+		     
+		      <dynamic>
+				<isNotNull property="vehicleID">
+					<isNotEmpty property="vehicleID">
+						and a.vehicleID = #vehicleID#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="startDate">
+					<isNotEmpty property="startDate">
+						AND  a.alarmTime>=#startDate#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="endDate">
+					<isNotEmpty property="endDate">
+						AND #endDate#>=a.alarmTime
+					</isNotEmpty>
+				</isNotNull>
+	 		</dynamic>
+
+	   </select>
+	   
+	   
+
+	   
+	   <!--  根据用户ID取车牌号和车牌颜色 -->
+       <select id="getUserVehicleIDByRegistrationNOSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+	    SELECT
+ 				ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor
+		      
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+	  
+		where
+		      pv.isDeleted = 0 
+		      <dynamic>
+				<isNotNull property="vehicleID">
+					<isNotEmpty property="vehicleID">
+						and pv.id = #vehicleID#
+					</isNotEmpty>
+				</isNotNull>
+	 		</dynamic>
+
+	   </select>
+	   
+<!-- 登录 -->	   
+	   <select id="checkUserLoginSQL" parameterClass="HashMap" resultClass="com.etrans.bubiao.entities.User">
+  
+	  	SELECT top 1 * FROM PUB_USER WHERE UserName=#userName# AND PASSWORD=#password#
+  
+  		</select>
+  		
+<!-- 车辆信息带状态 -->	   
+	   <select id="queryVehicleInfoAndStatusSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+
+SELECT
+ ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor,
+		       isnull(pt.phoneNo,'') simNO,
+		       isnull(pa.name,'') areaName,
+		       isnull(pw.name,'') enterpiseName,
+		       isnull(pt.commNO,'') commNO,
+		       isnull(ptr.name,'') tradeKindName,
+		 	   isnull(ptk.name,'') terminalType,
+		       isnull(pet.name,'') teamName,
+		       isnull((SELECT REPLACE(col,'ID=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'ID=%'),'') videoID,
+		       isnull((SELECT REPLACE(col,'Channel=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'Channel=%'),'') videoChannelID,
+		       isnull(pd.Name,'')driverName,
+		       isnull(pd.PhoneNO,'') driverPhone,
+		       isnull(pv.VehicleOwnerPhoneNo,'') owerPhone,
+		       pai.pecAlarmInfo,
+		       (case when pvs.positionStatus=1 then '5'
+		        when pvs.positionStatus=2 then '4' 
+		        when pvs.positionStatus=3 then '3' 
+		       else '' end) positionStatus
+		       
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+		LEFT JOIN pub_area pa ON pa.id = pv.areaId
+		LEFT JOIN pub_workUnit pw ON pw.id = pv.workUnitId and pw.isDeleted = 0
+		LEFT JOIN Pub_Vehicle_Transport pvt ON pv.id = pvt.vehicleID
+		LEFT JOIN (SELECT pt.id,pt.commno,ps.PhoneNO,pt.signCode,pt.terminalKindID FROM Pub_Terminal pt   WITH ( NOLOCK )
+		            LEFT JOIN pub_simCard ps  ON ps.id = pt.simId  
+		          )pt ON pt.id = pv.terminalId
+		LEFT JOIN pub_tradeKind ptr ON ptr.id = pv.tradeKindId
+		LEFT JOIN Pub_TerminalKind ptk ON ptk.id = pt.terminalKindID
+	    LEFT JOIN Pub_VehicleTeam pet on pet.id=pv.vehicleTeamId
+	    LEFT JOIN Pub_VehicleDeviceSetup pve ON pve.vehicleID = pv.ID
+	    LEFT JOIN (SELECT * FROM Pub_VehicleDriver pvi WHERE pvi.Sequence=1) pvi ON pvi.VehicleID=pv.ID  
+	    LEFT JOIN Pub_Driver pd ON pd.ID = pvi.DriverID
+	    LEFT JOIN (SELECT TOP 1 vehicleId,id AS pecAlarmInfo FROM Pec_AlarmInfo pai WHERE pai.AlarmKindID = 100104 AND isblind=1
+	    		AND #queryTime# BETWEEN pai.startTime AND pai.endTime)pai ON pai.vehicleId = pv.id
+	    LEFT JOIN Pec_VehiclePositionStatus pvs ON pvs.vehicleID = pv.id
+	    
+		where
+		      pv.isDeleted = 0 
+              and  pv.id IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            ORDER BY  pv.registrationNO   
+  		</select>
+
+<!--车辆检索 -->	   
+	   <select id="queryVehicleSearchAndStatusSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+
+SELECT
+ ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor,
+		       isnull(pt.phoneNo,'') simNO,
+		       isnull(pa.name,'') areaName,
+		       isnull(pw.name,'') enterpiseName,
+		       isnull(pt.commNO,'') commNO,
+		       isnull(ptr.name,'') tradeKindName,
+		 	   isnull(ptk.name,'') terminalType,
+		       isnull(pet.name,'') teamName,
+		       isnull((SELECT REPLACE(col,'ID=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'ID=%'),'') videoID,
+		       isnull((SELECT REPLACE(col,'Channel=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'Channel=%'),'') videoChannelID,
+		       isnull(pd.Name,'')driverName,
+		       isnull(pd.PhoneNO,'') driverPhone,
+		       isnull(pv.VehicleOwnerPhoneNo,'') owerPhone,
+		       pai.pecAlarmInfo,
+		       (case when pvs.positionStatus=1 then '5'
+		        when pvs.positionStatus=2 then '4' 
+		        when pvs.positionStatus=3 then '3' 
+		       else '' end) positionStatus
+		       
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+		LEFT JOIN pub_area pa ON pa.id = pv.areaId
+		LEFT JOIN pub_workUnit pw ON pw.id = pv.workUnitId and pw.isDeleted = 0
+		LEFT JOIN Pub_Vehicle_Transport pvt ON pv.id = pvt.vehicleID
+		LEFT JOIN (SELECT pt.id,pt.commno,ps.PhoneNO,pt.signCode,pt.terminalKindID FROM Pub_Terminal pt   WITH ( NOLOCK )
+		            LEFT JOIN pub_simCard ps  ON ps.id = pt.simId  
+		          )pt ON pt.id = pv.terminalId
+		LEFT JOIN pub_tradeKind ptr ON ptr.id = pv.tradeKindId
+		LEFT JOIN Pub_TerminalKind ptk ON ptk.id = pt.terminalKindID
+	    LEFT JOIN Pub_VehicleTeam pet on pet.id=pv.vehicleTeamId
+	    LEFT JOIN Pub_VehicleDeviceSetup pve ON pve.vehicleID = pv.ID
+	    LEFT JOIN (SELECT * FROM Pub_VehicleDriver pvi WHERE pvi.Sequence=1) pvi ON pvi.VehicleID=pv.ID  
+	    LEFT JOIN Pub_Driver pd ON pd.ID = pvi.DriverID
+	    LEFT JOIN (SELECT TOP 1 vehicleId,id AS pecAlarmInfo FROM Pec_AlarmInfo pai WHERE pai.AlarmKindID = 100104 AND isblind=1
+	    		AND #queryTime# BETWEEN pai.startTime AND pai.endTime)pai ON pai.vehicleId = pv.id
+	    LEFT JOIN Pec_VehiclePositionStatus pvs ON pvs.vehicleID = pv.id
+	    
+		where
+		      pv.isDeleted = 0 and pv.workUnitID=#workUnitID#
+              and  pv.registrationNO like '%$regNo$%' 
+           
+  		</select>
+		
+<!-- 车辆信息不带状态 -->	   
+	   <select id="queryVehicleInfoSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+
+SELECT
+ ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor,
+		       isnull(pt.phoneNo,'') simNO,
+		       isnull(pa.name,'') areaName,
+		       isnull(pw.name,'') enterpiseName,
+		       isnull(pt.commNO,'') commNO,
+		       isnull(ptr.name,'') tradeKindName,
+		 	   isnull(ptk.name,'') terminalType,
+		       isnull(pet.name,'') teamName,
+		       isnull((SELECT REPLACE(col,'ID=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'ID=%'),'') videoID,
+		       isnull((SELECT REPLACE(col,'Channel=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'Channel=%'),'') videoChannelID,
+		       isnull(pd.Name,'')driverName,
+		       isnull(pd.PhoneNO,'') driverPhone,
+		       isnull(pv.VehicleOwnerPhoneNo,'') owerPhone
+		      
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+		LEFT JOIN pub_area pa ON pa.id = pv.areaId
+		LEFT JOIN pub_workUnit pw ON pw.id = pv.workUnitId and pw.isDeleted = 0
+		LEFT JOIN Pub_Vehicle_Transport pvt ON pv.id = pvt.vehicleID
+		LEFT JOIN (SELECT pt.id,pt.commno,ps.PhoneNO,pt.signCode,pt.terminalKindID FROM Pub_Terminal pt   WITH ( NOLOCK )
+		            LEFT JOIN pub_simCard ps  ON ps.id = pt.simId  
+		          )pt ON pt.id = pv.terminalId
+		LEFT JOIN pub_tradeKind ptr ON ptr.id = pv.tradeKindId
+		LEFT JOIN Pub_TerminalKind ptk ON ptk.id = pt.terminalKindID
+	    LEFT JOIN Pub_VehicleTeam pet on pet.id=pv.vehicleTeamId
+	    LEFT JOIN Pub_VehicleDeviceSetup pve ON pve.vehicleID = pv.ID
+	    LEFT JOIN (SELECT * FROM Pub_VehicleDriver pvi WHERE pvi.Sequence=1) pvi ON pvi.VehicleID=pv.ID  
+	    LEFT JOIN Pub_Driver pd ON pd.ID = pvi.DriverID
+	  
+		where
+		      pv.isDeleted = 0 
+              and  pv.id IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            ORDER BY  pv.registrationNO   
+  		</select>  		
+  		
+ 
+<!-- 查询车辆详细信息 -->	   
+	   <select id="queryVehicleDetailInfoByIdSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+
+SELECT
+ ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor,
+		       isnull(pt.phoneNo,'') simNO,
+		       isnull(pa.name,'') areaName,
+		       isnull(pw.name,'') enterpiseName,
+		       isnull(pt.commNO,'') commNO,
+		       isnull(ptr.name,'') tradeKindName,
+		 	   isnull(ptk.name,'') terminalType,
+		       isnull(pet.name,'') teamName,
+		       isnull((SELECT REPLACE(col,'ID=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'ID=%'),'') videoID,
+		       isnull((SELECT REPLACE(col,'Channel=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'Channel=%'),'') videoChannelID,
+		       isnull(pd.Name,'')driverName,
+		       isnull(pd.PhoneNO,'') driverPhone,
+		       isnull(pv.VehicleOwnerPhoneNo,'') owerPhone
+		      
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+		LEFT JOIN pub_area pa ON pa.id = pv.areaId
+		LEFT JOIN pub_workUnit pw ON pw.id = pv.workUnitId and pw.isDeleted = 0
+		LEFT JOIN Pub_Vehicle_Transport pvt ON pv.id = pvt.vehicleID
+		LEFT JOIN (SELECT pt.id,pt.commno,ps.PhoneNO,pt.signCode,pt.terminalKindID FROM Pub_Terminal pt   WITH ( NOLOCK )
+		            LEFT JOIN pub_simCard ps  ON ps.id = pt.simId  
+		          )pt ON pt.id = pv.terminalId
+		LEFT JOIN pub_tradeKind ptr ON ptr.id = pv.tradeKindId
+		LEFT JOIN Pub_TerminalKind ptk ON ptk.id = pt.terminalKindID
+	    LEFT JOIN Pub_VehicleTeam pet on pet.id=pv.vehicleTeamId
+	    LEFT JOIN Pub_VehicleDeviceSetup pve ON pve.vehicleID = pv.ID
+	    LEFT JOIN (SELECT * FROM Pub_VehicleDriver pvi WHERE pvi.Sequence=1) pvi ON pvi.VehicleID=pv.ID  
+	    LEFT JOIN Pub_Driver pd ON pd.ID = pvi.DriverID
+	  
+		where
+		      pv.isDeleted = 0 
+              and  pv.id = #vehicleId#
+              ORDER BY  pv.registrationNO   
+  		</select>   
+  		
+  		
+  		
+  		<!-- 车辆信息检索接口 -->	   
+	   <select id="getVehicleSearchSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+		      SELECT top 10
+               ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor,
+		       isnull((SELECT REPLACE(col,'ID=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'ID=%'),'') videoID,
+		       isnull((SELECT REPLACE(col,'Channel=','') from dbo.F_StringForSplit(pve.paramValue,',') WHERE col LIKE 'Channel=%'),'') videoChannelID,
+		       isnull(pt.commNO,'') commNO,
+		       isnull(pt.phoneNo,'') simNO,
+		       isnull(ptk.name,'') terminalType,
+		       isnull(pd.Name,'')driverName,
+		       isnull(pet.name,'') teamName,
+		       isnull(pd.PhoneNO,'') driverPhone,
+		       isnull(pv.VehicleOwnerPhoneNo,'') owerPhone,
+		       isnull(pa.name,'') areaName,
+		       isnull(ptr.name,'') tradeKindName,
+		       isnull(pw.name,'') enterpiseName,
+		       (case when pvs.positionStatus=1 then '5'when pvs.positionStatus=2 then '4' when pvs.positionStatus=3 then '3' else '' end) positionStatus 
+		      FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+		LEFT JOIN pub_area pa ON pa.id = pv.areaId
+		LEFT JOIN pub_workUnit pw ON pw.id = pv.workUnitId and pw.isDeleted = 0
+		LEFT JOIN Pub_Vehicle_Transport pvt ON pv.id = pvt.vehicleID
+		LEFT JOIN (SELECT pt.id,pt.commno,ps.PhoneNO,pt.signCode,pt.terminalKindID FROM Pub_Terminal pt   WITH ( NOLOCK )
+		            LEFT JOIN pub_simCard ps  ON ps.id = pt.simId  
+		          )pt ON pt.id = pv.terminalId
+		LEFT JOIN pub_tradeKind ptr ON ptr.id = pv.tradeKindId
+		LEFT JOIN Pub_TerminalKind ptk ON ptk.id = pt.terminalKindID
+	    LEFT JOIN Pub_VehicleTeam pet on pet.id=pv.vehicleTeamId
+	    LEFT JOIN Pub_VehicleDeviceSetup pve ON pve.vehicleID = pv.ID
+	    LEFT JOIN (SELECT * FROM Pub_VehicleDriver pvi WHERE pvi.Sequence=1) pvi ON pvi.VehicleID=pv.ID  
+	    LEFT JOIN Pub_Driver pd ON pd.ID = pvi.DriverID
+	    LEFT JOIN Pec_VehiclePositionStatus pvs ON pvs.vehicleID = pv.id
+		where
+		      pv.isDeleted = 0 
+              <isNotEmpty property="registrationNO">
+      			and pv.registrationNO like '%$registrationNO$%'
+              </isNotEmpty>
+              <isNotNull property="workUnitID">
+				<isNotEmpty property="workUnitID" >
+					and pv.workunitId = '$workUnitID$'
+				</isNotEmpty>
+			</isNotNull>
+			 ORDER BY  pv.registrationNO   
+  		</select>   	
+  		
+<!-- 查询车辆简单信息 -->  		
+	   <select id="querySimpleVehicleInfoByIdSQL" parameterClass="HashMap" resultClass="java.util.HashMap">
+
+SELECT
+ ltrim(rtrim(str(pv.id))) as vehicleID,
+		       isnull(pv.registrationNO,'') registrationNO,
+		       isnull(pr.name,'') registrationNOColor
+		      
+		        FROM pub_vehicle pv  WITH ( NOLOCK ) 
+		LEFT JOIN Pub_RegistrationNOColor pr on pr.id=pv.RegistrationNOColorID         
+	  
+		where
+		      pv.isDeleted = 0 
+              and  pv.id IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+  		</select>    			
+<!-- ******************************接口SQL**************END*************************/ -->	
+	
+	
+	<!-- 获取部分分页车辆信息带状态接口-->		
+	 <parameterMap id="getVehicleInfoAndStatus_Page" class="java.util.HashMap"> 
+	        <parameter property="@pageSize"  mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+	       <parameter property="@pageNumber"  mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+	        <parameter property="@workUnitID"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+	</parameterMap> 
+
+	<procedure id="P_VehiclePage_QuerySQL" resultClass="java.util.HashMap" parameterMap="getVehicleInfoAndStatus_Page"> 
+		    <![CDATA[
+		     {call VehiclePage_Query(?,?,?)}
+		    ]]>
+	</procedure>
+
+</sqlMap>
+

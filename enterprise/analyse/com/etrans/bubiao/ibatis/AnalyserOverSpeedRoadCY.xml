@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 道路超速报警设置（长运） -->
+  <select id="findAnalyserOverSpeedRoadCYSQL" resultClass="java.util.HashMap">
+  	 	select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+		 select
+		   scy.ID as id
+	      ,scy.Name
+	      ,scy.AnalyseGroupID
+	      ,ayp.Name as AnalyseGroupName
+	      ,(case scy.IsAlert when '1' then '报警' else '只记录' end) as IsAlert
+	      ,scy.CheckTimeTypeID
+	      ,C.Name as checkTimeTypeName
+	      ,scy.CheckTimeValue
+	      ,CONVERT(varchar(10),scy.CheckTimeBegin,24) as CheckTimeBegin
+		  ,CONVERT(varchar(10),scy.CheckTimeEnd,24) as CheckTimeEnd
+	      ,(case scy.IsWarn when '0' then '蜂鸣器响' else '蜂鸣器不响' end) as IsWarn
+	      ,scy.SoundContent
+	      ,scy.AlertInterval
+	      ,scy.IsSendSpeedMonitor
+	      ,scy.PlaceTypeID
+	      ,py.Name as PolygonName
+        FROM ANA_AnalyserOverSpeedRoad_CY scy
+		left join ANA_ParamPolygon py on scy.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on scy.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on scy.checkTimeTypeId=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1
+             <isNotEmpty property="name">
+      			and scy.Name like '%$name$%'
+             </isNotEmpty>
+             <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+   </select>
+   
+   <!--数据总条数-->
+   <select id="getAnalyserOverSpeedRoadCYCountSQL" resultClass="java.lang.Long">
+      select COUNT(*) from
+                  ANA_AnalyserOverSpeedRoad_CY scy
+		left join ANA_ParamPolygon py on scy.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on scy.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on scy.checkTimeTypeId=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1
+             <isNotEmpty property="name">
+      			 and scy.Name like '%$name$%'
+             </isNotEmpty>
+             <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			 <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+			 
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getAnalyserOverSpeedRoadCYByIdSQL"  resultClass="java.util.HashMap">
+         select
+		   scy.ID as id
+	      ,scy.name
+	      ,scy.analyseGroupID
+	      ,ayp.name as analyseGroupName
+	      ,ltrim(rtrim(str(scy.isAlert))) isAlert
+	      ,scy.checkTimeTypeID
+	      ,scy.checkTimeValue
+	      ,CONVERT(varchar(10),scy.CheckTimeBegin,24) as checkTimeBegin
+		  ,CONVERT(varchar(10),scy.CheckTimeEnd,24) as checkTimeEnd
+	      ,ltrim(rtrim(str(scy.isWarn))) isWarn
+	      ,scy.soundContent
+	      ,scy.alertInterval
+	      ,scy.isSendSpeedMonitor
+	      ,scy.placeTypeID
+	      ,py.Name as polygonName
+        FROM ANA_AnalyserOverSpeedRoad_CY scy
+		left join ANA_ParamPolygon py on scy.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on scy.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on scy.checkTimeTypeId=C.id 
+       where  scy.ID=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkAnalyserOverSpeedRoadCYByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserOverSpeedRoad_CY
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+   <!-- 查询自定义区域面名称 -->
+   <select id="getCustomMapPlaneNameByIdSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+      select PP.id,PP.name,PP.radius,PP.shapeId from Pub_CustomMapPlane PP, Pub_CustomMapLayer PM
+      where PP.MapLayerID=PM.ID 
+       <isNotNull property="areaId" >
+          and  PP.id = #areaId#
+         </isNotNull>
+    </select>
+    
+    <!-- 查询自定义区域面 坐标-->
+    <select id="getCustomMapPlaneLonLatByIdSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+       select PP.id,PP.name, PCP.longitude,PCP.latitude from    
+        Pub_CustomMapPlanePoint PCP ,Pub_CustomMapPlane PP
+        where PCP.MapPlaneID=PP.ID 
+       <isNotNull property="areaId" >
+          and  PP.id = #areaId#
+         </isNotNull>
+    </select>
+    
+    <insert id="insertParamPolygonSQL" parameterClass="com.etrans.bubiao.entities.ANAParamPolygon"> 
+	<selectKey resultClass="Long" keyProperty="id">     
+	
+			<![CDATA[
+			INSERT INTO [ANA_ParamPolygon]
+           (
+            [GroupID]
+           ,[Name]
+           ,[Longitude]
+           ,[Latitude]
+           )
+          VALUES
+          (
+           	#groupID#,
+           	#name#,
+           	#longitude#,
+           	#latitude#
+           )
+	        SELECT SCOPE_IDENTITY() AS ID ]]>    
+			</selectKey>    
+	
+	</insert>  
+	
+    
+	
+	
+	<insert id="insertParamPolygonDetailSQL" parameterClass="java.util.HashMap">
+	INSERT INTO [ANA_ParamPolygonDetail]
+           ([RoadID]
+           ,[IndexNO]
+           ,[Longitude]
+           ,[Latitude])
+     VALUES
+           (
+           	#roadID#,
+           	#indexNO#,
+           	#longitude#,
+           	#latitude#)
+	</insert>
+	
+	<insert id="insertAnalyserOverSpeedRoadCYSQL" parameterClass="java.util.HashMap">
+	INSERT INTO [ANA_AnalyserOverSpeedRoad_CY]
+	           ([Name]
+	           ,[AnalyseGroupID]
+	           ,[IsAlert]
+	           ,[CheckTimeTypeID]
+	           ,[CheckTimeValue]
+	           ,[CheckTimeBegin]
+	           ,[CheckTimeEnd]
+	           ,[IsWarn]
+	           ,[SoundContent]
+	           ,[AlertInterval]
+	           ,[PlaceTypeID])
+     VALUES
+	           (
+	           	#name#,
+	           	#analyseGroupID#,
+	           	#isAlert#,
+	           	#checkTimeTypeID#,
+	           	#checkTimeValue#,
+	           	#checkTimeBegin#,
+	           	#checkTimeEnd#,
+	           	#isWarn#,
+	           	#soundContent#,
+	           	#alertInterval#,
+	           	#placeTypeID#)
+	</insert>
+	
+	
+	
+	
+	
+	     <update id="updateOverSpeedRoadCYSQL"  parameterClass="java.util.HashMap"> 
+				UPDATE [ANA_AnalyserOverSpeedRoad_CY]
+				   SET [Name] = '$name$'
+				      ,[AnalyseGroupID] = '$analyseGroupID$'
+				      ,[IsAlert] = '$isAlert$'
+				      ,[CheckTimeTypeID] = '$checkTimeTypeID$'
+				      ,[CheckTimeValue] = '$checkTimeValue$'
+				      ,[CheckTimeBegin] = '$checkTimeBegin$'
+				      ,[CheckTimeEnd] ='$checkTimeEnd$'
+				      ,[IsWarn] = '$isWarn$'
+				      ,[SoundContent] = '$soundContent$'
+				      ,[AlertInterval] = '$alertInterval$'
+				       WHERE [ID] = '$id$' 
+         </update>
+         
+         
+          
+	
+	
+	
+	 <select id="getAnalyserOverSpeedRoadCYByNameSQL"  resultClass="java.util.HashMap">
+         select
+		   scy.ID as id
+	      ,scy.name
+        FROM ANA_AnalyserOverSpeedRoad_CY scy
+     </select>
+     
+     
+     <select id="getParamPolygonByNameSQL"  resultClass="java.util.HashMap">
+         SELECT [ID]
+               ,[Name]
+        FROM ANA_ParamPolygon 
+        where 1=1
+         <isNotNull property="name" >
+          and  Name = #name#
+         </isNotNull>
+        
+     </select>
+	
+	<!--删除-->
+    <delete id="delOverSpeedRoadCYSQL" parameterClass="java.util.HashMap">
+    	DELETE FROM ANA_AnalyserOverSpeedRoad_CY WHERE  ID in ($id$)
+    </delete>
+
+ </sqlMap>

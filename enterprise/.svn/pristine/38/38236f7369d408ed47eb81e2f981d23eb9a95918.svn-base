@@ -1,0 +1,84 @@
+package com.etrans.bubiao.repository;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.bubiao.sys.Constants;
+
+/**
+ * 附加信息接收队列
+ * @author lujunyong
+ * 2013-6-8
+ * @version 1.0
+ */
+public class AffixationQueue {
+	private ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();// 队列
+	private final Log logger = LogFactory.getLog(AffixationQueue.class);//日志
+	
+	
+	/**
+	 * 将值存入队列中
+	 * */
+	public synchronized void produce(String message) {
+		
+		try {	
+			if (null != message && message.length() > 3) {
+				while (queue.size() == Constants.BusinessQueueMaxNum) {
+					queue.poll(); //出列【删除一条数据】
+				}
+				queue.add(message);//入列【添加一条数据】
+				this.notifyAll();
+			}
+		} catch (Exception e) {
+			logger.error("附加信息数据入队列出错,密文:" + message);
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 取队列值,并删除所取值
+	 * */
+	public synchronized String consume() {
+		String message = null;
+		if (!queue.isEmpty()) {
+			message = (String) queue.poll();
+		}else{
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return message;
+	}
+	
+	
+	/**
+	 * 取队列
+	 * */
+	public ConcurrentLinkedQueue<String> getBusinessQueue() {
+		while (queue.size() == Constants.BusinessQueueMaxNum) {
+			queue.poll();
+		}
+		return queue;
+	}
+	
+	/**
+	 * 清空队列
+	 * */
+	public void clearBusinessQueue() {
+		queue.clear();
+	}
+	
+	/**
+	 * 删除队列中的某值
+	 * */
+	public void removeBusinessQueue(String businessQueue) {
+		queue.remove(businessQueue);
+	}
+	
+
+}

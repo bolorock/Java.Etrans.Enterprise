@@ -1,0 +1,69 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<%@page import="com.etrans.bubiao.sys.UserContext" %>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>			
+			<%
+			request.setAttribute("isSuper",String.valueOf(((SessionUser) request.getSession().getAttribute(Constants.LOGIN_USER)).getIsSuperUser()));
+				boolean isRoot = UserContext. isBsRootUser();
+			%>
+		    <title>用户信息</title>
+		    <link rel="stylesheet" type="text/css" href="${basePath}css/style.css">
+		    <script type="text/javascript" src="${basePath}js/sys/userManage/vehicleGorp.js"></script>
+		    
+				
+	
+	</head>
+	
+<body>
+
+
+<div style="width: 100%" id="cont_box">
+	<div class="main">
+		<div class="mon_cont">
+           
+            
+                 <div class="td_title"><strong>3.</strong>车辆分组</div>
+  	  				<form    method="POST" id="form_addVehicleGroup">    
+			        <table class="maintable" >
+			            <tr>
+			                <td colspan="3">
+			                <fieldset style="width: 650;">
+								<legend>车组信息</legend>
+									&nbsp;&nbsp;车组名称&nbsp;&nbsp;&nbsp;
+									<input type="text" size="30" onBlur="isDigit()" value="" id="vehicleName" name="vehicleName" class="mon_ser_text"/>	
+									<span id="vehicleNamespan" class="errorMsg" style="display: none"></span>
+		 							&nbsp;&nbsp;所属企业&nbsp;&nbsp;&nbsp;
+									<input type="text" size="30" name="addTheirCustomer" id="addTheirCustomer" readonly="readonly"  value="<s:property value='vehicleGroupBean.workUnitName'/>" id="otName" class="mon_ser_text"/>										
+							</fieldset>
+			                </td>
+			            </tr>
+			            <tr>
+			            <td>
+			            <fieldset>
+			            	<div style="height:220;OVERFLOW-Y: auto; OVERFLOW-X: hidden;padding-top: 0;vertical-align: top;">
+			            		<ul id="selectVehicle" style="height: 270px;"></ul>
+			            	</div>
+			            </fieldset>
+			            </td>	            
+			            </tr>
+			            
+			        </table>
+		        </form>
+        	</div>
+        	
+        	
+		        	   
+	              
+        	</div>
+        
+          
+		
+</div>
+
+ 
+
+</html>

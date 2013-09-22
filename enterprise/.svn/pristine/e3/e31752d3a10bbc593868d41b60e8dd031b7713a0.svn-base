@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+	<!--查询证件信息列表sql-->
+	<select id="findProveInfoListSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ( 
+		select ROW_NUMBER() OVER ( order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+		) RowNo,
+		b.*
+		from (
+			select  proveName.proveName,vehicle.registrationNO,proveInfo.* from Ent_ProveInfo proveInfo
+			left join Ent_ProveName proveName on proveInfo.proveNameID=proveName.id
+			left join pub_vehicle vehicle on proveInfo.vehicleID = vehicle.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND proveInfo.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND vehicle.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+		)b
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	</select>
+	
+	<!--查询数据总条数-->
+	<select id="findProveInfoListSqlCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select COUNT(*)
+			from Ent_ProveInfo proveInfo
+			left join Ent_ProveName proveName on proveInfo.proveNameID=proveName.id
+			left join pub_vehicle vehicle on proveInfo.vehicleID = vehicle.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND proveInfo.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND vehicle.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            
+	</select>
+	
+	
+	
+	
+
+</sqlMap>

@@ -1,0 +1,537 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>车辆信息管理</title>
+		<script type="text/javascript" src="${basePath}js/sys/vehicle/vehicle.js"></script>
+		<script type="text/javascript"	src="${basePath}js/sys/tree/treeWorkUnitQuery.js"></script>	
+		<script type="text/javascript"	src="${basePath}js/sys/tree/vehicleTree.js"></script>	
+		<script type="text/javascript" src="${basePath}js/datepicker/WdatePicker.js"></script>
+		
+		<script type="text/javascript"	src="${basePath}js/sys/tree/vehicleMaintree.js"></script>
+		<%--【自动补全】begin--%>
+        <script type="text/javascript" src="${basePath}js/common/autoComplete.js"></script>
+        <link rel="stylesheet" type="text/css" href="${basePath}css/autoComplete.css">
+        <%--【自动补全】end--%>
+	</head>
+
+<%--onclickAll 【自动补全】--%>
+<body onclick="onclickAll();">
+	<%--【自动补全】begin--%>
+    <div style="position:absolute; overflow:auto; scroll;height: 143px; width: 120px;" id="popup">
+        <table  id="name_table" bgcolor="#FFFAFA" border="0" cellspacing="0" cellpadding="0"/>            
+            <tbody id="name_table_body" style="font-size: 13px;"></tbody>
+        </table>
+    </div>
+	<%--【自动补全】end--%> 
+	
+		<div style="width: 100%" id="cont_box">
+		<div class="main">
+		<div class="mon_cont">
+			<div class="E_Tit">车辆信息管理</div>
+			<table border="0" cellspacing="0" cellpadding="0" class="que_tab">
+				<tr>
+					<td width="60" align="right">车牌号码：</td>
+					<td width="120" align="left">
+						<%--【自动补全】车牌号码--%>
+						<input id="vehicleIds" type="hidden" name="vehicleIds"/>
+						<input type="text" id="reNoParam" name="reNoParam" class="mon_ser_text" style="width: 120;"
+							maxlength="30" ondblclick="showVehicleTree('reNoParam')"
+			                onkeyup="doAutoComplete('reNoParam','name_table','popup','name_table_body')" 
+			                onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+			                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))"/>
+					</td>
+					<td width="60" align="right">企业名称：</td>
+					<td width="120" align="left">
+					
+						<input type="text"  name="uNameParam"   
+						    id="workUnitNameParam" ondblclick="showWorkUnitQueryTree()"
+						    class="mon_ser_text" style="width: 130;"
+							maxlength="30" 
+			                onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+			                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))"/>
+					</td>
+					<td width="60" align="right">通信号：</td>
+						<td width="120" align="left">
+							<input type="text" id="comNoParam" name="comNoParam" class="mon_ser_text" style="width: 130;"
+								maxlength="30" 
+				                onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+				                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))" />
+						</td>
+					<td width="240">
+						<a id="searchBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">查询</a>
+						<a id="exportBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">导出</a>
+						<auth:authorize operation="createVehicle">
+							<a id="createBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">新增</a>
+						</auth:authorize>
+						<a href="javascript:void(0)" id="adSearchBtn" style="margin-left:8px;">高级搜索</a>
+					</td>
+				</tr>
+			</table>
+			<div id="adSearch" style="display: none;">
+				<table border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px;">
+					<tr>
+						<td width="60" align="right">SIM卡号：</td>
+						<td width="120" align="left">
+							<input type="text" id="simParam" name="simParam" class="mon_ser_text" style="width: 120;"
+								maxlength="30" 
+				                onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+				                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))" />
+						</td>
+						<td width="60" align="right">第一司机：</td>
+						<td width="120" align="left">
+							<input type="text" id="driverParam" name="driverParam" class="mon_ser_text" style="width: 130;"
+								maxlength="30" 
+				                onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+				                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))" />
+						</td>
+						<td width="60" align="right"></td>
+						<td width="120" align="left">
+						</td>
+						<td colspan="2"></td>
+					</tr>
+				</table>
+			</div>
+			
+<%--			<div id="editWindow" class="wDiv" style="width:100%;display: none;border: 1px solid #d0d0d0;height:380px;overflow-y: scroll;">--%>
+			<div id="editWindow" class="wDiv" style="width:100%;display: none;border: 1px solid #d0d0d0;height:320px;overflow-y:scroll;">
+			
+				<div class="td_title" id="titleInfo">车辆信息编辑</div>
+				<div id="baseColumn" style="width: 100%">
+				<table align="center" width="100%">
+					<tr>
+						<td align="right" width="160"><span class="xin_red">*</span>车牌号码：</td>
+						<td align="left" width="240">
+							<input type="hidden" id="vehicleId" value=""/>
+							<input type="text" name="registrationNo" id="registrationNo" class="td_input" maxlength="20"
+				      			formCheck="true"
+				      			required="true" requiredError="必须输入项"  
+								noSpecialCaracters="true"
+								ajaxAction="sys/checkRegistrationNo.action" 
+								ajaxDataId="vehicleId" 
+								ajaxActionError="已存在此车牌号，请重新输入！">
+							<span id="registrationNospan" class="errorMsg" style="display: none"></span>
+						</td>
+						<td align="right" width="160"><span class="xin_red">*</span>道路运输证号：</td>
+						<td align="left" width="240">
+							<input type="text" id="transportPermits" name="transportPermits" class="td_input" maxlength="20"
+								formCheck="true"
+				      			required="true" requiredError="必须输入项"
+				      			noSpecialCaracters="true">
+				      		<span id="transportPermitsspan" class="errorMsg" style="display: none"></span>
+						</td>
+						
+						
+						
+						
+						<td rowspan="11" align="center" width="150">
+							<a id="submitBtn" href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px;">提交</a>
+							<br>
+							<a id="cancelBtn" href="javascript:void(0)" class="ser_btn">取消</a>
+						</td>
+					</tr>
+					<tr>
+						<td align="right" width="160"><span class="xin_red">*</span>车牌颜色：</td>
+							<td align="left" width="240">
+								<!--<select id="registrationNoColorId" class="td_sel"></select>-->
+								<input type="text" id="registrationNoColorName"  name="registrationNoColorName"  
+							       class="td_input"
+							      formCheck="true" required="true"  requiredError="请选择一项"
+							       readonly="readonly" /> 
+				      		    <input type="hidden" id="registrationNoColorId" />
+				      		    <span id="registrationNoColorNamespan" class="errorMsg" style="display: none"></span>
+							    <a  href="javascript:void(0)" onclick="showRegistrationNoColorTree()"   class="ser_btn">请选择</a>
+							</td>
+						<td align="right" width="160" class="td_te"><span class="xin_red">*</span>经营许可证号：</td>
+						<td align="left" width="240">
+							<input  type="text" name="vehicleTransport.licenseNo" id="licenseNo" class="td_input" maxlength="40"
+				      			formCheck="true"
+				      			required="true" requiredError="必须输入项"  
+								noSpecialCaracters="true"/>
+							<span id="licenseNospan" class="errorMsg" style="display: none"></span>
+						</td>
+						
+					</tr>
+					<tr>
+					<td align="right" width="160"><span class="xin_red">*</span>企业名称：</td>
+						<td align="left" width="240">
+							<input type="text" id="workUnitIDName" name="workUnitIDName"   
+								   class="td_input"
+								   required="true" formCheck="true"    requiredError="请选择一项"
+								    readonly="readonly"/> 
+			      		    <input type="hidden" id="workUnitID1" />
+							<span id="workUnitIDNamespan" class="errorMsg" style="display: none"></span>
+							<a  href="javascript:void(0)" onclick="showWorkUnitAddTree()"  class="ser_btn">请选择</a>
+						</td>
+						<td align="right" width="160"><span class="xin_red">*</span>所属区域：</td>
+						<td align="left" width="240">
+							<!--<select id="areaId" class="td_sel"></select>-->
+					      <input type="text" id="areaName"    
+						   class="td_input"
+						   required="true" formCheck="true" requiredError="请选择一项"
+						   readonly="readonly"/> 
+			      		    <input type="hidden" id="areaId" />
+			      		    <span id="areaNamespan" class="errorMsg" style="display: none"></span>
+			      		    <a  href="javascript:void(0)" onclick="showAreaTree()"   class="ser_btn">请选择</a>
+						</td>
+					</tr>
+					
+					<tr>
+						
+						<td align="right" width="160"><span class="xin_red">*</span>车辆类型：</td>
+						<td align="left" width="240">
+							<!--<select id="kindId" class="td_sel"></select>-->
+							<input type="text" id="kindName"    
+						       class="td_input"
+						       required="true" formCheck="true" requiredError="请选择一项"
+						        readonly="readonly"/> 
+			      		    <input type="hidden" id="kindId" />
+			      		     <span id="kindNamespan" class="errorMsg" style="display: none"></span>
+			      		     <a  href="javascript:void(0)" onclick="showVehicleKindTree()"    class="ser_btn">请选择</a>
+						</td>
+						
+						<td align="right" width="160"><span class="xin_red">*</span>行业类型：</td>
+						<td align="left" width="240">
+							<!--<select id="tradeKindId" class="td_sel"></select>-->
+						<input type="text" id="tradeKindName"    
+						       class="td_input"
+						       required="true" formCheck="true" requiredError="请选择一项"
+						        readonly="readonly"/> 
+			      		    <input type="hidden" id="tradeKindId" />
+			      		    <span id="tradeKindNamespan" class="errorMsg" style="display: none"></span>
+			      		    <a  href="javascript:void(0)" onclick="showTradeTree()"    class="ser_btn">请选择</a>
+						</td>
+					</tr>
+					
+					<tr>
+					<td align="right" width="160"><span class="xin_red">*</span>通信号：</td>
+						<td align="left" width="240">
+							<!--<select id="terminalId" class="td_sel"></select>-->
+							<input type="text" id="terminalName" name="terminalName"   
+								   class="td_input"
+								   required="true" formCheck="true"    requiredError="请选择一项"
+								    readonly="readonly"/> 
+			      		    <input type="hidden" id="terminalId" />
+							<span id="terminalNamespan" class="errorMsg" style="display: none"></span>
+							<a  href="javascript:void(0)" onclick="showTerminalTree()"    class="ser_btn">请选择</a>
+						</td>
+					 <td align="right" width="160"><span class="xin_red">*</span>所属车队：</td>
+						<td align="left" width="240">
+							<!--<select id="vehicleTeamId" name="vehicleTeamId" class="td_sel" formCheck="true" required="true" requiredError="必须输入项!"  noselect="true" requiredError="请选择一项"></select>
+							-->
+							<input type="text" id="vehicleTeamName" name="vehicleTeamName"    
+								   class="td_input"
+								   required="true" formCheck="true"    requiredError="请选择一项"
+								    readonly="readonly"/> 
+			      		    <input type="hidden" id="vehicleTeamId" />
+							<span id="vehicleTeamNamespan" class="errorMsg" style="display: none"></span>
+							<a  href="javascript:void(0)" onclick="showVehicleTeamTree()"   class="ser_btn">请选择</a>
+						</td>
+					</tr>
+					
+				
+					
+					
+				 <!--  <tr>
+						
+						<td align="right" width="160"><span class="xin_red">*</span>车辆分类：</td>
+						<td align="left" width="240">
+							<select id="customTradeKindId" class="td_sel"></select>
+						</td>
+						<!--<td align="right" width="160"><span class="xin_red">*</span>平台名称：</td>
+						<td align="left" width="240">
+							<select id="platformId" class="td_sel"></select>
+						</td>
+					
+						
+					</tr>
+					
+					<tr>
+						<td align="right" width="160"><span class="xin_red">*</span>使用状态：</td>
+						<td align="left" width="240">
+							<select id="workStatus" class="td_sel"></select>
+						</td>
+						<td align="right" width="160"><span class="xin_red">*</span>盲区处理：</td>
+						<td align="left" width="240">
+							<select id="isBlind" class="td_sel"></select>
+						</td>
+					</tr>-->
+					
+					
+					<tr>
+						<td align="right" width="160"><span class="xin_red">*</span>第一司机：</td>
+						<td align="left" width="240">
+						<!--<select id="firstDriverId" class="td_sel"></select>-->
+						<input type="text" id="firstDriverName" name="firstDriverName"  
+								   class="td_input"
+								   required="true" formCheck="true"    requiredError="请选择一项"
+								    readonly="readonly"/> 
+			      		    <input type="hidden" id="firstDriverId" />
+							<span id="firstDriverNamespan" class="errorMsg" style="display: none"></span>
+							<a  href="javascript:void(0)"  onclick="showFirstDriverTree()"   class="ser_btn">请选择</a>
+						</td>
+						<td align="left" width="160"></td>
+						<td align="center" width="240" class="adColumn">
+							<a id="adColumnBtn" href="javascript:void(0)">选填信息</a>
+						</td>
+					</tr>
+					
+					
+				</table>
+				</div>
+				<div id="adColumn" style="display: none;width:100%">
+				<table align="center" width="100%">
+				    
+				    <tr>
+						<td align="right" width="160">车牌类型：</td>
+						<td align="left" width="240">
+							<!--<select id="registrationNoKindId" class="td_sel"></select>-->
+							<input type="text" id="registrationNoKindName"   
+						       class="td_input"
+						        readonly="readonly"/> 
+			      		    <input type="hidden" id="registrationNoKindId" />
+			      		    <a  href="javascript:void(0)"  onclick="showRKindTree()"   class="ser_btn">请选择</a>
+						</td>
+						
+						<td align="right" width="160">车辆颜色：</td>
+						<td align="left" width="240">
+							<!--<select id="colorId" class="td_sel"></select>-->
+							<input type="text" id="colorName"    
+						       class="td_input"
+						        readonly="readonly"/> 
+			      		    <input type="hidden" id="colorId" />
+			      		    <a  href="javascript:void(0)" onclick="showVehicleColorTree()"    class="ser_btn">请选择</a>
+						</td>
+					</tr>
+				
+					<tr>
+						<td align="right" width="160">第二司机：</td>
+						<td align="left" width="240">
+							<!--<select id="secondDriverId" class="td_sel"></select>
+							-->
+							<input type="text" id="secondDriverName" name="secondDriverName"   
+								   class="td_input"  readonly="readonly"
+								    /> 
+			      		    <input type="hidden" id="secondDriverId" />
+			      		    <a  href="javascript:void(0)"  onclick="showSecondDriverTree()"   class="ser_btn">请选择</a>
+						</td>
+						
+						<td align="right" width="160">用途：</td>
+						<td align="left" width="240">
+							<!--<select id="usageId" class="td_sel"></select>-->
+							<input type="text" id="usageName" name="usageName"   
+								   class="td_input"
+								     readonly="readonly"/> 
+			      		    <input type="hidden" id="usageId" />
+			      		    <a  href="javascript:void(0)" onclick="showUsageTree()"    class="ser_btn">请选择</a>
+						</td>
+					</tr>
+					
+					<tr>
+						<td align="right" width="160">品牌：</td>
+						<td align="left" width="240">
+							<!--<select id="bandId" class="td_sel"></select>-->
+							<input type="text" id="bandName" name="bandName"    
+								   class="td_input"
+								    readonly="readonly" /> 
+			      		    <input type="hidden" id="bandId" />
+			      		    <a  href="javascript:void(0)"  onclick="showBandTree()"  class="ser_btn">请选择</a>
+						</td>
+						<td align="right" width="160">厂商：</td>
+						<td align="left" width="240">
+							<!--<select id="manufactoryId" class="td_sel"></select>-->
+							<input type="text" id="manufactoryName" name="manufactoryName"  
+								   class="td_input"
+								   readonly="readonly"  /> 
+			      		    <input type="hidden" id="manufactoryId" />
+			      		    <a  href="javascript:void(0)"  onclick="showManufactoryTree()"    class="ser_btn">请选择</a>
+						</td>
+					</tr>
+					
+				<tr>
+						<td align="right" width="160">终端安装人员：</td>
+						<td align="left" width="240">
+							<input type="text" name="setupWorker" id="setupWorker" class="td_input" maxlength="20"
+								/>
+				      		<!--<span id="setupWorkerspan" class="errorMsg" style="display: none"></span>-->
+						</td>
+						<td align="right" width="160">安装日期：</td>
+						<td align="left" width="240">
+							<input type="text" id="setupDate" name="setupDate" class="td_input" onFocus="this.blur()" readonly="readonly"  style="width:155px"
+								/>
+							<img src="Images/time.jpg" width="20" height="23" style="margin-left:2px;"
+								onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('setupDate'),dateFmt:'yyyy-MM-dd',maxDate:'%y-%M-{%d-1}'})"/>
+							<!--<span id="setupDatespan" class="errorMsg" style="display: none"></span>-->
+						</td>
+						
+					</tr>
+					<tr>
+						<td align="right" width="160">注册地：</td>
+						<td align="left" width="240">
+							<input type="text" id="regAddress" name="regAddress" class="td_input" maxlength="100"
+								formCheck="true"
+				      			noSpecialCaracters="true">
+				      		<span id="regAddressspan" class="errorMsg" style="display: none"></span>
+						</td>
+						
+						<td align="right" width="160">VIN号：</td>
+						<td align="left" width="240">
+							<input type="text" id="vin" name="vin" class="td_input" maxlength="20">
+						</td>
+					</tr>
+					<tr>
+						<td align="right" width="160">驾驶员信息：</td>
+						<td align="left" width="240">
+							<input type="text" name="vehicleTransport.driverInfo" id="driverInfo" class="td_input" maxlength="500"
+				      			formCheck="true"
+								noSpecialCaracters="true"/>
+								<span id="driverInfospan" class="errorMsg" style="display: none"></span>
+						</td>
+						<td align="right" width="160">押运员信息：</td>
+						<td align="left" width="240">
+							<input type="text" name="vehicleTransport.guardsInfo" id="guardsInfo" class="td_input" maxlength="500"
+				      			formCheck="true"
+								noSpecialCaracters="true"/>
+								<span id="guardsInfospan" class="errorMsg" style="display: none"></span>
+						</td>
+						<td rowspan="10" align="center" width="150"></td>
+					</tr>
+					
+					<tr>
+						<td align="right" width="160" class="td_te">核定吨位：</td>
+						<td><input type="text" name="vehicle.loadingCapacity" id="loadingCapacity" class="td_input" maxlength="8"
+					      			formCheck="true"
+									integer="true"/>
+									<span id="loadingCapacityspan" class="errorMsg" style="display: none"></span>
+						</td>
+						<td align="right" width="160">货物吨位：</td>
+						<td>
+							<input type="text" name="vehicleTransport.tonnage" id="tonnage" class="td_input" maxlength="10"
+					      			formCheck="true"
+									onlyNumber="true"/>
+							<span id="tonnagespan" class="errorMsg" style="display: none"></span>
+						</td>
+					</tr>
+					
+					<tr>
+						<td align="right" width="160" class="td_te">(始发地)运输出发地：</td>
+						<td>
+							<input type="text" name="vehicleTransport.origin" id="origin" class="td_input" maxlength=80"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="originspan" class="errorMsg" style="display: none"></span></td>
+						<td align="right" width="160">(讫点地)运输目的地：</td>
+						<td>
+							<input type="text" name="vehicleTransport.destination" id="destination" class="td_input" maxlength="80"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="destinationspan" class="errorMsg" style="display: none"></span>
+						</td>
+					</tr>
+					
+					<tr>
+						<td align="right" width="160">运输开始时间：</td>
+						<td>
+							<input type="text" id="startTime" name="vehicleTransport.startTime" class="td_input" onFocus="this.blur()" readonly="readonly"  style="width:155px"/>
+								<img src="Images/time.jpg" width="20" height="23" style="margin-left:2px;"
+									onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('startTime'),dateFmt:'yyyy-MM-dd',maxDate:'%y-%M-{%d-1}'})"/>
+						</td>
+						<td align="right" width="160">运输结束时间：</td>
+						<td> 
+							<input type="text" id="endTime" name="vehicleTransport.endTime" class="td_input" onFocus="this.blur()" readonly="readonly" style="width:155px"/>
+								<img src="Images/time.jpg" width="20" height="23" style="margin-left:2px;"
+									onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('endTime'),dateFmt:'yyyy-MM-dd',maxDate:'%y-%M-{%d-1}'})"/>
+						</td>
+					</tr>
+					
+					<tr>
+						<td align="right" width="160" class="td_te">经营区域：</td>
+						<td>
+							<input type="text" name="vehicle.businessScope" id="businessScope" class="td_input" maxlength="10"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="businessScopespan" class="errorMsg" style="display: none"></span></td>
+						<td align="right" width="160">班线类型：</td>
+						<td>
+							<input type="text"
+								name="vehicleTransport.banlineType" id="banlineType" class="td_input" maxlength="80"
+				      			formCheck="true"
+								noSpecialCaracters="true"/>
+							<span id="banlineTypespan" class="errorMsg" style="display: none"></span>
+						</td>
+					</tr>
+					<tr>
+						<td align="right" width="160" class="td_te">准牵引总质量：</td>
+						<td>
+							<input type="text" name="vehicleTransport.traction" id="traction" class="td_input" maxlength="10"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="tractionspan" class="errorMsg" style="display: none"></span></td>
+						<td align="right" width="160">核定座位：</td>
+						<td>
+							<input type="text" name="vehicle.seatCount" id="seatCount" class="td_input" maxlength="4"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="seatCountspan" class="errorMsg" style="display: none"></span>
+						</td>
+					</tr>
+					<tr>
+						<td align="right" width="160" class="td_te">始发站：</td>
+						<td>
+							<input type="text" name="vehicleTransport.originStop" id="originStop" class="td_input" maxlength="80"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="originStopspan" class="errorMsg" style="display: none"></span></td>
+						<td align="right" width="160">讫点站：</td>
+						<td>
+							<input type="text" name="vehicleTransport.terminalStation" id="terminalStation" class="td_input" maxlength="80"
+					      			formCheck="true"
+									noSpecialCaracters="true"/>
+							<span id="terminalStationspan" class="errorMsg" style="display: none"></span>
+						</td>
+					</tr>
+				    <tr>
+				    	<td align="right" width="160">车辆原编号：</td>
+						<td><input type="text" name="vehicleTransport.orgVehNo" id="orgVehNo" class="td_input" maxlength="20"
+				      			formCheck="true"
+								noSpecialCaracters="true"/>
+							<span id="orgVehNospan" class="errorMsg" style="display: none"></span>
+						</td>
+				       	<td align="right" width="160">挂车车牌号：</td>
+						<td align="left" width="240">
+							<input type="text" name="vehicleTransport.trailerVehNo" id="trailerVehNo" class="td_input" maxlength="30"
+						      			formCheck="true"
+										noSpecialCaracters="true"/>
+							<span id="trailerVehNospan" class="errorMsg" style="display: none"></span>
+						</td>
+				    </tr>
+					
+					<tr>
+					
+						<td align="right" width="160">备注：</td>
+						<td align="left" width="240">
+							<textarea id="memo" name="memo" rows="2" 
+								formCheck="true" textLength="0-200" valLengthError="请输入少于200个字符!">
+							</textarea>
+							<span id="memospan" class="errorMsg" style="display: none"></span>
+						</td>
+						
+					</tr>
+				</table>
+			</div>
+			</div>
+				
+			<table id="vehicleList" style="display: none"></table>
+		</div>
+		</div>
+		</div>
+		
+		<div id="dialogs" class="hiddiv" style="display: none;padding:5px;top:10px;">
+			<iframe src="" id="dialogFrame" name="dialogFrame" width="100%"  height="100%" frameborder="0" scrolling="auto"></iframe>
+		</div>
+		
+	</body>
+</html>

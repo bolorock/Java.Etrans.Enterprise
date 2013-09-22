@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+    <!-- 根据用户查询图层-->
+    <select id="getCustomMapLayerSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+       select top 1 id from Pub_CustomMapLayer where 1=1
+         <isNotNull property="userId" prepend="AND">
+           UserId = #userId#
+         </isNotNull>
+    </select>
+
+      <!-- 判断自定义区域面 是否存在-->
+    <select id="getPlaneByNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+        select PP.id,PP.name from Pub_CustomMapPlane PP, Pub_CustomMapLayer PM
+        where PP.MapLayerID=PM.ID 
+         <isNotNull property="name" prepend="AND">
+         PP.name = #name#
+         </isNotNull>
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+    </select>
+    
+    
+      <!-- 判断自定义线路是否存在 -->
+    <select id="getLineByNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+       select PL.id,PL.name from Pub_CustomMapLine PL, Pub_CustomMapLayer PM
+       where PL.MapLayerID=PM.ID 
+         <isNotNull property="name" prepend="AND">
+         PL.name = #name#
+         </isNotNull>
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+    </select>
+    
+    
+        <!-- 判断户自定义地物点是否存在 -->
+    <select id="getPointByNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+       select CM.id,CM.name from Pub_CustomMapPoint CM, Pub_CustomMapLayer PM
+       where CM.MapLayerID=PM.ID 
+         <isNotNull property="name" prepend="AND">
+         CM.name = #name#
+         </isNotNull>
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+    </select>
+    
+    
+    <!-- 查询自定义区域面 -->
+    <select id="getCustomMapPlaneNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+         select PP.id,PP.name,PP.radius from Pub_CustomMapPlane PP, Pub_CustomMapLayer PM
+         where PP.MapLayerID=PM.ID 
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+         <isNotNull property="shapeId" prepend="AND">
+          PP.shapeId = #shapeId#
+         </isNotNull>
+    </select>
+    
+    
+     <!-- 查询自定义线面 -->
+    <select id="getCustomMapLineNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+         select PL.id,PL.name from Pub_CustomMapLine PL, Pub_CustomMapLayer PM
+         where PL.MapLayerID=PM.ID 
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+    </select>
+    
+    
+     
+    
+    
+     <!-- 查询自定义区域面 坐标-->
+    <select id="getPlanePointSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+        select PP.id,PP.name, PCP.longitude,PCP.latitude from    
+        Pub_CustomMapPlanePoint PCP ,Pub_CustomMapPlane PP
+        where PCP.MapPlaneID=PP.ID 
+         <isNotNull property="mapPlaneId" prepend="AND">
+          PCP.MapPlaneID = #mapPlaneId#
+         </isNotNull>
+         <isNotNull property="shapeId" prepend="AND">
+          PP.shapeId = #shapeId#
+         </isNotNull>
+    </select>
+    
+     <!-- 查询自定义线面坐标 -->
+    <select id="getLinePointSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+         select PL.id,PL.name, PCL.longitude,PCL.latitude from 
+         Pub_CustomMapLinePoint PCL ,Pub_CustomMapLine PL 
+         where PCL.MapLineID=PL.ID 
+         <isNotNull property="mapLineId" prepend="AND">
+          PCL.MapLineID = #mapLineId#
+         </isNotNull>
+    </select>
+    
+    
+       <!-- 查询自定义地物点 -->
+    <select id="getCustomMapPointNameSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+         select CM.id,CM.name,CM.longitude,CM.latitude from Pub_CustomMapPoint CM, Pub_CustomMapLayer PM
+         where CM.MapLayerID=PM.ID
+         <isNotNull property="userId" prepend="AND">
+          PM.UserID = #userId#
+         </isNotNull>
+    </select>
+    
+    
+        <!-- 删除区域面-->
+	<parameterMap id="CustomMapPlaneParameterMap" class="java.util.HashMap">
+        <parameter property="@_ids" mode="IN" jdbcType="varchar(100)" javaType="java.lang.String"/>
+    </parameterMap>
+       
+       
+      <procedure id="delCustomMapPlaneProSQL" parameterMap="CustomMapPlaneParameterMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call Del_CustomMapPlanePro(?)}
+	    ]]>
+	</procedure> 
+	
+	
+	   <!-- 删除线面-->
+	<parameterMap id="CustomMapLineParameterMap" class="java.util.HashMap">
+        <parameter property="@_ids" mode="IN" jdbcType="varchar(100)" javaType="java.lang.String"/>
+    </parameterMap>
+       
+       
+      <procedure id="delCustomMapLineProSQL" parameterMap="CustomMapLineParameterMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call Del_CustomMapLinePro(?)}
+	    ]]>
+	</procedure> 
+	
+	
+	<!-- 删除地物点-->
+	<parameterMap id="CustomMapPointParameterMap" class="java.util.HashMap">
+        <parameter property="@_ids" mode="IN" jdbcType="varchar(100)" javaType="java.lang.String"/>
+    </parameterMap>
+       
+       
+      <procedure id="delCustomMapPointProSQL" parameterMap="CustomMapPointParameterMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call Del_CustomMapPointPro(?)}
+	    ]]>
+	</procedure>
+	
+	<!-- 新增线面 -->
+	<insert id="createCustomMapLineSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_CustomMapLine]
+           ([Name]
+           ,[MapLayerID])
+      VALUES
+           (
+           	#name#,
+           	#mapLayerId#
+           )
+	</insert>
+	
+	<!-- 新增线面点坐标-->
+	<insert id="createCustomMapLinePointSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_CustomMapLinePoint]
+           ([MapLineID]
+           ,[Sequence]
+           ,[Longitude]
+           ,[Latitude])
+      VALUES
+           (
+           	#mapLineId#,
+           	#sequence#,
+           	#longitude#,
+           	#latitude#
+           )
+	</insert>
+	<!-- 新增区域面-->
+	<insert id="createCustomMapPlaneSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_CustomMapPlane]
+           ([Code]
+           ,[Name]
+           ,[MapLayerID]
+           ,[Radius]
+           ,[ShapeID])
+      VALUES
+           (
+           	#code#,
+           	#name#,
+           	#mapLayerId#,
+           	#radius#,
+           	#shapeId#
+           )
+	</insert>
+	
+	<!-- 新增区域面点坐标-->
+	<insert id="createCustomMapPlanePointSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_CustomMapPlanePoint]
+           ([MapPlaneID]
+           ,[Sequence]
+           ,[Longitude]
+           ,[Latitude])
+      VALUES
+           (
+           	#mapPlaneId#,
+           	#sequence#,
+           	#longitude#,
+           	#latitude#
+           )
+	</insert>
+	
+	<!-- 新增地物点坐标-->
+	<insert id="createCustomMapPointSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_CustomMapPoint]
+           ([Name]
+           ,[MapLayerID]
+           ,[Longitude]
+           ,[Latitude]
+           ,[MapIconID])
+      VALUES
+           (
+           	#name#,
+           	#mapLayerId#,
+           	#longitude#,
+           	#latitude#,
+           	#MapIconID#
+           )
+	</insert>
+	<insert id="addPub_CustomMapLayer" parameterClass="java.util.HashMap">
+		INSERT INTO Pub_CustomMapLayer 
+           (Name ,Kind ,UserID)
+     	VALUES
+			(#Name#,#Kind#,#UserID#)
+	</insert>
+  <!-- 删除用户相关的点线面-->
+	<parameterMap id="userCustomMapMap" class="java.util.HashMap">
+        <parameter property="@_ids" mode="IN" jdbcType="varchar(100)" javaType="java.lang.String"/>
+    </parameterMap>
+	
+	<procedure id="delUserCustomMapSQL" parameterMap="userCustomMapMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call Del_UserCustomMaPro(?)}
+	    ]]>
+	</procedure> 
+	
+</sqlMap>

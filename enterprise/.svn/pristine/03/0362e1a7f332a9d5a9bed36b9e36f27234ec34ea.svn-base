@@ -1,0 +1,39 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<!--[if IE 8]>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<![endif]--> 
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <base href="<%=basePath%>"></base>
+<title>系统设置</title>
+<script type="text/javascript" src="<%=basePath%>js/jq/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="<%=basePath%>js/common/jquery_cookie.js"></script>
+<script type="text/javascript" src="<%=basePath%>js/common/system.js"></script>
+<link rel="stylesheet" type="text/css" href="<%=basePath%>css/system.css">
+<!--[if IE 6]>
+<link rel="stylesheet" type="text/css" href="Css/ie6_hack.css">
+<![endif]--> 
+
+</head>
+
+<body>
+<table id="vechList"  class="form">
+			<thead>
+				<tr>
+					<th>操作描述</th>
+					<th><input type="checkbox" value="0" id="checkAll" />全选</th>
+				</tr>
+			</thead>
+				<tr><td>关闭上下线车辆弹窗</td><td align="left"> <input type="checkbox" id="showUpdwonLineVehicle" onclick="clickParams(this)"/></td></tr>
+				<tr><td>关闭紧急报警弹窗</td><td align="left"> <input type="checkbox" id="showUrgentAlarm" onclick="clickParams(this)"/></td></tr>
+				<tr><td>关闭证件过期提醒弹窗</td><td align="left"> <input type="checkbox" id="showProveBack" onclick="clickParams(this)"/></td></tr>
+</table>
+</body>
+</html>
+

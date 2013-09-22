@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	
+    <!-- 历史报警查询 参数-->
+	<parameterMap id="historyAlarmMscInfoParams" class="java.util.HashMap">
+		<parameter property="@UserId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@FullID" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@StartTime" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@EndTime" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@RegistrationNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@AlarmType" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@IsDoWith" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@SourceId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@IsExport" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@FromRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@ToRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@SortName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@SortOrder" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@VehicleIds" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+	</parameterMap>
+<procedure id="getHistoryAlarmMscInfoSQL" parameterMap="historyAlarmMscInfoParams" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_getHistoryAlarmMscInfo0520(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure>
+	<!--插入报警处理信息 -->
+	<insert id="insertDealAlarmSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_AlarmDealInfo]
+           (
+            [vehicleId]
+           ,[AlarmKindID]
+           ,[TransactMan]
+           ,[Content]
+           ,[TransactTime]
+           ,[CreateDatetime]
+           ,[BeginTime]
+           ,[StartTime]
+           ,[AlarmCount]
+           )
+     VALUES
+           (
+           	#vehicleId#,
+           	#alarmKindID#,
+           	#transactMan#,
+           	#content#,
+           	getDate(),
+           	getDate(),
+           	#beginTime#,
+           	#startTime#,
+           	#alarmCount#
+           )
+	</insert>
+	
+	<!--查询操作日志总条数-->
+  <select id="getDealAlarmInfoSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	select distinct pu.userName,CONVERT(VARCHAR(19),pli.transactTime,120) as transactTime,pli.content
+	from Pub_AlarmDealInfo as pli
+	INNER JOIN  PUB_USER as pu on pu.id=pli.TransactMan
+	where 1=1
+	<dynamic>
+			
+		<isNotEmpty property="vehicleId">
+    	and pli.vehicleId= #vehicleId#
+    	</isNotEmpty>
+    	
+    	
+		<isNotEmpty property="beginTime">
+		and	pli.beginTime=#beginTime#
+		</isNotEmpty>
+		
+   	 	<isNotEmpty property="startTime">
+   	 	and pli.startTime =#startTime#
+   	 	</isNotEmpty>
+   	 	
+   	 	<isNotEmpty property="alarmKindID">
+   	 	and pli.alarmKindID =#alarmKindID#
+   	 	</isNotEmpty>
+   	 	
+   	 	<isNotEmpty property="alarmCount">
+   	 	and alarmCount =#alarmCount#
+   	 	</isNotEmpty>
+	</dynamic>
+	
+	
+  </select>
+</sqlMap>

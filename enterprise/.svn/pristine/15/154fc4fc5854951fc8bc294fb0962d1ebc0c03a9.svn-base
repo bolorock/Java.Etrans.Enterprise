@@ -1,0 +1,215 @@
+$(function() {
+
+	initGrid();
+
+	// 初始化验证插件
+	$("#editWindow").validation();
+	initSelects();
+	//按钮绑定点击事件
+	$('#adSearchBtn').bind('click', toOpenAds);
+	$('#searchBtn').bind('click', toSearch);
+    $('#exportBtn').bind('click', toExportExl);
+
+});
+
+function initGrid() {
+	$("#historyAlarmHandlingList").flexigrid({
+		url : 'sys/historyAlarmHandlingList.action',
+		dataType : 'json',
+		params : getParams(),// 设置查询参数
+		colModel : [ /* 车牌号码、 报警类型、督办方式、报警时间、督办时间、督办回复时间、督办回复内容 */
+         {
+ 			display : '车牌号码',
+ 			name : 'registrationno',
+ 			width : 120,
+ 			sortable : false,
+ 			align : 'center'
+ 		},
+ 		{
+ 			display : '车牌颜色',
+ 			name : 'RegistrationNOColor',
+ 			width : 100,
+ 			sortable : false,
+ 			align : 'center'
+ 		},{
+			display : '报警类型',// 表头
+			name : 'alarmtype',// JSON数据中属性名
+			width : 120,// 得加上 要不IE报错
+			sortable : true,// 此字段是否能排序
+			handlefunction : 'getAlarmName',
+		    paramcolnames : ['alarmtype'],
+			align : 'center'// 对齐方式
+		}/*, {
+			display : '督办方式',
+			name : 'OverSeeingType',
+			width : 100,
+			sortable : true,
+			align : 'center'
+		}*/,{
+			display : '报警时间',
+			name : 'alarmDate',
+			width : 120,
+			sortable : false,
+			align : 'center'
+		}, {
+			display : '督办时间',
+			name : 'OverSeeingDate',
+			width : 120,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '督办回复时间',
+			name : 'OverSeeingBackDate',
+			width : 120,
+			sortable : false,
+			align : 'center'
+		}, {
+			display : '督办回复内容',
+			name : 'OverSeeingBackContent',
+			width : 300,
+			sortable : true,
+			align : 'center'
+		}],
+		sortname : "ID",// 第一次加载数据时排序列
+		sortorder : "asc",// 第一次加载数据时排序类型
+		usepager : true,// 是否分页，默认为true。
+		useRp : true,// 是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,// 每页记录数，默认为10
+		//checkbox : true,// 是否要多选框,默认为false。
+		rowId : 'ID',// 多选框绑定行的id,只有checkbox : true时才有效。
+		singleSelect : false,
+		width : 'auto',// 表格宽度
+		height : getNormalHeight()// 表格高度
+	});
+	
+};
+
+/**
+ * 查询方法
+ */
+function toSearch() {
+	// 重置表格的某些参数
+	$("#historyAlarmHandlingList").flexOptions( {
+		newp : 1,// 设置起始页
+		params : getParams()
+	// 设置查询参数
+			}).flexReload();// 重新加载
+}
+
+
+function getParams(){
+	var RegistrationNopram = $("#RegistrationNopram").val();//车牌号码
+	var alarmTypepram = $("#alarmTypepram").val();//报警类型
+	//var OverSeeingTypepram = $("#OverSeeingTypepram").val();//督办方式
+	var OverSeeingDateStart = $("#OverSeeingDateStart").val();//督办开始时间
+	var OverSeeingDateEnd = $("#OverSeeingDateEnd").val();//督办结束时间
+	var params = [ {
+		name : 'RegistrationNopram',
+		value : RegistrationNopram
+	},{
+		name : 'alarmTypepram',
+		value : alarmTypepram
+	},{
+		name : 'OverSeeingDateStart',
+		value : OverSeeingDateStart
+	},{
+		name : 'OverSeeingDateEnd',
+		value : OverSeeingDateEnd
+	}];
+   return params;
+}
+
+function getAlarmName(alarmType){
+	var alarmName="";
+	switch (alarmType){
+	case "1":
+		alarmName="超速报警";
+		break;
+	case "2":
+		alarmName="疲劳驾驶报警";
+		break;
+	case "3":
+		alarmName="紧急报警";
+		break;
+	case "4":
+		alarmName="进入指定区域报警";
+		break;
+	case "5":
+		alarmName="离开指定区域报警";
+		break;
+	case "6":
+		alarmName="路段堵塞报警";
+		break;
+	case "7":
+		alarmName="危险路段报警";
+		break;
+	case "8":
+		alarmName="越界报警";
+		break;
+	case "9":
+		alarmName="盗警";
+		break;
+	case "10":
+		alarmName="劫警";
+		break;
+	case "11":
+		alarmName="偏离路线报警";
+		break;
+	case "12":
+		alarmName="车辆移动报警";
+		break;
+	case "13":
+		alarmName="超时驾驶报警";
+		break;
+	case "14":
+		alarmName="其他报警";
+		break;
+	default:
+		alarmName="其他报警";
+	    
+	}
+	return alarmName;
+}
+
+
+/**
+ *初始化下拉框
+ */
+function initSelects(){
+	
+	//initAjaxSelect("alarmTypepram","sys/initAlarmType.action","1");//报警类型
+	init809AlarmType("alarmTypepram");
+	//initOverSeeingType("OverSeeingTypepram");//督办方式
+}
+
+/**
+ * 显示错误信息
+ */
+function showError() {
+	showWarning('服务器忙，请重试！');
+}
+/**
+ * 打开高级搜索框
+ */
+function toOpenAds(){
+	var adSearch=$("#adSearch");
+	adSearch.animate({height: 'toggle', opacity: 'toggle'}, 10);
+	var adSearchBtn=$("#adSearchBtn");
+	if(adSearchBtn.html()=='高级搜索'){
+		adSearchBtn.html("收起高级搜索");
+	}else{
+		adSearchBtn.html("高级搜索");
+	}
+}
+/**
+ * 显示提示信息
+ */
+function showWarning(str) {
+	$.messager.alert('提示信息', str, 'info');
+}
+/**
+ * 导出方法入口
+ */
+function toExportExl() {
+	exportExl('historyAlarmHandlingList', 'sys/exporthistoryAlarmHandling.action');
+}

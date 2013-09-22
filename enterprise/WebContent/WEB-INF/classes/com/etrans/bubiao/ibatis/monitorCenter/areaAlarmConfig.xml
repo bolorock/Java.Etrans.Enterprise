@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+	<select id="getAreaAlarmConfigSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 ID desc) RowNo,A.* from (
+		SELECT [ID]
+		      ,[Name]
+		      ,[WorkUnitID]
+			  ,[Description]
+		  FROM [TPolygonList]
+		  
+		<dynamic prepend="where">
+			<![CDATA[Mark <> -1]]>
+			<isNotNull property="workunitId">
+				AND [workunitId] = #workunitId#
+			</isNotNull>
+            <isNotEmpty property="name">
+      			AND [Name] like '%$name$%'
+            </isNotEmpty>
+		</dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getAreaAlarmConfigCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		SELECT 
+			COUNT(*) 
+		 FROM [TPolygonList]
+		  
+		<dynamic prepend="where">
+			<![CDATA[Mark <> -1]]>
+			<isNotNull property="workunitId">
+				AND [workunitId] = #workunitId#
+			</isNotNull>
+            <isNotEmpty property="name">
+      			AND [Name] like '%$name$%'
+            </isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="checkAreaConfigNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT [ID]
+		      ,[Name]
+		      ,[WorkUnitID]
+			  ,[Description]
+		  FROM [TPolygonList]
+		  where 1=1
+		    <![CDATA[and Mark <> -1]]>
+            <isNotEmpty property="name" prepend="and">
+      			[Name]=#name#
+            </isNotEmpty>
+	</select>
+	
+	<!-- 新增区域报警设置 start -->
+    <insert id="insertAreaAlarmConfigSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [TPolygonList]
+           ([WorkUnitID]
+           ,[Name]
+           <isNotNull property="description">
+           		<isNotEmpty property="description">,[Description]</isNotEmpty>
+           </isNotNull>
+           ,[Mark])
+     	VALUES
+           (#workunitId#
+           ,#name#
+           <isNotNull property="description">
+           		<isNotEmpty property="description">,#description#</isNotEmpty>
+           </isNotNull>
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<insert id="insertTPolygonDetailSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [TPolygonDetail]
+           ([PolygonID]
+           ,[IndexNO]
+           ,[Longitude]
+           ,[Latitude])
+     	SELECT #polygonId#,sequence as IndexNO,Longitude,Latitude from [Pub_CustomMapPlanePoint] where MapPlaneId=#areaId#
+	</insert>
+	
+	<insert id="insertTAnalyseGroupSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [TAnalyseGroup]
+           ([Name]
+           ,[WorkUnitID]
+           ,[Mark])
+     	VALUES
+           (#groupName#
+           ,#workunitId#
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<insert id="insertTAnalyseConditionSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [TAnalyseCondition]
+           ([AnalyseGroupID]
+           <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,[DateTypeID]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,[BeginDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,[EndDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,[WorkingDays]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,[BeginTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,[EndTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,[IsAlarm]</isNotEmpty>
+           </isNotNull>
+           ,[AnalyseTypeID]
+           ,[GeographyID]
+           ,[Mark])
+     	VALUES
+     		(#analyseGroupId#
+     	   <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,#dateTypeId#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,#beginDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,#endDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,#workingDays#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,#beginTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,#endTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,#isAlarm#</isNotEmpty>
+           </isNotNull>
+     		,#analyseTypeId#
+     		,#geographyId#
+     		,#mark#
+     		)
+	</insert>
+	
+	<insert id="insertTANAGroupAndVehicleSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [TANAGroupAndVehicleRelationship]
+	           ([AnalyseGroupID]
+	           ,[VehicleID]
+	           ,[Mark])
+	     VALUES
+	           (#analyseGroupId#
+	           ,#vehicleId#
+	           ,#mark#)
+	</insert>
+	<!-- 新增区域报警设置 end -->
+	
+	<!-- 查询区域报警设置详细 start -->
+	<select id="getAreaAlarmConfigByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT tp.[ID]
+		      ,tp.[WorkUnitID]
+		      ,tp.[Name]
+		      ,tp.[Description]
+		      ,tp.[Mark]
+		      ,tc.[ID] as ConditionID
+		      ,tc.[AnalyseGroupID]
+		      ,tc.[DateTypeID]
+		      ,CONVERT(varchar(10), tc.[BeginDate], 120) as BeginDate
+		      ,CONVERT(varchar(10), tc.[EndDate], 120) as EndDate
+		      ,tc.[WorkingDays]
+		      ,CONVERT(varchar, tc.[BeginTime], 108) as BeginTime
+		      ,CONVERT(varchar, tc.[EndTime], 108) as EndTime
+		      ,tc.[IsAlarm]
+		      ,tc.[AnalyseTypeID]
+		      ,tc.[GeographyID]
+		  FROM [TPolygonList] tp
+			LEFT JOIN [TAnalyseCondition] tc on tc.[GeographyID]=tp.[ID] and tc.[AnalyseTypeID]=3
+		WHERE tp.[ID]=#id#
+	</select>
+	
+	<select id="getVehiclesByGroupIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT pv.ID,pv.registrationNo from pub_vehicle pv,
+		(
+		SELECT gvr.[ID]
+		      ,gvr.[AnalyseGroupID]
+		      ,gvr.[VehicleID]
+		      ,tg.[Name] as AnalyseGroupName
+		  FROM [TANAGroupAndVehicleRelationship] gvr,[TAnalyseGroup] tg
+		WHERE gvr.[AnalyseGroupID]=tg.[ID] and tg.[ID]=#analyseGroupId# 
+			<![CDATA[and gvr.[Mark]<>-1 and tg.[Mark]<>-1]]>
+		) gv WHERE pv.ID=gv.[VehicleID]
+	</select>
+	
+	<select id="getAreaPointByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select Longitude,Latitude from TPolygonDetail where PolygonID=#id#
+	</select>
+	
+	<!-- 查询区域报警设置详细 end -->
+	
+	<!-- 删除区域报警设置 start -->
+	<update id="updateAreaAlarmConfigSQL" parameterClass="java.util.HashMap">
+		UPDATE [TPolygonList]
+           SET [Mark]=#mark#
+        WHERE [ID]=#id#
+	</update>
+	
+	<delete id="deleteTPolygonDetailSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [TPolygonDetail]
+        WHERE [PolygonID]=#id#
+	</delete>
+	
+	<update id="updateTANAGroupAndVehicleSQL" parameterClass="java.util.HashMap">
+		UPDATE [TANAGroupAndVehicleRelationship]
+			SET [Mark]=#mark#
+        WHERE [AnalyseGroupID]=#analyseGroupId#
+	</update>
+	
+	<update id="updateTAnalyseGroupSQL" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseGroup]
+			SET [Mark]=#mark#
+        WHERE [ID]=#analyseGroupId#
+	</update>
+	
+	<update id="updateTAnalyseConditionSQL" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseCondition]
+			SET [Mark]=#mark#
+        WHERE [GeographyID]=#id# and [AnalyseTypeID]=#analyseTypeId#
+	</update>
+	
+	<!-- 删除区域报警设置 end -->
+  
+</sqlMap>

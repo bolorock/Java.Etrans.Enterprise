@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 区域弯道超速 -->
+  <select id="findOverSpeedPolySQL" resultClass="java.util.HashMap">
+  	 	select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+	 SELECT aosp.ID as id
+      ,aosp.AnalyseGroupID
+      ,ayp.Name as AnalyseGroupName
+      ,aosp.Name
+      ,aosp.PolyID
+      ,aosp.RoundSpeedMax
+      ,aosp.WarningDistance
+      ,aosp.ContinuousPoints
+      ,aosp.WaringTimeOut
+      ,py.name as PolyName
+  FROM ANA_AnalyserOverSpeedPoly aosp
+		left join ANA_ParamPolys py on aosp.PolyID=py.id
+		left join ANA_AnalyseGroups ayp on aosp.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on aosp.CheckTimeTypeID=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1 
+            <isNotEmpty property="name">
+      			and aosp.Name like '%$name$%'
+            </isNotEmpty>
+            
+             <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			 <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 	and au.UserID = #userId#
+			</isNotEmpty>
+			 
+			 
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+   </select>
+   
+   <select id="getOverSpeedPolyCountSQL" resultClass="java.lang.Long">
+      select COUNT(*) from
+                 ANA_AnalyserOverSpeedPoly aosp
+		left join ANA_ParamPolys py on aosp.PolyID=py.id
+		left join ANA_AnalyseGroups ayp on aosp.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on aosp.CheckTimeTypeID=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1 
+            <isNotEmpty property="name">
+      			and aosp.Name like '%$name$%'
+            </isNotEmpty>
+            
+             <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getOverSpeedPolyByIdSQL"  resultClass="java.util.HashMap">
+	SELECT aosp.ID as id
+      ,aosp.analyseGroupID
+      ,ayp.Name as analyseGroupName
+      ,aosp.name
+      ,aosp.polyID
+      ,aosp.roundSpeedMax
+      ,aosp.warningDistance
+      ,aosp.continuousPoints
+      ,aosp.waringTimeOut
+      ,py.name as polyName
+      FROM ANA_AnalyserOverSpeedPoly aosp
+		left join ANA_ParamPolys py on aosp.PolyID=py.id
+		left join ANA_AnalyseGroups ayp on aosp.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on aosp.CheckTimeTypeID=C.id
+       where  aosp.ID=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkOverSpeedPolyByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserOverSpeedPoly
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+  
+    
+    <insert id="insertParamPolysSQL" parameterClass="com.etrans.bubiao.entities.ANAParamPolys"> 
+	<selectKey resultClass="Long" keyProperty="id">     
+	
+			<![CDATA[
+		INSERT INTO [ANA_ParamPolys]
+           ([GroupID]
+           ,[Name]
+           ,[Longitude]
+           ,[Latitude])
+          VALUES
+          (
+           	#groupID#,
+           	#name#,
+           	#longitude#,
+           	#latitude#
+           )
+	        SELECT SCOPE_IDENTITY() AS ID ]]>    
+			</selectKey>    
+	
+	</insert>  
+	
+    
+	
+	
+	<insert id="insertParamPolyPointsSQL" parameterClass="java.util.HashMap">
+	INSERT INTO [GPSDB].[dbo].[ANA_ParamPolyPoints]
+           ([PolyID]
+           ,[Longitude]
+           ,[Latitude])
+     VALUES
+           (
+           	#polyID#,
+           	#longitude#,
+           	#latitude#)
+	</insert>
+	
+	<insert id="insertOverSpeedPolySQL" parameterClass="java.util.HashMap">
+	INSERT INTO [ANA_AnalyserOverSpeedPoly]
+           ([AnalyseGroupID]
+           ,[Name]
+           ,[PolyID]
+           ,[RoundSpeedMax]
+           ,[WarningDistance]
+           ,[ContinuousPoints]
+           ,[WaringTimeOut])
+     VALUES
+	           (
+	           	#analyseGroupID#,
+	           	#name#,
+	           	#polyID#,
+	           	#roundSpeedMax#,
+	           	#warningDistance#,
+	           	#continuousPoints#,
+	           	#waringTimeOut#
+	            )
+	</insert>
+	
+	
+	
+	
+	
+	     <update id="updateOverSpeedPolySQL"  parameterClass="java.util.HashMap"> 
+	     UPDATE [ANA_AnalyserOverSpeedPoly]
+		   SET [AnalyseGroupID] ='$analyseGroupID$'
+		      ,[Name] = '$name$'
+		      ,[RoundSpeedMax] = '$roundSpeedMax$'
+		      ,[WarningDistance] = '$warningDistance$'
+		      ,[ContinuousPoints] = '$continuousPoints$'
+		      ,[WaringTimeOut] = '$waringTimeOut$'
+               WHERE [ID] = '$id$' 
+         </update>
+         
+         
+
+ 
+	<!--删除-->
+    <delete id="delOverSpeedPolySQL" parameterClass="java.util.HashMap">
+    	DELETE FROM ANA_AnalyserOverSpeedPoly WHERE  ID in ($id$)
+    </delete>
+
+ </sqlMap>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap   PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	
+	<!-- 查询列表 -->
+	<select id="findANA_DrivingOverTimeParkSQL" resultClass="java.util.HashMap"> 
+		select * from ( 
+		select ROW_NUMBER() OVER (order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+			) RowNo,
+			 b.ID as id <!-- id -->
+			,b.VehicleID as vehicleID    <!-- 车辆id -->
+			,b.AnalyseGroupID as analyseGroupID  <!--轨迹分析组id-->
+			,b.GenerateTime as generateTime <!--产生记录时间(停车开始时间)-->
+			,b.CheckInterval as checkInterval <!--检测间隔-秒-->
+			,b.BounceOverTime as bounceOverTime <!--超时门限-秒-->
+			,b.BounceDistance as bounceDistance <!--范围门限-米-->
+			,b.RecordOverTime as recordOverTime <!--超时时间-秒-->
+			,b.recordLongitude as recordLongitude <!--经度-->
+			,b.RecordLatitude as recordLatitude <!--纬度-->
+			,b.OvertimeParkTime as overtimeParkTime <!--停车时间(停车结束时间)-->
+			,b.AnalyseID as analyseID <!--分析器编号-->
+			,(case b.IsPlaceInAlarm when '0' then '内' else '外' end) as isPlaceInAlarm <!--是否范围内报警 0 内 1外-->
+			,b.RegistrationNO as registrationNO <!--车牌号码-->
+			,b.groupName <!--分析组名称-->
+			,b.recordOverTime_Min  <!--停车时间-->
+		from (
+			select aa.*,v.RegistrationNO,g.name as groupName from 
+			(
+			 select isnull(RecordOverTime, 0)/60 as recordOverTime_Min, * 
+			 from ANA_DrivingOverTimePark
+			 where AnalyseGroupID in(Select ID from ANA_AnalyseGroups where 1=1 
+		 		<!--企业权限（普通管理员也一样）-->
+			 	<isNotEmpty property="workUnitId">
+					and groupID = #workUnitId#
+				</isNotEmpty>
+			 )
+			)aa left join Pub_Vehicle v on aa.VehicleID=v.id   <!--车辆表-->
+				left join ANA_AnalyseGroups g on aa.AnalyseGroupID = g.id <!--轨迹分析组表-->
+				left join Ent_AnalyseGroupsIDAddUserID as au on aa.AnalyseGroupID=au.AnalyseGroupsID
+					where 1=1
+				<!--轨迹分析组id-->
+				<isNotEqual property="analyseGroupID" compareValue="-1">
+			   		and aa.AnalyseGroupID=#analyseGroupID#
+			 	</isNotEqual>
+			 	<!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+			 	<!--车牌号码-->
+			 	<isNotEmpty property="registrationNO">
+					and v.RegistrationNO like '%$registrationNO$%' 
+			 	</isNotEmpty>
+			 	<!--时间段-->
+			 	 <isNotNull property="beginTime">
+			    	and aa.GenerateTime between #beginTime# and #endTime#
+	      		</isNotNull>
+	      		
+		)b where 1=1
+		) r
+		  where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	
+	</select> 
+	
+	<!-- 查记录数  -->
+	<select id="findANA_DrivingOverTimeParkCountSQL" resultClass="Long"> 
+		select count(*) from 
+			(
+			 select isnull(RecordOverTime, 0)/60 as recordOverTime_Min, * 
+			 from ANA_DrivingOverTimePark
+			 where AnalyseGroupID in(Select ID from ANA_AnalyseGroups where 1=1 
+		 		<!--企业权限（普通管理员也一样）-->
+			 	<isNotEmpty property="workUnitId">
+					and groupID = #workUnitId#
+				</isNotEmpty>
+			 )
+			)aa left join Pub_Vehicle v on aa.VehicleID=v.id   <!--车辆表-->
+				left join ANA_AnalyseGroups g on aa.AnalyseGroupID = g.id <!--轨迹分析组表-->
+				left join Ent_AnalyseGroupsIDAddUserID as au on aa.AnalyseGroupID=au.AnalyseGroupsID
+					where 1=1
+				<!--轨迹分析组id-->
+				<isNotEqual property="analyseGroupID" compareValue="-1">
+			   		and aa.AnalyseGroupID=#analyseGroupID#
+			 	</isNotEqual>
+			 	<!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+			 	<!--车牌号码-->
+			 	<isNotEmpty property="registrationNO">
+					and v.RegistrationNO like '%$registrationNO$%' 
+			 	</isNotEmpty>
+			 	<!--时间段-->
+			 	 <isNotNull property="beginTime">
+			    	and aa.GenerateTime between #beginTime# and #endTime#
+	      		</isNotNull>
+	</select> 
+    
+    
+</sqlMap>

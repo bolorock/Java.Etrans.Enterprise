@@ -1,0 +1,656 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <typeAlias alias="functionMenu" type="com.etrans.bubiao.entities.FunctionMenu"/>  
+  <!-- 超级用户一级菜单查询 -->
+	<select id="getAdOneMenuSQL" resultClass="java.util.HashMap" >
+		SELECT   
+					ltrim(rtrim(str(m.id)))  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					ltrim(rtrim(str(m.parent_func_id))) as parentFuncId
+		
+		FROM Ent_Function_Menu m  WITH(nolock) WHERE m.parent_func_id='0'  AND m.state = 'ENABLED' ORDER BY ordering
+	</select>
+	
+	
+	<!-- 超级用户二级菜单查询 -->
+	<select id="getAdTwoMenuSQL" resultClass="java.util.HashMap" >
+		<![CDATA[
+			SELECT 
+					ltrim(rtrim(str(id)))  as functionId,
+					function_name as functionName,
+					function_code as functionCode,
+					function_level functionLevel ,
+					function_img as functionImg,
+					assembly_name as assemblyName ,
+					function_type as functionType ,
+					ordering  as ordering ,
+					state as state,
+					remark,
+					ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+					
+			FROM  Ent_Function_Menu WITH(nolock) WHERE parent_func_id<>'0' AND function_type='MENU' 
+			and parent_func_id=#parentId#
+			AND state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+	
+		<!-- TA权限设置菜单 -->
+	<select id="getUserOrRoleMenuSQL" resultClass="java.util.HashMap" >
+		<![CDATA[
+			SELECT              
+					ltrim(rtrim(str(id)))  as functionId,
+					function_name as functionName,
+					function_code as functionCode,
+					function_level functionLevel ,
+					function_img as functionImg,
+					assembly_name as assemblyName ,
+					function_type as functionType ,
+					ordering  as ordering ,
+					state as state,
+					remark,
+					ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+					
+			FROM  Ent_Function_Menu WITH(nolock) WHERE parent_func_id<>'0' AND function_type='MENU' 
+			and id IN (33,43) 
+			AND state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+
+<!-- 超级用户三级菜单查询 -->
+	<select id="getAdThreeMenuSQL" resultClass="java.util.HashMap" >
+		<![CDATA[
+
+			SELECT 
+					
+					ltrim(rtrim(str(m.id)))  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					ltrim(rtrim(str(m.parent_func_id))) as parentFuncId
+						
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 WHERE m.parent_func_id<>'0' 
+			 and len(function_code)-len(replace(function_code,',',''))=2
+			 and parent_func_id in(select id from  Ent_Function_Menu where parent_func_id=#parentId#)
+			 and m.STATE = 'ENABLED' AND m.function_type='MENU'  AND m.state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+
+<!-- 超级用户四级菜单查询 -->
+	<select id="getAdFourMenuSQL" resultClass="functionMenu" >
+		<![CDATA[
+			SELECT 
+					
+					ltrim(rtrim(str(m.id)))  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					ltrim(rtrim(str(m.parent_func_id))) as parentFuncId
+						
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 WHERE m.parent_func_id<>'0' 
+			 and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+	
+	
+	<!-- 普通用户三级菜单查询 -->
+	<select id="getUserThreeMenuSQL" resultClass="java.util.HashMap">
+	   <![CDATA[
+		SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM  Ent_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.fn_find(',',m.function_code,3)))  topFunOrder
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM ENT_Role_Function nr WHERE nr.roleType=1 and 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))	 
+			 )
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			ORDER BY F.ordering
+		 ]]>
+		 
+	</select>
+	
+	
+	<!-- 普通用户一级菜单查询 -->
+	<select id="getUserOneMenuSQL" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM  Ent_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.fn_find(',',m.function_code,1)))  topFunOrder
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM  Ent_Role_Function  nr WHERE 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))	 
+			 )
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			 and F.parent_func_id=0
+			ORDER BY F.ordering
+		 ]]>
+	</select>
+	
+	<!-- 普通用户二级菜单查询 -->
+	<select id="getUserTwoMenuSQL" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM  Ent_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.fn_find(',',m.function_code,2)))  topFunOrder
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM  Ent_Role_Function  nr WHERE nr.roleType=1 and 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))	 
+			 )
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			 and parent_func_id=#parentId#
+			ORDER BY F.ordering
+		 ]]>
+	</select>
+	
+	<!-- 普通用户二级菜单查询 【用作TA】-->
+	<select id="getUserTwoMenuSQL_TA" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM  Ent_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.fn_find(',',m.function_code,2)))  topFunOrder
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM  Ent_Role_Function  nr WHERE 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))	 
+			 )
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			 and parent_func_id=#parentId#
+			and function_code like '%@_@%'
+			ORDER BY F.ordering
+		 ]]>
+	</select>
+	
+	<!-- 普通用户四级菜单查询 -->
+	<select id="getUserFourMenuSQL" resultClass="functionMenu" >
+		<![CDATA[
+				SELECT 				
+					ltrim(rtrim(str(m.id)))  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					ltrim(rtrim(str(m.parent_func_id))) as parentFuncId
+			 FROM  Ent_function_menu m WITH(nolock),
+			 	  	Pub_UserGroup UG WITH(nolock),
+			 	   	Ent_Role_Function  UGF WITH(nolock),
+			 	  	Pub_UserAndGroup U WITH(nolock)
+			 WHERE m.parent_func_id<>'0' 
+			 		AND m.FUNCTION_TYPE = 'RESOURCE'
+					AND UG.STATUS=0
+					AND UGF.RoleID = UG.ID
+				 	AND UGF.FUNCTIONID=m.id		
+			 		AND UG.ID = U.UserGroupID	
+				 	AND U.UserId=#userId#
+		     		AND m.STATE = 'ENABLED'
+			 ORDER BY ordering
+		]]> 
+	</select>
+	
+	<!-- 根据角色ID查找菜单 -->
+	<select id="findMenusByRoleId" resultClass="HashMap">
+		SELECT 
+					m.ID,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					m.parent_func_id as parentFuncId
+						
+		FROM  Ent_Function_Menu m
+		WHERE m.ID IN (SELECT functionID FROM  Ent_Role_Function  WHERE roleID=#roleId#)
+		ORDER BY ORDERING
+	</select>
+	<sql id="3level">
+		SELECT a.parent_func_id FROM  Ent_Function_Menu a,
+			(
+			SELECT d.parent_func_id FROM 
+				Ent_Role_Function b, 
+				Pub_UserAndGroup c ,
+				Ent_Function_Menu d 
+			WHERE b.RoleID = c.UserGroupID AND
+				b.FunctionID=d.ID AND 
+				c.UserId=#UserId#
+			  ) b
+		WHERE a.ID = b.parent_func_id
+	</sql>
+	<sql id="2level">
+		SELECT d.parent_func_id FROM 
+			Ent_Role_Function b, 
+			Pub_UserAndGroup c ,
+			Ent_Function_Menu d 
+		WHERE b.RoleID = c.UserGroupID AND
+			b.FunctionID=d.ID AND 
+			c.UserId=#UserId#
+	</sql>
+	<sql id="1level">
+		SELECT d.id AS parent_func_id FROM 
+			Ent_Role_Function b, 
+			Pub_UserAndGroup c ,
+			Ent_Function_Menu d 
+		WHERE b.RoleID = c.UserGroupID AND
+			b.FunctionID=d.ID AND 
+			c.UserId=#UserId#
+	</sql>
+   <!--根据父菜单查找子菜单-->
+	<select id="findMenusByParent" resultClass="HashMap"  parameterClass="hashMap" >
+		SELECT *FROM (
+			SELECT 
+				m.ID ,
+				m.function_name as functionName,
+				m.function_code as functionCode,
+				m.function_level functionLevel ,
+				m.function_img as functionImg,
+				m.assembly_name as assemblyName ,
+				m.function_type as functionType ,
+				m.ordering  as ordering ,
+				m.state as state,
+				m.remark,
+				m.parent_func_id as parentFuncId
+						
+			FROM  Ent_Function_Menu m
+			WHERE PARENT_FUNC_ID = #parentFuncId# 			
+			) t WHERE 1=1  and t.state='ENABLED' 
+			<dynamic>
+				<isNotNull prepend="and" property="UserId">
+					t.ID in(
+						SELECT 	 DISTINCT t.parent_func_id FROM (
+					<include refid="3level"/>
+					UNION
+					<include refid="2level"/>
+					UNION
+					<include refid="1level"/>
+				) t)
+				</isNotNull>
+			</dynamic>
+			 ORDER BY ORDERING
+	</select>
+	
+	
+	<!-- 普通用户一级菜单查询 -->
+	<select id="findUserLevelOneMenu" resultClass="HashMap"  parameterClass="hashMap">
+	<![CDATA[  
+			SELECT 
+				F.ID,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				parent_func_id as parentFuncId 
+			FROM  Ent_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					distinct(substring(m.function_code,0,charindex(',',m.function_code,0)))  topFunOrder
+			 FROM  Ent_Function_Menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM  Ent_Role_Function nr WHERE 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))
+			 )
+			 AND F.parent_func_id=0
+			 AND F.state = 'ENABLED'
+			ORDER BY F.ordering
+	]]>
+	</select>	
+
+
+	<!-- 功能菜单树型列表查询-->
+	<select id="getMenuTreeSQL" resultClass="functionMenu"  parameterClass="HashMap" >
+		SELECT 
+					m.id as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					m.parent_func_id as parentFuncId
+		FROM  Ent_Function_Menu m
+		WHERE PARENT_FUNC_ID = #id# 
+		ORDER BY ORDERING
+	</select>
+	
+	
+	<!-- 查询功能菜单By ID-->
+	<select id="getMenuByIdSQL" resultClass="functionMenu" parameterClass="HashMap">
+		SELECT 
+					id  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					m.parent_func_id as parentFuncId
+		FROM  Ent_Function_Menu m
+		WHERE ID = #id# 
+	</select>
+	
+	<!-- 查询功能菜单是否是子菜单-->
+	<select id="findParentFuncMenuCountSQL" resultClass="java.lang.Long">
+		SELECT COUNT(*) 
+		FROM  Ent_Function_Menu
+		WHERE PARENT_FUNC_ID = #functionId# 
+	</select>
+	
+	<!-- 删除功能菜单记录 -->
+	<delete id="deleteFunctionsMenuSQL"  parameterClass="long">
+		DELETE FROM  Ent_Function_Menu  WHERE ID = #functionId#
+	</delete>
+	
+	<!-- 更新功能菜单 -->
+	<update id="updateFunctionsMenuSQL" parameterClass="java.util.HashMap">
+		UPDATE  Ent_Function_Menu
+		SET 
+			FUNCTION_NAME = #functionName# ,
+			FUNCTION_CODE = #functionCode# ,
+			FUNCTION_IMG = #functionImg# ,
+			ASSEMBLY_NAME = #assemblyName# ,
+			FUNCTION_TYPE = #functionType# ,
+			ORDERING = #ordering# ,
+			STATE = #state# ,
+			REMARK = #remark#
+		WHERE ID = #functionId#
+	</update>
+	
+	<!-- 新增功能菜单 -->
+	<insert id="addFunctionMenuSQL" parameterClass="java.util.HashMap">
+		INSERT INTO Ent_Function_Menu
+           ([FUNCTION_NAME]
+           ,[FUNCTION_IMG]
+           ,[FUNCTION_CODE]
+           ,[ASSEMBLY_NAME]
+           ,[FUNCTION_TYPE]
+           ,[ORDERING]
+           ,[STATE]
+           ,[REMARK]
+           ,[PARENT_FUNC_ID])
+     	VALUES
+           (#FUNCTION_NAME#,
+            #FUNCTION_IMG#,
+            #FUNCTION_CODE#,
+			#ASSEMBLY_NAME#,
+			#FUNCTION_TYPE#,
+			#ORDERING#,
+			#STATE#,
+			#REMARK#,
+			#PARENT_FUNC_ID#)
+	</insert>
+	
+	<!-- 删除功能菜单 -->
+	<delete id="delFunctionMenuSQL" parameterClass="java.util.HashMap">
+	 	DELETE FROM  Ent_Function_Menu WHERE ID = #ID#
+	</delete>
+	
+	<!-- 超级用户二级菜单查询【TA】 -->
+	<select id="getAdTwoMenuTASQL" resultClass="java.util.HashMap" >
+		<![CDATA[
+			SELECT 
+					ltrim(rtrim(str(id)))  as functionId,
+					function_name as functionName,
+					function_code as functionCode,
+					function_level functionLevel ,
+					function_img as functionImg,
+					assembly_name as assemblyName ,
+					function_type as functionType ,
+					ordering  as ordering ,
+					state as state,
+					remark,
+					ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+					
+			FROM ENT_function_menu WITH(nolock) WHERE parent_func_id<>'0' AND function_type='MENU' 
+			and parent_func_id=#parentId#
+			AND state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+
+<!-- 超级用户三级菜单查询 【TA】-->
+	<select id="getAdThreeMenuTASQL" resultClass="java.util.HashMap" >
+		<![CDATA[
+
+			SELECT 
+					
+					ltrim(rtrim(str(m.id)))  as functionId,
+					m.function_name as functionName,
+					m.function_code as functionCode,
+					m.function_level functionLevel ,
+					m.function_img as functionImg,
+					m.assembly_name as assemblyName ,
+					m.function_type as functionType ,
+					m.ordering  as ordering ,
+					m.state as state,
+					m.remark,
+					ltrim(rtrim(str(m.parent_func_id))) as parentFuncId
+						
+			 FROM ENT_function_menu m WITH(nolock)
+			 WHERE m.parent_func_id<>'0' 
+			 and function_code like '%@_@%'
+			 and m.STATE = 'ENABLED' AND m.function_type='MENU'  AND m.state = 'ENABLED' ORDER BY ordering
+		]]> 
+	</select>
+	
+	<!-- 普通用户三级菜单查询【TA】 -->
+	<select id="getUserThreeMenuTASQL" resultClass="java.util.HashMap">
+	   <![CDATA[
+				SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM ENT_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.F_Ent_Svr_Find_Str(',',m.function_code,4)))  topFunOrder
+			 FROM ENT_function_menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM ENT_Role_Function nr WHERE 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))
+			 )
+			 and function_code like '%@_@%'
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			ORDER BY F.ordering
+		 ]]>
+		 
+	</select>
+	
+	<!-- 普通用户二级菜单查询【TA】 -->
+	<select id="getUserTwoMenuTASQL" resultClass="java.util.HashMap">
+	  <![CDATA[
+				SELECT 
+				ltrim(rtrim(str(F.id)))  as functionId,
+				function_name as functionName,
+				function_code as functionCode,
+				function_level functionLevel ,
+				function_img as functionImg,
+				assembly_name as assemblyName ,
+				function_type as functionType ,
+				ordering  as ordering ,
+				state as state,
+				remark,
+				ltrim(rtrim(str(parent_func_id))) as parentFuncId 
+			FROM ENT_Function_Menu  F 
+			WHERE F.function_code IN
+			(
+			SELECT 
+					DISTINCT(substring(m.function_code,0,dbo.F_Ent_Svr_Find_Str(',',m.function_code,3)))  topFunOrder
+			 FROM ENT_function_menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM ENT_Role_Function nr WHERE 
+			 	 m.id=nr.functionId and roleId in (SELECT UserGroupID FROM Pub_UserAndGroup nu WHERE UserID=#userId#))
+			 )
+			 and function_code like '%@_@%'
+			 AND F.state = 'ENABLED'
+			 and f.function_type='MENU'
+			ORDER BY F.ordering
+		 ]]>
+	</select>
+	<select id="findMenusParentNew" resultClass="HashMap"  parameterClass="hashMap" >
+	with cte as(
+	SELECT m.ID ,m.function_name ,m.parent_func_id ,m.state,1 as le FROM
+	Ent_Function_Menu m where m.parent_func_id=0
+	union all
+	select m.ID ,m.function_name ,m.parent_func_id ,m.state ,c.le+1 as le
+	from cte c inner join Ent_Function_Menu m on c.id=m.parent_func_id
+	)
+	select c.* ,e.FunctionID from cte c   left join Ent_Role_Function e on e.FunctionID=c.id and e.RoleID=#roleId# 
+	 <dynamic prepend="inner  join Pub_UserAndGroup f on ">
+		<isNotNull prepend="" property="UserId">
+		f.UserGroupID =e.RoleID
+		</isNotNull>
+	</dynamic>
+		WHERE   c.state='ENABLED'
+	 <dynamic>
+		<isNotNull prepend="and" property="UserId">
+			f.UserId=#UserId# 
+		</isNotNull>
+	</dynamic> 
+		order by c.le
+	</select>
+	<!-- 首页那个功能菜单 -->
+	<select id="findMenusForIndex" resultClass="HashMap"  parameterClass="hashMap" >
+	with cte as(
+	SELECT m.ID ,m.function_name ,m.parent_func_id ,m.state,-1 as le,m.function_type FROM
+	Ent_Function_Menu m 
+	inner join Ent_Role_Function e on e.FunctionID=m.id 
+	inner join Pub_UserAndGroup  f on f.usergroupid = e.roleid and f.UserId=#UserId#
+	union all
+	select m.ID ,m.function_name ,m.parent_func_id ,m.state ,c.le-1 as le,m.function_type
+	from cte c inner join Ent_Function_Menu m on c.parent_func_id=m.id
+	)
+	select c.* ,null FunctionID from cte c  where   c.function_type='MENU' and c.state='ENABLED'
+	group by c.id,c.function_name,c.parent_func_id,c.state,c.le,c.function_type
+	order by c.le  
+	</select>
+</sqlMap>

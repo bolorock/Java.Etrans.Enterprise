@@ -1,0 +1,505 @@
+var tip=true;
+var vehicleId='';//终端号
+var gpsInfoArray=null; // 回放轨迹数据数组成部分
+var posSize = 0; // 轨迹播放次数
+var playTrackFlag = false; // 轨迹播放标识
+var changeConditionFlag=true;
+var timeOutFlag = true; // 循环播放标识
+var getDataEndFlag=false;//获取轨迹数据结束标识
+var getDataTime=1800000;//每次获取轨迹时间段，
+var playRate = 300; // 播放频率
+var car = new MyObject('0'); //
+var carText = new MyObject('0'); //
+var carHashMap = new HashMap();
+var aynchronizedLngLatMap = new HashMap();
+function load(sim) {
+	vehicleId=sim;
+	$('#map').css("width", getMapWidth()+"px");
+	$('#map').css("height",getMapHeight() -120+ "px");
+	maplet=new SE.Map("map");
+	maplet.centerAndZoom(new SE.LngLat(116.39885,39.96571),4);
+	// 添加标准控件，骨头棒
+	maplet.addControl(new SE.MapControl());
+	// 添加 卫图, 矢量 和 融合控件
+	var switchControl=new SE.MapTypeControl();
+    maplet.addControl(switchControl);
+	maplet.removeMapType(SE.Traffic_MAP);
+	switchControl.setRight(5);
+	// 比例尺
+	var scale = new SE.ScaleControl();
+	scale.setLeft(20);
+	scale.setBottom(30);
+	maplet.addControl(scale);
+	// 鼠标滚动
+	maplet.handleMouseScroll(true);
+	// 键盘事件
+	maplet.handleKeyboard();
+ 
+	//鹰眼
+	var overmap = new SE.OverviewMapControl(4)   
+	maplet.addControl(overmap); 
+	
+	var control=new SE.CopyrightControl();  
+    control.setLeft(130);  
+    control.setBottom(0);  
+    maplet.addControl(control); 
+	var bb=new SE.LngLat(116.39885,39.96571);
+	
+	 
+	var cc=maplet.getOverLayPosition(bb);
+ 
+	$('#playback').attr({"disabled":"disabled"});
+	
+	/**
+	 * 为初始化下拉框值
+	 * 
+	 * 切换车辆时坐标回到初始位置
+	 */
+	var registrationNoStr = parent.parent.leftFrame.getTrackBackRegistrationNo();
+	if(registrationNoStr!=null && registrationNoStr!=''){
+		registrationNoStr = registrationNoStr.substring(1);
+		var registrationSelect = $("#registrationSelect");
+		var vehicleStr = registrationNoStr.split(",");
+		registrationSelect.empty();
+		for(var i=0;i<vehicleStr.length;i++){
+			var vehicleAry = vehicleStr[i].split("|");
+			var option = $("<option>").text(vehicleAry[1]).val(vehicleAry[0])
+			registrationSelect.append(option);
+		}
+		$("#registrationSelect option[value='"+vehicleId+"']").attr("selected", "selected");
+	}
+	$("#registrationSelect").change(function(){
+		maplet.centerAndZoom(new SE.LngLat(116.39885,39.96571),4);   
+	});
+}
+
+
+//////////////////////轨迹回放 Star-update by Pomelo(柚子.) 2013-05-15//////////////////////
+var arrlistReplay = new Array();
+var arrlist = new Array();
+var isStop=false;
+var currentStopIndex=0;
+var paths;
+var icon;
+var carMk;
+var playIndexI = 0;
+var newMarker_point;
+var southwest;
+var northeast;
+var isFirst=0;
+var isEnd;
+var firstPoint;
+var lastPoint;
+var goalPosPoint = new Array();
+var goalSaveCar = new Array();
+var vehicleOld=null;
+var starTimeOld=null;
+var endTimeOld=null;
+var isMustQuery = true;
+var playSpeed=100;
+
+
+function resetVaris(){
+	arrlistReplay = new Array();
+	arrlist = new Array();
+	isStop=false;
+	currentStopIndex=0;
+	playIndexI = 0;
+ 	isFirst=0;
+	isEnd=false;
+	goalPosPoint = new Array();
+	goalSaveCar = new Array();
+	countPlat=0;
+}
+
+/** 查询回放轨迹数据 */
+function findPlayBackTrack() {
+	vehicleId = $("#registrationSelect").val();
+	playSpeed=$("#playRate").val();
+	/**
+	 * 相同的查询条件不进行二次查询
+	 */
+	if(vehicleOld==null){
+		vehicleOld = vehicleId;
+		starTimeOld = $("#beginTime").val();
+		endTimeOld = $("#endTime").val() ;
+	}else{
+		if(vehicleOld==vehicleId && starTimeOld==$("#beginTime").val() && endTimeOld==$("#endTime").val()){
+			isMustQuery = false;
+		}else{
+			vehicleOld = vehicleId;
+			starTimeOld = $("#beginTime").val();
+			endTimeOld = $("#endTime").val() ;
+			isMustQuery = true;
+			resetVaris();
+		}
+	}
+	 
+	if (isMustQuery) {
+		maplet.clearOverLays(true);
+		$("#finish").html("");
+		var xx = $("#beginTime").val().split(/[-\s:]/); // 开始时间
+		var yy = $("#endTime").val().split(/[-\s:]/); // 结束时间
+		if (xx == '' || yy == '') {
+			$("#finish").html("查询时间段不能为空");
+			return false;
+		}
+		var beginTime = (new Date(xx[0], xx[1] - 1, xx[2], xx[3], xx[4], xx[5])).valueOf(); // 把时间转换成毫秒数
+		var endTime = (new Date(yy[0], yy[1] - 1, yy[2], yy[3], yy[4], yy[5])).valueOf(); // 把时间转换成毫秒数
+		if (beginTime > endTime) {
+			gpsInfoArray == null;
+			$("#finish").html("开始时间必须大于或等于结束时间");
+			return false;
+		}
+		if ((endTime - beginTime) > 259200000) {
+			gpsInfoArray == null;
+			$("#finish").html("请将查询时间段控制在3天以内");
+			return false;
+		}
+		var finshTime = beginTime;
+		$("#back").css("display", "block");
+		var countQuery = 0;
+		for ( var bt = beginTime; bt <= endTime; bt = (bt + getDataTime)) {
+			var newbt = bt + getDataTime;
+			var newEndTime = newbt >= endTime ? endTime : newbt;
+			var jsonParams = {
+				beginTime : bt,
+				endTime : newEndTime,
+				vehicleId : vehicleId,
+				index:countQuery
+			};
+			countQuery++;
+			// ljy地图类型
+			var mapType = parent.parent.mapFrame.getMapType();
+			$.ajax({
+				url : "monitorCenter/findPlayBackTrack.action?mapType="+ mapType,
+				type : "POST",
+				async : true,
+				data : jsonParams,
+				success : function(data) {
+					finshTime = finshTime + getDataTime;
+					if (data != 'false') {
+						arrlist = eval("(" + data + ")");
+						var index = eval("({" + arrlist[0] + "})");
+						if(aynchronizedLngLatMap==null)aynchronizedLngLatMap = new HashMap();
+						aynchronizedLngLatMap.put("index"+index.index+"",arrlist);
+						if (finshTime >= endTime){							
+							for(var j=0;j<aynchronizedLngLatMap.size();j++){
+								if(j==(aynchronizedLngLatMap.size()-1))isEnd = true;
+								if(aynchronizedLngLatMap.get("index"+j+"")!=null){
+									lineDraw(aynchronizedLngLatMap.get("index"+j+""));
+								}
+							}
+							aynchronizedLngLatMap = null;
+						}
+					}
+					if (finshTime >= endTime) {// 获取轨迹数据结束
+						$("#back").css("display", "none");
+						if (goalSaveCar == null || goalSaveCar.length == 0) {
+							goalSaveCar = null;
+							$("#back").css("display", "none"); // 正在......
+							isMustQuery = true;
+							$("#finish").html("本车辆在这时间段内没轨迹数，请换其它时间段");
+						}
+					}
+				}
+			})
+		}
+	}
+
+}
+ 
+function createImageForPoint() {
+	for ( var i = 0; i < goalSaveCar.length; i++) {
+		var xy = goalSaveCar[i];
+		if (i == 0) {
+			newMarker_point = createimg(new SE.LngLat(xy.sHlon, xy.sHlat), 1,xy);
+			maplet.addOverLay(newMarker_point);
+		} else if (i == (goalSaveCar.length - 1)) {
+			newMarker_point = createimg(new SE.LngLat(xy.sHlon, xy.sHlat), 1,xy);
+			maplet.addOverLay(newMarker_point);
+		} else {
+			if (i % 30 == 0) {
+				newMarker_point = createimg(new SE.LngLat(xy.sHlon, xy.sHlat), 1,xy);
+				maplet.addOverLay(newMarker_point);
+			}
+		}
+	}
+}
+var countPlat=0;
+function playBackTrack(){	
+	playSpeed=$("#playRate").val();
+	if(countPlat==0)maplet.centerAndZoom(goalPosPoint[0],12);
+	countPlat++;
+	if ($("#playback").val() == '暂停') {
+		$("#playback").val("播放");
+		isStop = true;
+	} else {
+		$("#playback").val("暂停");
+		isStop = false;
+		if(currentStopIndex==0){
+			paths = goalPosPoint.length;  
+			icon = carIconFactory_T.createCar(goalSaveCar[0]);
+			carMk = new SE.Marker(goalPosPoint[0],icon);
+			maplet.addOverLay(carMk);
+		}
+		function resetMkPoint(playIndexI) {
+			if(playIndexI < paths){
+				carIconFactory_T.updateCurrentCar(carMk,goalSaveCar[playIndexI]);
+				currentStopIndex = playIndexI;
+			   
+				southwest = maplet.getLngLatBounds().getSouthWest();
+				northeast = maplet.getLngLatBounds().getNorthEast();
+				   
+				if(goalPosPoint[playIndexI].lng>southwest.getLng() 
+						|| goalPosPoint[playIndexI].lng<northeast.getLng()  
+						|| goalPosPoint[playIndexI].lat<southwest.getLat() 
+						|| goalPosPoint[playIndexI].lat>northeast.getLat()){
+					maplet.panTo(goalPosPoint[playIndexI],12);//平滑
+				}  
+				if (playIndexI < paths && (!isStop)) {
+					setTimeout(function() {
+						playIndexI++;
+						resetMkPoint(playIndexI);
+					}, playSpeed);
+				}
+			}else{
+				currentStopIndex=0;
+				playIndexI=0;
+				$("#finish").html("本次回放已结束");
+				setTimeout(function() {
+					$("#finish").html("");
+					maplet.removeOverLay(carMk);
+				}, 5000);
+				$("#playback").val("播放");
+			}
+		}
+		setTimeout(function() {
+			resetMkPoint(currentStopIndex);
+		}, 10);
+	}
+       
+}
+
+function lineDraw(gpsInfoArrayTemp) {
+	gpsInfoArray = gpsInfoArrayTemp;
+	var pos = new Array(); // 轨迹点数组
+	for ( var i = 1; i < gpsInfoArray.length; i++) {
+		var xy = eval("({" + gpsInfoArray[i] + "})");
+		pos.push(new SE.LngLat(xy.sHlon, xy.sHlat));
+		goalPosPoint.push(new SE.LngLat(xy.sHlon, xy.sHlat));
+		goalSaveCar.push(xy);
+		if (isFirst == 0 && i == 1)
+			firstPoint = new SE.LngLat(xy.sHlon, xy.sHlat);
+		if (isEnd && (i == (gpsInfoArray.length - 1)))
+			lastPoint = new SE.LngLat(xy.sHlon, xy.sHlat);
+	}
+	if (pos.length > 0) {
+		var pline = new SE.PolyLine(pos, "#330099", 5);
+		maplet.centerAndZoom(pos[0], 12);
+		if (isFirst == 0) {
+			markerUtils_T.setParamValue(21,27,"imgs/star.gif",true);
+			maplet.addOverLay(markerUtils_T.crateIconMarker(firstPoint, 0));
+			markerUtils_T.isParamValueReset();
+		}
+		maplet.addOverLay(pline);
+		if (isEnd) {
+			try {
+				markerUtils_T.setParamValue(21,27,"imgs/end.gif",true);
+				maplet.addOverLay(markerUtils_T.crateIconMarker(lastPoint, 0));
+				markerUtils_T.isParamValueReset();
+				createImageForPoint();
+				maplet.setZoom(8);
+				maplet.checkResize();
+				$("#playback").val("播放");			
+				$('#playback').removeAttr("disabled"); 
+			} catch (e) {}			
+		}
+	}
+	isFirst++;
+}
+
+function createimg(latlng, no,obCar) {
+	var  newMarker= markerUtils_T.crateIconMarker(latlng, no,obCar);
+	SE.Event.addListener(newMarker, "click", function() {
+		var infowin = newMarker.openInfoWinHtml(createInfoWindow(obCar));
+		infowin.setTitle(obCar.no);
+		infowin.setHeight(195);
+	});
+	return newMarker;
+}
+//////////////////////轨迹回放 End-update by Pomelo(柚子.) 2013-05-15//////////////////////
+//lujunyong 注释的
+//window.onresize = resizeListener;
+function resizeListener() {
+	alert(1);
+	var maparea = $('map');
+	alert(maparea.style);
+	var bar = $('bar');
+	bar.style.width = getMapWidth() + "px";
+	alert(getMapWidth());
+	maparea.style.width = getMapWidth() + "px";
+	maparea.style.height = getMapHeight() - 27 + "px";
+}
+
+function getMapWidth() {
+	var width;
+	if (window.innerWidth)
+		width = window.innerWidth;
+	else
+		width = document.body.offsetWidth;
+
+	return width;
+}
+function getMapHeight() {
+	var height;
+	height = document.body.clientHeight;
+	return height;
+}
+
+
+function getMapWidth() {
+	var width;
+	if (window.innerWidth)
+		width = window.innerWidth;
+	else
+		width = document.body.offsetWidth;
+
+	return width;
+}
+function getMapHeight() {
+	var height;
+	height = document.body.clientHeight;
+	return height;
+}
+function createInfoWindow(obCar) {
+	// lat,lon ,sd,gs,gd,gt,st,m,o
+	// 经度,纬度,速度,状态,司机信息,时间,停车时长|停车时长毫秒,里程,油位
+	var time=obCar.gt;
+	 time=time.replace(" ","@")
+	 var div ='<div><table width="290" border="0" cellspacing="2" cellpadding="0" style="font-size: 12px;">';
+	div+='<tr bgcolor="#e6eaea"><td colspan="2" height="30">'+obCar.gs+'</td></tr>'
+	   +'<tr><td height="18">速度：'+obCar.sd+'公里/小时</td></tr>'
+	   + '<tr bgcolor="#e6eaea"><td height="18">经度：' + obCar.lon+ '</td>' + '<td >纬度：' + obCar.lat + '</td></tr>' 
+	   + '<tr ><td height="18">所属行业：' + obCar.kindName+ '</td>' + '<td >所属业户：' + obCar.workunitName + '</td></tr>' 
+	    +'<tr bgcolor="#e6eaea"><td><a href="javascript:void(0)" onclick=getDriverMessage("' +time+ '","' + obCar.sim+ '")> 查看司机信息</a></td><td><a href="javascript:void(0)" onclick=getLocationInfo("' + obCar.sim + '","' + obCar.lat + '","' + obCar.lon + '")> 显示位置</a></td></tr>'
+	   +'<tr><td colspan="2" id="message" height="50">&nbsp;</td></tr></table></div>';
+	div = div
+			+ "<table width='260px' height='12px' cellspacing='0' cellpadding='0'><tr><td><span style='color:#0000cc;cursor:pointer;text-decoration:underline;font-size:12px;' onclick='javascript:map.closeInfoWindow();'></span></td>";
+	div = div + "<td style='font-size:12px;background:#e6eaea;' align='right'>定位时间:" + obCar.gt + "</td></tr></table>"
+	try {
+		return div;
+	} finally {
+		div = null;
+	}
+}
+ 
+
+/**
+ * 获取车辆驾驶员信息
+ * @param {} vehicleId
+ */
+function getDriverMessage(gpsTime,vehicleId){
+		document.getElementById("message").innerHTML = '<img src="imgs/load.gif" />正在加载数据......';
+  	gpsTime=gpsTime.replace("@"," ");
+   var jsonParams = {
+		gpsTime : gpsTime,
+		vehicleId : vehicleId,
+		de : new Date()
+	};
+	
+	
+	 	$.ajax({
+		url:"monitorCenter/getDriverMessage.action",
+		type:"POST",
+		data: jsonParams,
+		success: function(data){
+		    if (data != ''&&data!='null'&& data!=null) {
+		    	var name=data.name;
+		    	var identityCard=data.identityCard;
+		    	var drivingLicence=data.drivingLicence;
+		    	var workCertificate=data.workCertificate;
+			    var message="姓名:"+data.name;
+			    if(identityCard!=''){
+			     message+="&nbsp;身份证:"+identityCard;
+			    }
+			    if(drivingLicence!=''){
+			    message+="&nbsp;驾驶证号码:"+drivingLicence;
+			    	
+			    }
+			     if(workCertificate!=''){
+			    message+="&nbsp;从业资格证号:"+workCertificate;
+			    }
+		   $("#message").html(message);
+		}else{
+			$("#message").html("当前没有司机信息");
+		  }
+		}
+		
+	});
+	
+} 
+
+
+//弹出窗口,取中文地址
+function getLocationInfo(sim,lat,lon) {
+	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+	
+	 var param={
+    		 date:new Date(),
+             lnglat:lon+","+lat	 
+             }
+	 
+	  var url="monitorCenter/getAddressRepeat.action";
+	  	$.ajax({
+		url:url,
+		type:"POST",
+		dataType:"json",
+		data: param,
+		success:function(data){
+		try{
+			if(data.status=="ok"){
+				$("#message").html(data.result.address);
+			}else{
+				$("#message").html(data.result.error);
+			}
+		   }catch(exception){
+			   $("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+		 }
+		
+	} ,
+	error:function(){
+		$("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+	}
+
+		
+	});
+}
+function exportTrack(basePath){
+	var xx = $("#beginTime").val().split(/[-\s:]/); // 开始时间
+	var yy = $("#endTime").val().split(/[-\s:]/); // 结束时间
+	
+	if (xx == '' || yy == '') {
+		alert('查询时间段不能为空');
+		return false;
+	}
+	var beginTime = (new Date(xx[0], xx[1] - 1, xx[2], xx[3], xx[4], xx[5])).valueOf(); // 把时间转换成毫秒数
+	var endTime = (new Date(yy[0], yy[1] - 1, yy[2], yy[3], yy[4], yy[5])).valueOf(); // 把时间转换成毫秒数
+	if(beginTime>endTime){
+		alert('开始时间必须大于或等于结束时间!');
+		return false;
+	}
+		if((endTime - beginTime) > 259200000){
+		alert('请将查询时间段控制在3天以内!');
+		return false;
+	}
+    
+     document.location.href=basePath+'monitorCenter/exportTrack.action?vehicleId=' +vehicleId+'&beginTime='+beginTime + '&endTime='+ endTime;
+	
+}
+
+//返回车辆监控ljy
+function backMonitor(basePath){
+//	parent.mapFrame.location.href=basePath+"monitorCenter/map.jsp";
+	parent.parent.mapFrame.location.href=basePath+"monitorCenter/group.jsp?vehicleId=null&registrationNo=null&index=0";
+	}

@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+   	<parameterMap id="addTerminalParam" class="java.util.HashMap">
+		<parameter property="@VehicleID" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@ParamName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@ParamValue" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+	</parameterMap>
+   <select id="getAdminPubCommandSendOneSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+     select  DISTINCT(pck.catalog) AS FUNCTION_NAME  from Pub_CommandKind pck WITH ( NOLOCK )
+     inner join Pub_Command pc WITH ( NOLOCK ) on pc.commandKindID=pck.id
+     where pc.terminalKindID=#terminalKindID# and pck.IsDisabled=0
+      ORDER BY catalog desc
+   </select>  
+   
+   <select id="getPubCommandSendOneSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+     select  DISTINCT(pck.catalog) AS FUNCTION_NAME  from Pub_CommandKind pck WITH ( NOLOCK )
+     inner join Pub_Command pc WITH ( NOLOCK ) on pc.commandKindID=pck.id
+     inner join Pub_CommandPurview pcp WITH ( NOLOCK ) on pcp.commandKindId=pck.id
+     where pc.terminalKindID=#terminalKindID# 
+     and pck.IsDisabled=0
+     and pcp.usergroupid in(select usergroupid from Pub_UserAndGroup where UserID=#userId#)
+      ORDER BY catalog desc
+   </select>  
+   
+    <select id="getAdminPubCommandSendTwoSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+    SELECT  pc.ID,PC.NAME AS FUNCTION_NAME,PC.FUNCTIONNO AS COMMAND_CODE,PC.commandKindID FROM Pub_Command pc WITH ( NOLOCK )
+		inner JOIN Pub_CommandKind pk WITH ( NOLOCK )
+		ON pc.commandKindID=pk.id
+		WHERE pk.catalog=#catalogName#
+		and pc.terminalKindID=#terminalKindID#  and pk.IsDisabled=0 
+		<dynamic>
+			<isNotNull property="functionName_Two" prepend="and">
+				PC.NAME like '%$functionName_Two$%'
+			</isNotNull>
+		</dynamic>
+		order by pc.functionNo			
+   </select>  
+   <select id="getPlatAndOtherCommandSql" resultClass="HashMap" parameterClass="java.util.HashMap">
+   		select CommandKindID from Pub_CommandPurview t where t.UserGroupID in(select usergroupid from Pub_UserAndGroup where UserID=#userId#) and t.CommandKindID in(506,507,373,376,379,508,509,510,7010,7012,7013,7020)
+   </select>
+   <select id="getPubCommandSendTwoSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+    SELECT  pc.ID,PC.NAME AS FUNCTION_NAME,PC.FUNCTIONNO AS COMMAND_CODE,PC.commandKindID FROM Pub_Command pc WITH ( NOLOCK )
+		inner JOIN Pub_CommandKind pk WITH ( NOLOCK )
+		ON pc.commandKindID=pk.id
+		 inner join Pub_CommandPurview pcp WITH ( NOLOCK ) on pcp.commandKindId=pk.id
+		WHERE pk.catalog=#catalogName#
+		and pc.terminalKindID=#terminalKindID# 
+		and pk.IsDisabled=0 
+		and pcp.usergroupid in(select usergroupid from Pub_UserAndGroup where UserID=#userId#)
+		<dynamic>
+			<isNotNull property="functionName_Two" prepend="and">
+				PC.NAME like '%$functionName_Two$%'
+			</isNotNull>
+		</dynamic>
+		order by pc.functionNo
+   </select>  
+   
+   
+   <select id="getPubCommandSendParamSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+		select 
+       pcp.ID
+      ,pcp.Name
+      ,pcp.Description
+      ,pcp.Sequence
+      ,pcp.EditKind
+      ,pcp.MaxLength
+      ,pcp.MinValue
+      ,pcp.MaxValue
+      ,pcp.DefaultValue
+      ,pcp.ListItem
+      ,pcp.CommandKindID
+      ,pc.name as commandName
+      ,pc.FunctionNO as functionNo 
+      ,pc.id as commandId
+   from pub_command pc WITH ( NOLOCK )
+   left outer join Pub_CommandParam pcp WITH ( NOLOCK ) on pc.commandkindid=pcp.commandkindid
+   where pc.id=#commandId# order by Sequence asc
+   </select>  
+    
+
+<select id="getPubCommandSendSQL" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+	    SELECT pck.ID
+	          ,pck.Catalog
+		        ,pck.Name
+		        ,pck.Password
+		        ,pck.ParamFormat
+	    FROM  Pub_CommandKind pck WITH ( NOLOCK )
+       where pck.id=#commandKindId#
+	
+   </select>  
+    
+    <!--查询2:圆形，3:多边形，1:矩形坐标--> 
+    <select id="getCommandAreaSelSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select ltrim(rtrim(str(PCP.MapPlaneID))) id
+			,PP.name
+			,PCP.longitude longitude
+			,PCP.latitude latitude
+			,PP.Radius Radius from    
+		
+		Pub_CustomMapPlanePoint PCP ,Pub_CustomMapPlane PP,Pub_CustomMapLayer PM
+		
+		where PCP.MapPlaneID=PP.ID  and  PP.MapLayerID=PM.ID 
+				and PM.UserID=#userId# and PP.shapeId=#shapeId#
+		order by PCP.Sequence ASC
+	</select>
+
+	<!--查询线坐标-->
+	<select id="getCommandLineSelSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select ltrim(rtrim(str(PCL.MapLineID)))id
+		,PL.name
+		,PCL.longitude longitude
+		,PCL.latitude latitude from 
+		
+       Pub_CustomMapLinePoint PCL ,Pub_CustomMapLine PL,Pub_CustomMapLayer PM
+       
+       where PCL.MapLineID=PL.ID
+        	and  PL.MapLayerID=PM.ID and PM.UserID=#userId#
+       order by PCL.Sequence ASC
+       </select>
+       
+<!--插入督办报警  -->
+<insert id="insertAlarmOverSeeing" parameterClass="java.util.HashMap">
+INSERT INTO [Ent_Alarm_OverSeeing]
+           ([VehicleID]
+           ,[alarmType]
+           ,[alarmDate]
+           ,[OverSeeingId]
+           ,[OverSeeingDate]
+           ,[OverSeeingBackDate]
+           ,[OverSeeingBackContent]
+           ,[OverSeeingType])
+     VALUES
+           (#VehicleID#
+           ,#AlarmType#
+           ,#alarmDate#
+           ,#OverSeeingId#
+           ,#OverSeeingDate#
+           ,#OverSeeingBackDate#
+           ,#OverSeeingBackContent#
+           ,#OverSeeingType#)
+</insert>           
+       
+<!--插入 指令发送日志-->
+	<insert id="insertClientCommandSendLog" parameterClass="java.util.HashMap">
+		INSERT INTO [Ent_ClientCommandSendLog]
+           (
+            [vehicleId]
+           ,[userId]
+           ,[userName]
+           ,[CommName]
+           ,[CommContent]
+           ,[SendTime]
+           )
+     VALUES
+           (
+           	#VehicleID#,
+           	#UserID#,
+           	#UserName#,
+           	#CommName#,
+           	#CommContent#,
+           	#SendTime#
+           )
+	</insert>
+	<!-- 指令权限 Star by feltky -->
+	<insert id="addCommandAuth" parameterClass="java.util.HashMap">
+		INSERT INTO  Pub_CommandPurview 
+	           (
+		           	UserGroupID,
+		           	CommandKindID
+	           )
+	     VALUES
+	           (
+		           #UserGroupID#,
+		           #CommandKindID#
+	           )
+	</insert>
+	<delete id="delCommandAuth" parameterClass="java.util.HashMap">
+		DELETE FROM  Pub_CommandPurview  WHERE  UserGroupID=#UserGroupID#
+	</delete>
+	<!-- 指令权限End by feltky -->
+	
+	<insert id="HighLevelPatrolLogSQL" parameterClass="java.util.HashMap">
+		INSERT INTO Ent_HighLevelPatrol_Log 
+			(
+				CheckingNo,
+				CheckContent,
+				CheckTime,
+				IsResult
+			)
+			VALUES(
+				#CheckingNo#,
+				#CheckContent#,
+				#CheckTime#,
+				#IsResult#
+			)
+	</insert>
+	
+	<!-- 更新查岗状态 -->
+	<insert id="updateHighLevelPatrolLogSQL" parameterClass="java.util.HashMap">
+		UPDATE 
+          Ent_HighLevelPatrol_Log
+		SET 
+			CheckReturnTime = #CheckReturnTime#,
+			CheckReturnContent =#CheckReturnContent#,
+			IsResult =#isResult#
+	   WHERE Id IN(
+                 SELECT TOP 1 mli.id FROM 
+                Ent_HighLevelPatrol_Log mli
+                 WHERE
+                  mli.CheckingNo= #CheckingNo#
+                  ORDER BY mli.CheckTime DESC)
+	</insert>
+	
+	<!-- 更新督办报警信息 -->
+	<update id="updateAlarmOverSeeingSQL" parameterClass="java.util.HashMap">
+		UPDATE 
+          Ent_Alarm_OverSeeing
+		SET 
+			OverSeeingBackDate = #OverSeeingBackDate#,
+			OverSeeingType =#OverSeeingType#
+	   WHERE vehicleId=#vehicleId# and alarmDate=#alarmDate# and alarmType=#alarmType#
+	</update>
+	
+	<!-- 插入督办报警信息 -->
+	<insert id="insertAlarmOverSeeingSQL" parameterClass="java.util.HashMap">
+		insert into
+          Ent_Alarm_OverSeeing
+		(
+			vehicleId,
+			alarmType,
+			alarmDate,
+			overSeeingId,
+			overSeeingDate,
+			termialType,
+			alarmInfoSource,
+			overSeeingLevel,
+			overSeeingUser,
+			telphone,
+			eMail
+		)
+		
+		values(
+			 #vehicleId#,
+			 #alarmType#,
+			 #alarmDate#,
+			 #overSeeingId#,
+			 #overSeeingDate#,
+			 #termialType#,
+			 #alarmInfoSource#,
+			 #overSeeingLevel#,
+			 #overSeeingUser#,
+			 #telphone#,
+			 #eMail#
+		)
+	</insert>
+	
+	
+	<!--插入报警处理信息 -->
+	<insert id="insertDealAlarmInfoSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_AlarmDealInfo]
+           (
+            [vehicleId]
+           ,[AlarmKindID]
+           ,[TransactMan]
+           ,[Content]
+           ,[TransactTime]
+           ,[CreateDatetime]
+           ,[BeginTime]
+           ,[StartTime]
+           ,[AlarmCount]
+           )
+     select 
+           	vehicleId,
+           	alarmKindID,
+           	#transactMan#,
+           	#content#,
+           	getDate(),
+           	getDate(),
+           	beginTime,
+           	startTime,
+           	alarmCount
+           
+           from [Pub_AlarmInfo]
+           where vehicleId = #vehicleId# and beginTime=#beginTime#
+           and startTime=#startTime# and alarmKindID=#alarmKindID#
+	</insert>
+	<procedure id="addTerminalParamSetting" parameterMap="addTerminalParam" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_AddTerminalParamSetting(?,?,?)}
+	    ]]>
+	</procedure>
+	
+	  <select id="getPhotoCommand" resultClass="HashMap" parameterClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+    SELECT  top 1 pc.ID as commandId FROM Pub_Command pc WITH ( NOLOCK )
+		inner JOIN Pub_CommandKind pk WITH ( NOLOCK )
+		ON pc.commandKindID=pk.id
+		WHERE   pc.terminalKindID=#terminalKindID#  and commandKindId=#commandKindID# order by pc.functionNo
+	
+   </select> 
+</sqlMap>

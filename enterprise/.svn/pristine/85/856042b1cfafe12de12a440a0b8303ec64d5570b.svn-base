@@ -1,0 +1,86 @@
+/**    
+ * MessageHandle.java
+ * Create on 2010-7-30
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository.parent;
+
+import java.io.PrintWriter;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * 发送上级信息指令
+ * @author lihaiyan
+ * @version 1.0
+ */
+
+public class SendMessage implements Runnable {
+	private CommandSendQueue commandSendQueue; // 指令发送队列
+	private SocketTemplate socketTemplate; // socket连接模板
+	private final Log logger = LogFactory.getLog(SendMessage.class.getName());
+	private PrintWriter pw = null;//写
+
+	public SendMessage(SocketTemplate socketTemplate, CommandSendQueue commandSendQueue) {
+		this.socketTemplate = socketTemplate;
+		this.commandSendQueue = commandSendQueue;
+	}
+
+	/**
+	 * 线程初始化
+	 * */
+	public void run() {
+		logger.error("---------(上级信息通道)发送线程启动!---------");
+		String message = "";
+		try {
+			pw = this.socketTemplate.getWriter();
+			while (true) {
+				message = commandSendQueue.consume();
+				if (!StringUtils.isEmpty(message)) {
+					pw = this.socketTemplate.getWriter();
+					MessageHandle(pw, message);
+				}
+				else{
+					Thread.sleep(500);
+				}
+			}
+		} catch (Exception e) {
+			//logger.error("发送指令失败");
+			e.printStackTrace();
+			pw = this.reloadSocket();
+		}
+
+	}
+
+	/**
+	 * 重连MSC
+	 * */
+	public PrintWriter reloadSocket() {
+		PrintWriter pw = null;
+		 logger.error("------(上级信息通道)连接异常，10秒钟后重连------");
+		try {
+			this.socketTemplate.reloadSocket();
+			pw = this.socketTemplate.getWriter();
+		} catch (Exception e) {
+			 logger.error("-----------------(上级信息通道)重连失败----------------------" + e);
+			// this.reloadSocket();
+			 pw = null;
+		}
+		return pw;
+	}
+	
+	/**
+	 * 发送指令
+	 * */
+	public void MessageHandle(PrintWriter pw, String message) {
+		try {
+			pw.println(message.replaceAll("\r\n", "").replaceAll("\r", "").replaceAll("\n", ""));
+		} catch (Exception e) {
+			this.commandSendQueue.produce(message);
+		    logger.error("(上级信息通道)发送指令失败,错误信息: " + message + "e:" + e);
+		    pw = this.reloadSocket(); // 重连MSC
+		}
+	}
+}

@@ -1,0 +1,207 @@
+<%@ page language="java" import="java.util.*" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<html>
+<head>
+<base href="<%=basePath%>"></base>
+<link href="<%=basePath%>css/style.css" type="text/css" rel="stylesheet" />
+	<style type="text/css">
+	
+	.ser_btn{width:48px; height:22px; line-height:21px; background:url(<%=basePath%>Images/login_in.jpg) no-repeat -3px -10px; text-align:center; color:#fff; border:1px solid #336699; cursor:pointer; display:inline-block;}
+	fieldset {
+	    padding:10px;
+	    margin-top:2px;
+	    color:#333; 
+	    border:#06c solid 1px;
+	} 
+	legend {
+	    color:#06c;
+	    font-weight:800; 
+	}
+	</style>
+       
+        <script type="text/javascript" src="<%=basePath%>js/jq/jquery-1.7.1.min.js"></script>
+        
+        <script type="text/javascript" src="<%=basePath%>js/jq/jquery.Query.js"></script>
+        
+        <link rel="stylesheet" href="<%=basePath%>js/flexigrid/flexigrid.css" type="text/css">
+		<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/icon.css">
+		<link rel="stylesheet" href="<%=basePath%>js/formvalidator/jquery.formValidator.css" type="text/css">
+				
+		<script type="text/javascript" src="<%=basePath%>js/common/window.js"></script>
+		<script type="text/javascript" src="<%=basePath%>js/formvalidator/jquery.formValidator.js"></script>
+		<script type="text/javascript" src="<%=basePath%>js/util.js"></script>
+		<script type="text/javascript" src="${basePath}js/easyui/jquery.easyui.min.js"></script>
+        
+	   <script type="text/javascript" src="<%=basePath%>js/monitorCenter/vehicleInfo.js"></script>
+	   
+	   <script type="text/javascript"	src="<%=basePath%>js/sys/tree/vehicleTree.js"></script>	
+</head>
+
+<body>
+  <div>
+
+		<fieldset title="基本信息">
+			<legend>车辆基本信息</legend>
+		 <table width="100%" border="0" cellpadding="0" cellspacing="0" class="form" id="editForm">
+			    <tr class="odd">
+			      <td class="left" nowrap="nowrap">车牌号码</td>
+			      <td class="right" style="width: 380px">
+			      <!--<div id="rNo"></div> <input type="text" id="rNo" />-->
+			      
+			        <input type="hidden"  id="id"/>
+			        
+			      <input type="text" name="rNo" id="rNo" 
+				      			formCheck="true"
+				      			required="true" requiredError="必须输入项"  
+								noSpecialCaracters="true"
+								ajaxAction="sys/checkRegistrationNo.action" 
+								ajaxDataId="id" 
+								ajaxActionError="已存在此车牌号，请重新输入！">
+							<span id="rNospan" class="errorMsg" style="display: none"></span>
+			      </td>
+			      
+			        <td class="left" nowrap="nowrap">终端号码  </td>
+				      <td class="right" style="width: 380px">
+				         <!--<div id="standType"></div> <input type="text" id="commNO"  />-->
+				         
+				         <input type="hidden" id="terminalId" />
+				         
+				         <input type="text" name="commNO" id="commNO"
+								formCheck="true" required="true" requiredError="请输入终端号码！"
+								onlyNumber="true" onlyNumberError="请输入有效数字！" 
+								ajaxAction="sys/checkCommNo.action"
+								ajaxDataId="terminalId"
+								ajaxActionError="已存在此终端号，请重新输入！"
+								/>
+							<span id="commNOspan" class="errorMsg" style="display: none"></span>
+				       </td>
+				</tr>	
+				
+				
+			<tr class="even">
+			      <td class="left" nowrap="nowrap">SIM卡号    </td>
+				  <td class="right">
+				      <!--<div id="phoneNo"></div> <input type="text" id="phoneNo" />-->
+				      
+				      <input type="hidden" id="simId" />
+				      <input type="text" name="phoneNo" id="phoneNo" 
+								formCheck="true" 
+								required="true" requiredError="请输入SIM卡号 ！"
+								mobilephone="true" mobilephoneError="请输入有效SIM卡号 ！"
+								ajaxAction="sys/checkPhoneNo.action"
+								ajaxDataId="simId"
+								ajaxActionError="已存在此SIM卡号 ，请重新输入！"/>
+							<span id="phoneNospan" class="errorMsg" style="display: none"></span>
+				  </td>
+				    
+			      <td class="left" nowrap="nowrap">车辆道路运输证号  </td>
+			      <td class="right"> 
+			          <!--<div id="transportPermits"></div>-->
+			          <input type="text" id="transportPermits" />
+			       </td>
+			     
+	   	     </tr>
+	   	 	   <tr class="odd">
+			      <td class="left" nowrap="nowrap">车牌颜色 </td>
+<!--			      <td class="right"> -->
+<!--			         <div id="rnoColor"></div>-->
+<!--			         <input type="text" id="rnoColor"  ondblclick="showColorTree()"/>-->
+<!--			         <a id="ColorBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">请选择</a>-->
+<!--			         <input type="hidden" id="registrationNOColorId" />-->
+<!--			       </td>-->
+
+					<td class="right">
+						<input type="text" id="rnoColor"  name="rnoColor"  
+					      formCheck="true" required="true"  requiredError="请选择一项"
+					       readonly="readonly" /> 
+		      		    <input type="hidden" id="registrationNOColorId" />
+		      		    <span id="rnoColorspan" class="errorMsg" style="display: none"></span>
+					    <a  href="javascript:void(0)" onclick="showRnoColorTree()" id="ColorBtn"  class="ser_btn" style="color: white;">请选择</a>
+					</td>
+			       
+			      <td class="left" nowrap="nowrap">所属行业  </td>
+<!--			      <td class="right"> -->
+<!--			      		<div id="typeName"></div>-->
+<!--			      		<input type="text" id="typeName"  ondblclick="showtradeKindTree()"/>-->
+<!--			      		<a id="tradeBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">请选择</a>-->
+<!--			      		<input type="hidden" id="tradeKindId" />-->
+<!--			       </td>-->
+
+					<td class="right">
+						<input type="text" id="typeName"  name="typeName"  
+					      formCheck="true" required="true"  requiredError="请选择一项"
+					       readonly="readonly" /> 
+		      		    <input type="hidden" id="tradeKindId" />
+		      		    <span id="typeNamespan" class="errorMsg" style="display: none"></span>
+					    <a  href="javascript:void(0)" onclick="showtradeKindTree()" id="tradeBtn"  class="ser_btn" style="color: white;">请选择</a>
+					</td>
+	   	     </tr>
+			   <tr class="even">
+			      <td class="left" nowrap="nowrap">所属区域 </td>
+<!--			      <td class="right"> -->
+					   <!--<div id="areaName"></div>-->
+<!--					   <input type="text" id="areaName"  ondblclick="showAreaTree()" />-->
+<!--					   <a id="areaBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">请选择</a>-->
+<!--					   <input type="hidden" id="areaId" />-->
+<!--			       </td>-->
+			       
+			       
+			       <td class="right">
+						<input type="text" id="areaName"  name="areaName"  
+					      formCheck="true" required="true"  requiredError="请选择一项"
+					       readonly="readonly" /> 
+		      		    <input type="hidden" id="areaId" />
+		      		    <span id="areaNamespan" class="errorMsg" style="display: none"></span>
+					    <a  href="javascript:void(0)" onclick="showAreaTree()" id="areaBtn" class="ser_btn" style="color: white;">请选择</a>
+					</td>
+			       
+			      <td class="left" nowrap="nowrap">运输企业  </td>
+<!--			      <td class="right"> -->
+			      		 <!--<div id="workUnitName"></div>-->
+<!--			      		 <input type="text" id="workUnitName"  ondblclick="showWorkUnitTree()" />-->
+<!--			      		 <a id="workBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">请选择</a>-->
+<!--			      		 <input type="hidden" id="workUnitId" />-->
+			      		 
+<!--			       </td>-->
+
+
+					<td class="right">
+						<input type="text" id="workUnitName"  name="workUnitName"  
+					      formCheck="true" required="true"  requiredError="请选择一项"
+					       readonly="readonly" /> 
+		      		    <input type="hidden" id="workUnitId" />
+		      		    <span id="workUnitNamespan" class="errorMsg" style="display: none"></span>
+					  <!--  <a  href="javascript:void(0)" onclick="showWorkUnitTree()" id="workBtn" class="ser_btn" style="color: white;">请选择</a>  -->
+					</td>
+	   	     </tr>
+	   	     <tr>
+	   	         <td colspan="4">
+	   	         
+	   	           <auth:authorize operation="updateVehicleinfo">
+	   	           <a id="etnBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">编辑</a>
+	   	           <a id="savaBtn" href="javascript:void(0)"  class="ser_btn" style="color: white;">提交</a>
+	   	           </auth:authorize>
+					<font color="red" id="flag" style="display: none;" >修改成功！</font>
+	   	         </td>
+	   	         
+		   	         
+	   	        
+	   	         
+	   	     </tr>
+			 </table>
+		</fieldset>
+	</div>
+	
+	<div id="dialogs" class="hiddiv" style="display: none;padding:5px;top:10px;">
+			<iframe src="" id="dialogFrame" name="dialogFrame" width="100%"  height="100%" frameborder="0" scrolling="auto"></iframe>
+	 </div>
+
+</body>
+</html>

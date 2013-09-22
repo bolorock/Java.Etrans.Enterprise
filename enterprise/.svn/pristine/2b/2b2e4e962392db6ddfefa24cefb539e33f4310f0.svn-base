@@ -1,0 +1,165 @@
+package com.etrans.bubiao.action.sys;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+
+/**
+ * @author hgq
+ * @version 1.0
+ * @brief 用户菜单Action
+ */
+
+@Controller
+@Namespace("/sys/userMenu")
+@Scope("prototype")
+public class UserMenu extends BaseAction {
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+
+	/**
+	 * IbatisServices
+	 */
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	/**
+	 * 新增用户菜单
+	 */
+	@Action("addUserMenu")
+	public void addUserMenu() {
+		try {
+			Map<String, Object> insertParamMap = getParameterMap();
+
+			insertParamMap.put("userId", UserContext.getLoginUser().getUserID());
+
+			Object obj = ibatisServices.insertIbatisObject("addAndUpdateUserMenuSQL",insertParamMap);
+
+			if (obj != null){
+				this.renderText("true");
+			}
+			else {
+				this.renderText("false");
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+
+	/**
+	 * 获取用户菜单的图标及简称
+	 */
+	@Action("getMenuInfoByMenuId")
+	public void getMenuInfoByMenuId() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+
+			HashMap<String, String> map = new HashMap<String, String>();
+			map = (HashMap) ibatisServices.queryForObject(HashMap.class,"getMenuInfoByMenuIdSQL", selectParamMap);
+			if (null!=map){
+				this.renderJSON(map);
+			}
+			else {
+				this.renderText("false");
+			}
+			
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取还没有使用的菜单图标
+	 */
+	@Action("getMenuImage")
+	public void getMenuImage() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getMenuImageSQL",selectParamMap);
+			this.renderJSON(lists);
+
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取用户所有菜单设置
+	 */
+	@Action("getUserMenu")
+	public void getUserMenu() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getUserMenuSQL",selectParamMap);
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取用户所有菜单Id
+	 */
+	@Action("getUserMenuId")
+	public void getUserMenuId() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getUserMenuIdSQL",selectParamMap);
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 删除用户菜单
+	 */
+	@Action("delUserMenu")
+	public void delUserMenu() {
+		try {
+			Map<String, Object> delParamMap = getParameterMap();
+
+			delParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			Integer rtnVal= this.ibatisServices.deleteIbatisObject("delUserMenuSQL",delParamMap);
+			if (rtnVal>0){
+				this.renderText("true");
+			}
+			else {
+				
+				this.renderText("false");
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+}

@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="DeviceSetup">
+
+	<!--查询车辆外设表信息列表sql-->
+	<select id="findVehicleDeviceSetupListSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ( 
+		select ROW_NUMBER() OVER ( order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+		) RowNo,
+		b.*
+		from (
+		select  w.name w_name,t.id,p.registrationNo,ty.name type_name,model.name model_name,ps.name ps_name,
+				t.ParamValue paramValue,
+				(case t.state when '1' then '是' else '否' end) as state,
+				t.Memo memo
+			from pub_vehicledevicesetup t
+			left join pub_vehicle p on t.vehicleid=p.id
+			left join pub_vehicledevicetype ty on t.devicetypeid = ty.id
+			left join pub_vehicledevicemodel model on t.devicemodelid = model.id
+			left join Pub_VehicleSetupPosition ps on t.positionid=ps.id
+			left join pub_workunit w on p.workunitid=w.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND t.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND p.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+		)b
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	</select>
+	
+	<!--查询数据总条数-->
+	<select id="findVehicleDeviceSetupListCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select COUNT(*)
+			from pub_vehicledevicesetup t
+			left join pub_vehicle p on t.vehicleid=p.id
+			left join pub_vehicledevicetype ty on t.devicetypeid = ty.id
+			left join pub_vehicledevicemodel model on t.devicemodelid = model.id
+			left join Pub_VehicleSetupPosition ps on t.positionid=ps.id
+			left join pub_workunit w on p.workunitid=w.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND t.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND p.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+	</select>
+	
+	
+<!--///////////////////////////////////////////////////权限公共部分begin【和登陆的车辆权限是一样的】/////////////////////////////////////////////////-->
+
+<!--【超级管理员】-->
+ <sql id="getAdminsesVehicleIdSQL_D" >
+	SELECT 
+		pve.id ID,pve.registrationNO registrationNO,d.id workUnitId
+		 	FROM 
+			 	Pub_Vehicle pve, 
+			 	Pub_REGISTRATIONnOCOLOR pvc , 
+			 	pub_workUnit d,
+			 	Pub_TradeKind f,
+			 	Pub_Terminal j ,
+			 	pub_simcard k 
+		 	WHERE 
+			 	pve.RegistrationNOColorID = pvc.id  AND 
+			 	pve.WorkUnitID = d.id AND
+	 		 	pve.TradeKindID=f.id  and 
+				(pve.isDeleted!=1 or pve.isdeleted is null) AND 
+				pve.TerminalID = j.id AND 
+				j.simID= k.id
+</sql>
+
+
+
+	
+ <!--【企业管理员】所有id车辆 【公用】 -->
+<sql id ="getAdminVehicleIdSQL_D" >
+	 SELECT 
+		 		a.id as ID,a.registrationNO as registrationNO,d.id as workUnitId
+		 	FROM 
+		 		Pub_Vehicle a ,
+		 		Pub_REGISTRATIONnOCOLOR e ,
+		 		pub_workUnit d, 
+		 		Pub_TradeKind f,
+		 		Pub_Terminal j ,
+		 		pub_simcard k
+		 WHERE 
+		 		a.RegistrationNOColorID=e.id AND 
+		 		a.WorkUnitID = d.id AND
+ 		 		a.TradeKindID=f.id  AND 
+				(a.isDeleted!=1 or a.isdeleted is null) and 
+				a.TerminalID = j.id AND 
+				j.simID= k.id
+           <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					 and d.fullId LIKE '%$fullId$%' 
+				</isNotEmpty>
+			</isNotNull>
+</sql>
+
+ <!--【企业管理员】所有id车辆  【单独使用入口】-->
+ <select id="getAdminVehicleIdSQL_DGo" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+      select * from (
+      	<include refid="DeviceSetup.getAdminVehicleIdSQL_D"/>
+      )a where 1=1
+		
+ </select>
+
+<!--普通用户下id车辆  -->
+ <select id="getVehicleIdstatSQL_D" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	   select vehicleid as ID from Ent_UserVehicle
+        <dynamic prepend="where">
+				<isNotNull property="userId">
+				   userid = #userId#
+				</isNotNull>
+			</dynamic>
+</select>
+
+<!--【普通用户】下id车辆  【用作tree】-->
+ <sql id="getUserVehicleIdSQL_D" >
+	    select v.vehicleid ID,pv.registrationNO registrationNO,w.id workUnitId from (
+		    	select vehicleid from Ent_UserVehicle
+	        	<dynamic prepend="where">
+					<isNotNull property="userId">
+					   userid = #userId#
+					</isNotNull>
+				</dynamic>
+		)v
+		left join Pub_Vehicle pv on v.vehicleid=pv.id
+		left join pub_workUnit w on pv.workunitid = w.id
+		where 1=1
+		
+</sql>
+	
+<!--///////////////////////////////////////////////////权限公共部分end/////////////////////////////////////////////////-->
+
+
+<!--///////////////////////////////////////////////////车辆树begin/////////////////////////////////////////////////-->
+
+ <!--调用公共查询【车辆】的sql【树】-->
+  <select id="findVehicleInfoByUserTypeSql_Tree_D" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+  	select b.id as ID,b.registrationNO as Name,b.WorkUnitID as workUnitId,gv.id as checkOKORNO from (
+		<dynamic>
+				<!--超级管理员-->
+				<isEqual compareValue="0" property="userType">
+					<include refid="DeviceSetup.getAdminsesVehicleIdSQL_D"/>
+				</isEqual>
+				<!--企业管理员-->
+				<isEqual compareValue="1" property="userType">
+					<include refid="DeviceSetup.getAdminVehicleIdSQL_D"/>
+				</isEqual>
+				<!--普通用户-->
+				<isEqual compareValue="2" property="userType">
+					<include refid="DeviceSetup.getUserVehicleIdSQL_D"/>
+				</isEqual>
+		</dynamic>
+			 
+		) b 
+		left join 
+			(
+			select * from pub_vehicledevicesetup vd where 1=1 
+				and vd.id=#vehicledevicesetupid#
+			) gv on b.id=gv.vehicleid
+		where 1=1		
+		<dynamic>
+			<!--企业id-->
+     		<isNotEmpty property="workUnitId3">
+	     			and b.WorkUnitID=#workUnitId3#
+	     		</isNotEmpty>
+      	</dynamic>
+  </select>
+<!--///////////////////////////////////////////////////车辆树end/////////////////////////////////////////////////-->	
+
+
+<!--///////////////////////////////////////////////////新增begin/////////////////////////////////////////////////-->	
+	<!--验证唯一-->
+	<select id="validateByVhicleIDSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+		select * from pub_vehicledevicesetup t where t.vehicleid = #vehicleID# and t.deviceTypeID = #deviceTypeID#
+	</select>
+  	<!--删除-->
+	<delete id="delVehicleDeviceSetupInfoSQL" parameterClass="java.util.HashMap">
+		delete pub_vehicledevicesetup 
+	       WHERE vehicleid=#vehicleID# and deviceTypeID = #deviceTypeID#
+	</delete>
+	<!-- 新增 -->
+	<insert id="addAnalyseGroupVehiclesSQL" parameterClass="java.util.HashMap">
+	     INSERT INTO pub_vehicledevicesetup
+           ([VehicleID]
+           ,[DeviceTypeID]
+           ,PositionID
+           ,ParamValue
+           ,Memo
+           ,DeviceModelID
+           ,State
+           ,SetupDate
+           )
+	     VALUES
+	           (#vehicleID#
+	           ,#type_name#
+	           ,#position_name#
+	           ,#paramValue#
+	           ,#description#
+	           ,#model_name#
+	           ,#state#
+	           ,#setupDate#
+	           )
+	</insert>
+  
+<!--///////////////////////////////////////////////////新增end/////////////////////////////////////////////////-->	 
+
+
+<!--///////////////////////////////////////////////////修改begin/////////////////////////////////////////////////-->	 
+	<!--根据id查询信息-->
+	<select id="getVehicleDeviceSetupInfosByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,VehicleID vehicleID,
+		DeviceTypeID type_name,
+		PositionID position_name,
+		ParamValue paramValue,
+		Memo description,
+		DeviceModelID model_name,
+		State state
+		from pub_vehicledevicesetup 
+		where id=#id#
+	</select>
+	<select id="getVehicleNoByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from pub_vehicle where id=#vehicleID#
+	</select>
+	<!--修改-->
+	<update id="updVehicleDeviceSetupInfoByIDSQL" parameterClass="java.util.HashMap">
+		UPDATE [pub_vehicledevicesetup]
+           SET
+           [DeviceTypeID]=#type_name#
+           ,PositionID=#position_name#
+           ,ParamValue=#paramValue#
+           ,Memo=#description#
+           ,DeviceModelID=#model_name#
+           ,State=#state#
+        WHERE [ID]=#id#
+	</update>
+	
+<!--///////////////////////////////////////////////////修改end/////////////////////////////////////////////////-->	 
+  
+  
+<!--///////////////////////////////////////////////////删除begin/////////////////////////////////////////////////-->	
+  	<!--删除-->
+	<delete id="delVehicleDeviceSetupInfoByIDSQL" parameterClass="java.util.HashMap">
+		delete pub_vehicledevicesetup 
+	       WHERE id=#id#
+	</delete>
+<!--///////////////////////////////////////////////////删除end/////////////////////////////////////////////////-->	
+
+  
+<!--///////////////////////////////////////////////初始化下拉框begin////////////////////////////////////////////-->	
+  	<!-- 初始化外设类型下拉框-->	
+	<select id="getVehicledeViceTypeListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from pub_vehicledevicetype as a order by a.id desc
+	</select>	
+  	<!-- 初始化安装位置下拉框-->	
+	<select id="getVehicleSetupPositionListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from Pub_VehicleSetupPosition as a order by a.id desc
+	</select>	
+  	<!-- 初始化安装位置下拉框-->	
+	<select id="getVehicleDeviceModelListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from pub_vehicledevicemodel as a order by a.id desc
+	</select>	
+	
+<!--///////////////////////////////////////////////初始化下拉框end////////////////////////////////////////////-->
+  
+</sqlMap>

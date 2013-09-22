@@ -1,0 +1,58 @@
+$(function(){
+	initData();
+	
+});
+
+function initData() {
+	$.ajax({
+		url:"systemNotice/findSystemNotice.action",
+		type:"POST",
+		dataType:"json",
+		success:function(data){
+		$(data).each(function(i,n){
+			try{
+				var title=n.title;
+				var contents=n.contents;
+				var id=n.id;
+				$("#notip").val(id);
+				var  cons=contents.split("\n");
+			    document.getElementById("notileTitle").innerText =title;
+			    document.getElementById("notileContents").innerText =contents;
+
+			}catch(e){
+				alert(e);
+			}
+		});	
+		
+	   }
+		
+	});
+}
+
+function noShow(){
+	var id=$("#notip").val();
+	if(document.getElementById("notip").checked){
+		doisDefault(id);
+	}
+	
+}
+
+
+/**设置系统*/
+function doisDefault(id){
+		$.ajax({
+		    type : "POST",
+		    url : "systemNotice/SetSystemNotice.action",
+		    data : {id:id},
+		    dataType : "JSON",
+		    success : function(data) {
+		    	if(data){
+		    		 window.parent.closeDialog();
+		    	}else{
+		    	}
+		    },
+		    error : function(data) {
+		    	showError();
+		    }
+	    });
+}

@@ -1,0 +1,361 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>无标题页</title>
+<script language="javascript" type="text/javascript" for="Object1" event="OnDoubleClick(x,y)">
+        FullScreen();
+    </script>
+		<script type="text/javascript">
+function $(id)
+{
+    return document.getElementById(id);
+}
+function getobj()
+{
+    return $("Object1");
+}
+function setInfo()
+{
+    var tranip=document.getElementById("tb_transIP").value;
+    var deviceID=document.getElementById("tb_deviceID").value;
+    var channel=document.getElementById("sel_channel").value;
+    
+    var obj=getobj();
+    obj.SetDeviceInfo2(121,deviceID,tranip);//dvr 121,dvs 117  
+}
+
+function setInfo1()
+{
+    var tranip=document.getElementById("tb_transIP").value;
+    var deviceID=document.getElementById("tb_deviceID").value;
+    var channel=document.getElementById("sel_channel").value;
+    var devicename=deviceID .replace ("dns:","");
+    
+    var obj=getobj();
+    obj.SetDeviceInfo(121,"7856",deviceID,0,"",17891,"","");//dvr 121,dvs 117  
+}
+
+function setInfo2()
+{
+    var tranip=document.getElementById("tb_transIP").value;
+    var deviceID=document.getElementById("tb_deviceID").value;
+    var channel=document.getElementById("sel_channel").value;
+    var devicename=deviceID .replace ("dns:","");
+    
+    var obj=getobj();
+    obj.SetDeviceInfo(121,devicename,deviceID,0,tranip,17891,"","");//dvr 121,dvs 117  
+}
+
+function openvideo()
+{
+    var obj=getobj();
+    setInfo();
+    obj.SetReconnect(1);//设置重连次数
+    obj.OpenVideo(sel_channel.value);
+}
+function closevideo()
+{
+    var obj=getobj();
+    obj.CloseVideo();
+}
+
+function saves()
+{
+     var tranip=document.getElementById("tb_transIP").value;
+     var deviceID=document.getElementById("tb_deviceID").value;
+     var channel=document.getElementById("sel_channel").value;
+     
+     var obj=getobj();
+     var returnvalue=obj.Save(1);
+     if(returnvalue ==0)
+        alert ("开始录像");
+}
+
+function stopsaves()
+{
+     var obj=getobj();
+    
+    obj.Save(0);
+}
+
+
+function record1()
+{
+    var tranip=document.getElementById("tb_transIP").value;
+    var deviceID=document.getElementById("tb_deviceID").value;
+    var channel=document.getElementById("sel_channel").value;
+    var path=document .getElementById ("Text1").value;
+    var obj=getobj();
+    var returnvalue=obj.Record(path);
+    if(returnvalue ==0)
+      alert ("开始录像");
+}
+function stoprecord1()
+{
+    var obj=getobj();
+    
+    obj.StopRecord();
+}
+
+function getPic()
+{
+    var obj=getobj ();
+    var res=obj.CapturePic("D:\\mm.jpg",0);
+    alert (res);
+}
+
+function GetFiles(files,chanel,startime,endtime)
+{
+    this.files=files;
+    this.channel=chanel;
+    this.starttime=startime;
+    this.endtime=endtime;
+}
+
+function Object()
+{
+    this.value=null;
+}
+
+function Object(value)
+{
+    this.value=value;
+}
+
+function search()
+{
+    var obj=getobj();
+    setInfo();
+    var rs= obj.SearchDay(0,"00001",new Date().getFullYear(),new Date().getMonth()+1,12,0);
+    
+    if(rs!=0)
+        alert("fail");
+    else
+    {
+        var rstrs=obj.SearchGetFileInfo();
+        var strs=rstrs.replace(/;/g,"<br />");
+        alert(rstrs);
+        $("lb_record").innerHTML=strs;
+    }
+    obj.SearchClose();     
+    obj.CloseDevice();  
+}
+
+function remotesearch()
+{
+    var obj=getobj();
+    setInfo1();
+    obj.OpenDevice();
+    var rs= obj.SearchDay(1,"7856",new Date().getFullYear(),new Date().getMonth()+1,5,0);
+    
+    if(rs!=0)
+        alert("fail");
+    else
+    {
+        var rstrs=obj.SearchGetFileInfo();
+        var strs=rstrs.replace(/;/g,"<br />");
+        alert(rstrs);
+        $("lb_record").innerHTML=strs;
+    }
+    obj.SearchClose();     
+    obj.CloseDevice();
+}
+
+function stopsearch()
+{
+    var obj=getobj();
+    obj.SearchClose();
+}
+function doPlayBack()
+{
+    var path=$("File1").value;
+    if(path=="")
+    {
+        alert("please Choose file");
+        return;
+    }
+    var obj=getobj();
+    obj.PlayOpen(path,121,0);
+}
+function StopPlay()
+{
+    getobj().PlayStop();
+}
+
+function getgpsinfo(deviceID,lat,lng,angle,speed,alarmtype,alarm,tempDevice,tempCarriage,statue,gpsTime)
+{
+    alert(lat);
+}
+
+function yuntai(parm)
+{
+    setInfo2();
+    //alert(parm);
+    getobj().YuTaiControl(parm,0);
+}
+
+function opentheDevice()
+{
+     var obj=getobj();
+      setInfo();
+     obj.OpenDevice();
+}
+
+function Button3_onclick() {
+    var obj = getobj();
+    setInfo1();
+    var c=obj.GetDeviceStatus();
+    alert(c);
+}
+
+function searchLog()
+{
+    var obj=getobj ();
+    setInfo1();
+    var res=obj .SearchLogDay(new Date ().getFullYear (),new Date ().getMonth ()+1,new Date ().getDate ());
+    alert (res);
+}
+
+
+function Button4_onclick() {
+    var obj = getobj();
+    var d= obj.TalkStart(0);
+    alert(d);
+}
+
+function Button5_onclick() {
+    getobj().TalkStop();
+}
+
+var timer;
+var a=0;
+function Button6_onclick() 
+{
+    var s = getobj().UpGrade();
+    alert(s);
+    timer = setInterval("getupstate()", 1000);
+}
+function getupstate() {
+    a++;
+    document.getElementById("lb_state").innerHTML = getobj().GetUpGradeState();
+}
+
+function Button7_onclick() {
+    getobj().SetEnableSound(1);
+}
+
+		</script>
+	<script id="clientEventHandlersJS" language="javascript">
+<!--
+
+function Button8_onclick() {
+	//getobj().SetDataRate($("tb_transIP").value);
+	getobj().SetDecodeMode($("tb_transIP").value);
+}
+
+//-->
+</script>
+</head>
+	<body>
+		<table>
+			<tr>
+				<td>
+					<OBJECT id="Object1" style="WIDTH: 400px; HEIGHT: 350px" classid="clsid:E24D8362-0622-4D15-94AA-2E83A6616EAC"
+						name="showvideo">
+						<PARAM NAME="_Version" VALUE="65536">
+						<PARAM NAME="_ExtentX" VALUE="10583">
+						<PARAM NAME="_ExtentY" VALUE="9260">
+						<PARAM NAME="_StockProps" VALUE="0">
+					</OBJECT>
+				</td>
+				<td valign="top">
+					<table>
+						<tr>
+							<td>TransmitIP:<input type="text" id="tb_transIP" value ="203.88.210.56"></td>
+						</tr>
+						<tr>
+							<td>DeviceID:<input type="text" id="tb_deviceID" value="dns:AH7310"></td>
+						</tr>
+						<tr>
+							<td>
+								<select id="sel_channel">
+									<option value="0" selected>Channel 1</option>
+									<option value="1">Channel 2</option>
+									<option value="2">Channel 3</option>
+									<option value="3">Channel 4</option>
+								</select>
+							</td>
+						</tr>
+						
+						<tr>
+							<td>
+								<input type="button" onclick="openvideo();" value="openvideo" id="bt_open"> <input type="button" onclick="closevideo();" value="close">
+                                <input id="Button10" type="button" value="抓图" onclick ="getPic();" /></td>
+						</tr>
+						<tr>
+						   <td><input type="button" onclick="saves();" value="录像" id="Button9"/> <input type="button" onclick="stopsaves();" value="停止录像"></td>
+						</tr>
+						<tr>
+							<td>
+								<input type="button" onclick="record1();" value="选择路径录像" id="Button1"/> <input type="button" onclick="stoprecord1();" value="StopRec">保存路径：
+                                <input id="Text1" type="text" value ="C:\BYDVRDATA\test.264" /></td>
+						</tr>
+						<tr>
+							<td>
+								<input type="button" onclick="search();" value="搜索本地录像" id="Button2"><input type="button" onclick="remotesearch();" value="远程搜索录像" id="btn_remote"> <input type="button" onclick="stopsearch();" value="StopSearch">
+								<input id="Button7" type="button" value="打开声音" onclick="return Button7_onclick()"></td>
+						</tr>
+						<tr>
+							<td>
+								<input id="File1" type="file"><input type="button" value="回放" onclick="doPlayBack();">
+								<input type="button" value="StopPlay" onclick="StopPlay();">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<input id="Button3" type="button" value="取设备状态" onclick="return Button3_onclick()">
+								<input id="Button4" type="button" value="对讲" onclick="return Button4_onclick()">&nbsp;
+								<input id="Button5" type="button" value="停止对讲" onclick="return Button5_onclick()">
+								<input id="Button6" type="button" value="远程升级" onclick="return Button6_onclick()">
+								<label id="lb_state">lb_state</label>
+							</td>
+						</tr>
+						<tr>
+						   <td>
+                               <input id="Button11" type="button" value="检索日志文件" onclick="searchLog();" />
+						   </td>
+						</tr>
+                                            <tr>
+                    <td>
+                        <input type="button" onclick="yuntai(0x2010);" value="Zoom In" id="Button1" />
+                        <input type="button" onclick="yuntai(0x2011);" value="Zoom Out" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="button" onclick="yuntai(0x2012);" value="Big Aperture" id="Button2" />
+                        <input type="button" onclick="yuntai(0x2013);" value="Small Aperture" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        
+                        <input type="button" onclick="opentheDevice();" value="打开设备" />
+                    </td>
+                </tr>
+					</table>
+					<INPUT id="Button8" type="button" value="Test" name="Button8" onclick="return Button8_onclick()">
+				</td>
+			</tr>
+		</table>
+		<label id="lb_record"></label>
+
+<script language="javascript" type="text/javascript" for="Object1" event="OnGPSData(deviceID,lat,lng,angle,speed,alarmtype,alarm,tempDevice,tempCarriage,statue,gpsTime)">
+        getgpsinfo(deviceID,lat,lng,angle,speed,alarmtype,alarm,tempDevice,tempCarriage,statue,gpsTime);
+    </script>
+    
+    <%--<script language="javascript" type="text/javascript" for="Object2" event="OnGPSData(lat,lng,dir)">
+        map.addCar("GPSLocation",lat+","+lng,lng,lat);
+    </script>--%>
+	</body>
+</html>

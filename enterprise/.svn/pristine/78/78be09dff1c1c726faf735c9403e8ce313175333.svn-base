@@ -1,0 +1,227 @@
+/**    
+ * AlarmHandleThread.java
+ * Create on 2011-4-14
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository.parent;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.TimeZone;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.bubiao.services.monitorCenter.MonitorCenterServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.common.util.Base64ThreadLocal;
+import com.etrans.common.util.CommandCode;
+import com.etrans.common.util.CommandTools;
+
+/**
+ * 业务信息处理线程
+ * @author lihaiyan
+ * @version 1.0
+ */
+public class BusinessHandleThread implements Runnable {
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	private BusinessQueue businessQueue;// // GPS信息存储队列
+	private Queue<String> flatQueue = new LinkedList<String>(); 
+	private final Log logger = LogFactory.getLog(BusinessHandleThread.class.getName());
+	private MonitorCenterServices monitorCenterServices;
+	Base64ThreadLocal base64;
+	
+	public BusinessHandleThread(
+			BusinessQueue businessQueue,
+			Queue<String> flatQueue,
+			MonitorCenterServices monitorCenterServices) {
+		this.businessQueue = businessQueue;
+		this.flatQueue = flatQueue;
+		this.monitorCenterServices = monitorCenterServices;
+	}
+
+	
+	public void addChaguanLog(String decoderStr,SimpleDateFormat sdf,Calendar calendar){
+		 //上级平台查岗入库
+//		,,3,,12,中国首都在哪？
+//		（解释：
+//		2查岗对象类型：下级平台所有业户
+//		3查岗对象ID：0x000000000000000000000000
+//		4查岗信息ID：12
+//		5查岗信息内容：中国首都在哪？
+//		)
+
+		 try{
+			 	String msgArr[] = decoderStr.split(","); 
+			    Map<String, Object> setParamMap=new HashMap<String, Object>();
+			    setParamMap.put("CheckingNo", msgArr[4]);//查岗消息流水号
+			    setParamMap.put("CheckContent", msgArr[5]);//查岗内容
+			    setParamMap.put("CheckTime", sdf.format(calendar.getTime()));//查岗时间
+			    setParamMap.put("IsResult", "false");//false表示查岗，true表示回复
+			    this.monitorCenterServices.AddHighLevelPatrolLog(setParamMap);
+		   }catch(Exception ee){
+			   ee.printStackTrace();
+		   }
+	}
+	
+	public void addAlarmOverSeeing(String decoderStr,SimpleDateFormat sdf,Calendar calendar){
+		 //报警督办请求
+//		800,112,1,3,20120626123030,2123, 20120627123030,0,张三,13912345678,TEST@TEST.COM
+//	   	 （解释：
+//	   	 0通讯类型：800
+//	   	 1车辆ID：112
+//	   	 2报警信息来源：车载终端
+//	   	 3报警类型：紧急报警
+//	   	 4报警时间：2012年6月26日 12:30:30
+//	   	 5报警督办ID：2123
+//	   	 6督办截止时间：2012年6月27日 12:30:30
+//	   	 7督办级别：紧急
+//	   	 8督办人：张三
+//	   	 9督办联系电话：13912345678
+//	   	 10督办联系电子邮件：TEST@TEST.COM
+//	   	 ）
+		 try{//20120711101038
+			 	String msgArr[] = decoderStr.split(","); 
+			    Map<String, Object> setParamMap=new HashMap<String, Object>();
+			    setParamMap.put("vehicleId", msgArr[1]);//车辆ID
+			    setParamMap.put("alarmType", msgArr[3]);//报警类型
+			    setParamMap.put("alarmDate", CommandTools.formatStr2Date(msgArr[4]));//报警时间
+			    setParamMap.put("overSeeingId", msgArr[5]);//报警督办ID
+			    setParamMap.put("overSeeingDate", CommandTools.formatStr2Date(msgArr[6]));//督办截止时间
+			    
+			    setParamMap.put("termialType", msgArr[0]);//通讯类型
+			    setParamMap.put("alarmInfoSource", msgArr[2]);//报警信息来源
+			    setParamMap.put("overSeeingLevel", msgArr[7]);//督办级别
+			    setParamMap.put("overSeeingUser", msgArr[8]);//督办人
+			    setParamMap.put("telphone", msgArr[9]);//督办联系电话
+			    setParamMap.put("eMail", msgArr[10]);//督办联系电子邮件
+			    this.monitorCenterServices.AddAlarmOverseeingLog(setParamMap);
+		   }catch(Exception ee){
+			   ee.printStackTrace();
+		   }
+	}
+	
+	public void addClientComSendLog(String vehicleId,String commandCode,String message){
+		 try{
+				 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+				 Calendar calendar=Calendar.getInstance();
+				 TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+				 calendar.setTimeZone(timeZoneChina);
+				 sdf.setTimeZone(timeZoneChina);
+				 
+			 	Map<String, Object> setParamMap=new HashMap<String, Object>();
+			    setParamMap.put("VehicleID", vehicleId==null?"0":vehicleId);
+			    setParamMap.put("UserID", "1");
+			    setParamMap.put("UserName", "admin");
+			    setParamMap.put("CommName", commandCode);
+			    setParamMap.put("CommContent", message);
+			    setParamMap.put("SendTime", sdf.format(calendar.getTime()));
+			    this.monitorCenterServices.addClientComSendLog(setParamMap);
+		   }catch(Exception ee){
+			   ee.printStackTrace();
+		   }
+	}
+	
+	
+	public void getFlatQueue() throws Exception{
+		 while(flatQueue.size()>Constants.UpPlatFormQueueMaxNum)
+		 {
+			 flatQueue.poll();
+		 }
+	}
+	
+	public void addFlatQueue() throws Exception{
+		 while(flatQueue.size()>Constants.UpPlatFormQueueMaxNum)
+		 {
+			 flatQueue.poll();
+		 }
+	}
+	
+	public void run() {
+		 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		 Calendar calendar=Calendar.getInstance();
+		 TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		 calendar.setTimeZone(timeZoneChina);
+		 sdf.setTimeZone(timeZoneChina);
+
+			logger.error("---------业务数据处理线程启动!---------");
+			try {
+				base64 = base64Local.get();
+				if (base64 == null) {
+					base64 = new Base64ThreadLocal();
+					base64Local.set(base64);
+				}
+			}catch (Exception e) {
+				e.printStackTrace();
+			}
+				while (true) {
+					//‘##seq,7101,cmdseq,base64(800,1232,……)’
+					try{
+						String message = businessQueue.consume();//业务数据
+						if (StringUtils.isNotEmpty(message)) {
+								String[] business = message.split(",");
+								String decoderStr = base64.decoderMessage(business[3].toString());//加密内容
+								
+								getFlatQueue();
+								
+								int commandCode = Integer.parseInt(business[1]);
+								
+								//指令代码|描述@回复指令参数1#回复指令参数2#回复指令参数3|接受时间 
+								switch(commandCode){	
+									case CommandCode.COMMAND_7104:
+										//查岗
+										flatQueue.add(business[1]+"|"+CommandTools.convertChaGuan(decoderStr,business[1])+"|"+sdf.format(new Date()));
+										addChaguanLog(decoderStr,sdf,calendar);
+										break;
+									case CommandCode.COMMAND_7105:
+										//报文
+										flatQueue.add(business[1]+"|"+CommandTools.convertPost(decoderStr,business[1])+"|"+sdf.format(new Date()));
+										break;
+									case CommandCode.COMMAND_7110:
+										//启动车辆定位信息交换请求
+										flatQueue.add(business[1]+"|"+CommandTools.convertVehicleGpsSwap(decoderStr,business[1])+"|"+sdf.format(new Date()));
+										break;	
+									case CommandCode.COMMAND_7111:
+										//结束车辆定位信息交换请求
+										flatQueue.add(business[1]+"|"+CommandTools.convertOverVehicleGpsSwap(decoderStr,business[1])+"|"+sdf.format(new Date()));
+										break;	
+//									case CommandCode.COMMAND_7112:
+//										//交换车辆实时定位信息
+//										flatQueue.add(business[1]+"|"+CommandTools.convertSwapVehicleGps(decoderStr,business[1])+"|"+sdf.format(new Date()));
+//										break;		
+									default:
+										flatQueue.add(business[1]+"|"+decoderStr+"|"+sdf.format(new Date()));
+										break;
+								}
+								this.addClientComSendLog("0", business[1], message);
+										
+								
+								/*********接受指令结果特殊处理业务*******************/
+								if(commandCode==CommandCode.COMMAND_7106){
+									addAlarmOverSeeing( decoderStr, sdf, calendar);
+								}
+								/*********接受指令结果特殊处理业务****END***************/
+							    	
+						}else{
+
+							Thread.sleep(1);
+						}
+					}catch (Exception e) {
+						 e.printStackTrace();
+							logger.error("业务数据入HashMap出错:" + e);
+					}
+					
+					
+				}
+
+		}
+	
+
+			
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context-3.0.xsd 
+http://www.springframework.org/schema/tx 
+http://www.springframework.org/schema/tx/spring-tx-3.0.xsd 
+http://www.springframework.org/schema/aop  
+http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+   	<!--服务端bean--> 
+   	
+	<bean id="affixationServer" class="com.etrans.rmi.imp.AffixationServerImp" scope="prototype"/>
+  	<bean id="alarmServer" class="com.etrans.rmi.imp.AlarmServerImp" scope="prototype"/>
+  	<bean id="commandResultServer" class="com.etrans.rmi.imp.CommandResultServerImp" scope="prototype"/>
+  	<bean id="commandServer" class="com.etrans.rmi.imp.CommandServerImp" scope="prototype"/>
+  	<bean id="gpsTrackServer" class="com.etrans.rmi.imp.GpsTrackServerImp" scope="prototype"/>
+  	<bean id="parentCommandServer" class="com.etrans.rmi.imp.ParentCommandServerImp" scope="prototype"/>
+  	
+  	<!-- 将类暴露成为一个RMI服务 -->
+	<bean id="afixRmiServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="affixationServer" />
+		<property name="serviceName" value="afixService" />
+		<property name="serviceInterface" value="com.etrans.rmi.AffixationServer" />
+		<property name="registryPort" value="8099" />
+	</bean>
+	<bean id="alarmRmiServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="alarmServer" />
+		<property name="serviceName" value="helloWorldService" />
+		<property name="serviceInterface" value="com.etrans.rmi.AlarmServer" />
+		<property name="registryPort" value="8099" />
+	</bean>
+	<bean id="commandResultRmiServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="commandResultServer" />
+		<property name="serviceName" value="comandsResultService" />
+		<property name="serviceInterface" value="com.etrans.rmi.CommandResulServer" />
+		<property name="registryPort" value="8099" />
+	</bean>
+	<bean id="commandRmiServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="commandServer" />
+		<property name="serviceName" value="commandService" />
+		<property name="serviceInterface" value="com.etrans.rmi.CommandServer" />
+		<property name="registryPort" value="8099" />
+	</bean>
+	<bean id="gpsTrackRmiServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="gpsTrackServer" />
+		<property name="serviceName" value="gpsTrackService" />
+		<property name="serviceInterface" value="com.etrans.rmi.GpsTrackServer" />
+		<property name="registryPort" value="8099" />
+	</bean>	
+	<bean id="parentCommandsServer" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="service" ref="parentCommandServer" />
+		<property name="serviceName" value="parentCommandService" />
+		<property name="serviceInterface" value="com.etrans.rmi.ParentCommandServer" />
+		<property name="registryPort" value="8099" />
+	</bean>	
+</beans>

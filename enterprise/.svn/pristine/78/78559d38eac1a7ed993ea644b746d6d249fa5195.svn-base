@@ -1,0 +1,233 @@
+package com.etrans.bubiao.action.sys;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFClientAnchor;
+import org.apache.poi.hssf.usermodel.HSSFPatriarch;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.sys.HistoryImageSelectServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class HistoryImageSelectAction extends BaseAction {
+	private static final long serialVersionUID = 1L;
+
+	private static String filePath = Tools.getProjectPath().replaceAll("%20",
+			" ")
+			+ "sys/";
+	private static String uploadFilePath =  Tools.getProjectPath().replaceAll("%20",
+			" ")
+			+ "command/upload/history";
+	private String imgPath;
+
+	public String getImgPath() {
+		return imgPath;
+	}
+
+	public void setImgPath(String imgPath) {
+		this.imgPath = imgPath;
+	}
+
+	@Autowired
+	private HistoryImageSelectServices historyImageSelectServices;
+
+	public HistoryImageSelectServices getHistoryImageSelectServices() {
+		return historyImageSelectServices;
+	}
+
+	public void setHistoryImageSelectServices(
+			HistoryImageSelectServices historyImageSelectServices) {
+		this.historyImageSelectServices = historyImageSelectServices;
+	}
+
+	/**
+	 * 历史图片查询分页查询
+	 */
+	@Action(value = "historyImageSelectList")
+	public void historyImageSelectList() {
+		try {
+			Map<String, Object> params = FlexiGridUtil.parseParam(this
+					.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if (user != null) {
+				if (UserContext.isBsRootUser()) {
+					params.put("isSuper", true);
+				} else if (user.isWorkUnitSuperAdmin()) {
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+					params.put("isWorkUnitSuperAdmin", true);
+				} else {
+					params.put("userId", user.getUserID());
+				}
+			}
+
+			this.renderJSON(JSONUtil.toJson(historyImageSelectServices
+					.getHistoryImageSelects(params)));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "历史图片查询", "", "查询历史图片查询");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "历史图片查询", "", "查询历史图片查询");
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 历史图片查询显示
+	 */
+	@Action(value = "showImage", results = { @Result(location = "/sys/imageShow.jsp") })
+	public String showImage() {
+		String imgId = this.getParameter("imgId");
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("id", imgId);
+		try {
+			String dat = String.valueOf(System.currentTimeMillis()); // 获取当前时间
+			// 字节数组转换成图片并输出
+			byte[] bytes = historyImageSelectServices.findImageStream(param);
+			String imagePath = filePath.substring(1);
+			File imageFilePath = new File(imagePath);
+			if (!imageFilePath.exists()) {
+				imageFilePath.mkdirs();
+			}
+
+			Tools.byteArrayToImage(bytes, dat, "jpg", filePath.substring(1));
+
+			imgPath = dat + ".jpg";
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return SUCCESS;
+	}
+	
+	/**
+	 * 描述：查询终端拍照返回结果(直连)
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "findHistoryPictureTop9")
+	public String findPictureResult()
+	{
+		String vehicleId = getParameter("vehicleId");
+		String jsonString = "false";
+		StringBuffer fileDirs = new StringBuffer();
+		List<Map<String,Object>> imageList;
+		String imagePath = uploadFilePath.substring(1);
+		File uploadHistoryImageFile = new File(imagePath+"/"+vehicleId);
+		Tools.deleteDir(uploadHistoryImageFile);
+		uploadHistoryImageFile.mkdirs();
+		if (StringUtils.isNotEmpty(vehicleId)) {
+			try {
+				imageList = this.historyImageSelectServices.getHistoryImageListByVehicleIdTop9(vehicleId); // 查询指令返回的结果
+				if(imageList!=null && imageList.size()>0){
+					for(int i=0;i<imageList.size();i++){
+						String dat = vehicleId+"_"+DateUtil.getCurrentTime("yyyyMMddhhmmss")+"_"+(i+1); // 获取当前时间
+						byte[] bytes  = (byte[])imageList.get(i).get("ImageStream");
+						Tools.byteArrayToImage(bytes, dat, "jpg", uploadHistoryImageFile.getAbsolutePath()+"/");
+						fileDirs.append(",").append(dat).append(".jpg");
+					}
+					jsonString = fileDirs.toString().substring(1);
+				}
+			} catch (Exception e){
+				jsonString = "false";
+			}
+		}
+		log.error("返回发送结果========>>>>"+jsonString);
+		// 返回发送结果
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+	
+	/**
+	 * 历史图片导出
+	 */
+	@Action(value="exportHistoryImageSelect")
+	public void exportHistoryImageSelect(){
+		
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			params = this.getExportParams(params);
+			
+			SessionUser user = UserContext.getLoginUser();
+			if (user != null) {
+				if (UserContext.isBsRootUser()) {
+					params.put("isSuper", true);
+				} else if (user.isWorkUnitSuperAdmin()) {
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+					params.put("isWorkUnitSuperAdmin", true);
+				} else {
+					params.put("userId", user.getUserID());
+				}
+			}
+			
+			List<Map<String,Object>> list = (List<Map<String, Object>>) historyImageSelectServices.getHistoryImageSelectList(params);
+			HSSFWorkbook wb=null;
+				
+				
+				String[] titleArray = {};
+				titleArray = new String[8];
+				titleArray[0]="车牌号码";
+				titleArray[1]="车牌颜色";
+				titleArray[2]="GPS时间";
+				titleArray[3]="上传时间";
+				titleArray[4]="经度";
+				titleArray[5]="纬度";
+				
+		
+				
+				
+				
+				String[] columnArray = {};
+				columnArray = new String[8];
+				columnArray[0]="registrationNo";
+				columnArray[1]="RegistrationNOColor";
+				columnArray[2]="gpsTime";
+				columnArray[3]="uploadTime";
+				columnArray[4]="longitude";
+				columnArray[5]="latitude";
+				
+	             
+				exportExl("historyImageSelectList", titleArray, columnArray, list);
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "历史图片", "", "导出历史图片");
+			
+			
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "历史图片", "", "导出历史图片");
+			e.printStackTrace();
+		}
+	}
+
+}

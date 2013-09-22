@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+<!--地图自定义信息 -->
+<select id="getEntCustomMapSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+			select 
+			ec.id,
+			ec.name,
+			ec.LonLat,
+			ec.CustomType,
+			eci.name as nameType  
+			from Ent_CustomMap  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+			left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+			<dynamic prepend="where 1=1">
+	            <isNotEmpty property="name" >
+	      		    and ec.name like '%$name$%'
+	            </isNotEmpty>
+				  <isNotNull property="userId" >
+			         and cm.UserID = #userId#
+			      </isNotNull>
+			       <isNotNull property="nameType" >
+					  <isNotEqual property="nameType" compareValue="-1">
+						     and ec.CustomType  = #nameType#
+					</isNotEqual>
+				  </isNotNull>
+		    </dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<!--地图自定义信息 总数量SQL	-->
+	<select id="getEntCustomMapCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+		(
+		select 
+		    ec.id,
+			ec.name,
+			ec.LonLat,
+			ec.CustomType,
+			eci.name as nameType   
+			from Ent_CustomMap  ec
+		left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+		left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+		<dynamic prepend="where 1=1">
+	            <isNotEmpty property="name" >
+	      		    and ec.name like '%$name$%'
+	            </isNotEmpty>
+				 <isNotNull property="userId" >
+			         and cm.UserID = #userId#
+			      </isNotNull>
+			      <isNotNull property="nameType" >
+					  <isNotEqual property="nameType" compareValue="-1">
+						     and ec.CustomType  = #nameType#
+					</isNotEqual>
+				  </isNotNull>
+		    </dynamic>
+  			) C
+	</select>
+
+<!--兴趣点信息 -->
+ <select id="getEntCustomMapPointSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+			select ec.id,ec.name,
+			ec.Longitude,
+			ec.Latitude,
+			eci.name as nameType   
+			from Ent_CustomMapPoint  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+			left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+			<dynamic prepend="where 1=1">
+	            <isNotEmpty property="name" >
+	      		    and ec.name like '%$name$%'
+	            </isNotEmpty>
+	            <isNotNull property="nameType" >
+					  <isNotEqual property="nameType" compareValue="-1">
+						     and ec.mapIconId  = #nameType#
+					</isNotEqual>
+				 </isNotNull>
+				  <isNotNull property="userId" >
+			         and cm.UserID = #userId#
+			      </isNotNull>
+		    </dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+
+<!--兴趣点信息 总数量SQL	-->
+	<select id="getEntCustomMapPointCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+		(
+		select ec.id,ec.name,
+			ec.Longitude,
+			ec.Latitude,
+			eci.name as nameType   
+			from Ent_CustomMapPoint  ec
+		left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+		left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+		<dynamic prepend="where 1=1">
+	            <isNotEmpty property="name" >
+	      		    and ec.name like '%$name$%'
+	            </isNotEmpty>
+	            <isNotNull property="nameType" >
+					  <isNotEqual property="nameType" compareValue="-1">
+						     and ec.mapIconId  = #nameType#
+					</isNotEqual>
+				 </isNotNull>
+				 <isNotNull property="userId" >
+			         and cm.UserID = #userId#
+			      </isNotNull>
+		    </dynamic>
+  			) C
+	</select>
+	
+	<!-- 插入兴趣点信息数据 -->
+	
+	<insert id="insEntCustomMapPointSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [EtEnt].[dbo].[Ent_CustomMapPoint]
+           ([Name]
+           ,[MapLayerID]
+           ,[Longitude]
+           ,[Latitude]
+           ,[MapIconID])
+     VALUES
+           ( 	#name#,
+            	#mapLayerID#,
+            	#longitude#,
+            	#latitude#,
+            	#mapIconID#)
+	</insert>
+	
+ <!--
+ <insert id="insEntCustomMapPointSQL" parameterClass="com.etrans.bubiao.entities.EntCustomMapPoint"> 
+	<selectKey resultClass="Long" keyProperty="id">     
+	
+			<![CDATA[
+			INSERT INTO [Ent_CustomMapPoint]
+	           (
+		            [name]
+		           ,[mapLayerID]
+		           ,[longitude]
+		           ,[latitude]
+		           ,[mapIconID]
+	           )
+	           values (
+		            #name#,
+	            	#mapLayerID#,
+	            	#longitude#,
+	            	#latitude#,
+	            	#mapIconID#
+			   )
+	        SELECT SCOPE_IDENTITY() AS ID ]]>    
+			</selectKey>   
+	</insert>  
+-->
+
+<!-- 根据ID删除兴趣点信息   -->
+   <delete id="deleteEntCustomMapPointSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM Ent_CustomMapPoint WHERE ID in ($id$)
+	</delete>
+	
+
+	
+	   
+<!-- 验证不能有相同的名称  -->
+     <select id="checkEntCustomMapPointSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,name  FROM Ent_CustomMapPoint where name='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+   
+   <select id="getEntCustomMapIconSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+     select id,name from Ent_CustomMapIcon
+   </select>
+   
+   
+   <!--根据ID查询兴趣点图标信息 	-->
+    <select id="getEntCustomMapIconByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	  select id,name,imageURL from Ent_CustomMapIcon
+	   where 1=1
+	 	<dynamic>
+	 	   <isNotNull property="id" prepend="AND">
+					id = #id# 
+		   </isNotNull>
+	 	</dynamic>
+    </select>
+    
+    
+     <!--根据ID查询兴趣点信息 	-->
+    <select id="getEntCustomMapPointByIdListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	        select ec.id,ec.name,
+			ec.Longitude,
+			ec.Latitude,
+			eci.name as nameType,
+			eci.imageURL     
+			from Ent_CustomMapPoint  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+	        where ec.id in ($id$)
+    </select>
+    
+    
+     <!--根据用户ID查询兴趣点信息 	-->
+    <select id="getEntCustomMapPointByUserListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	        select ec.id,ec.name,
+			ec.Longitude,
+			ec.Latitude,
+			eci.name as nameType,
+			eci.imageURL     
+			from Ent_CustomMapPoint  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+			left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+	        where cm.UserID = #userId#
+    </select>
+    
+    
+      <!--根据Name查询兴趣点信息 	-->
+    <select id="getEntCustomMapPointByNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	       select
+			top 1
+			ec.id,ec.name,
+			ec.Longitude,
+			ec.Latitude,
+			eci.name as nameType,
+			eci.imageURL     
+			from Ent_CustomMapPoint  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id 
+			where ec.name='$name$'
+    </select>
+    
+    <!-- ==========================Ent_CustomMap================================== -->  
+    <!-- 验证不能有相同的名称  -->
+     <select id="checkCustomMapSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,name  FROM Ent_CustomMap where name='$name$'
+		 <isNotNull property="id" >
+				AND ID != #id#
+		 </isNotNull>
+		 
+		  <isNotNull property="customType" >
+				AND	customType = #customType# 
+		  </isNotNull>
+		  
+		  <isNotNull property="mapType" >
+				AND	mapType = #mapType# 
+		  </isNotNull>
+	</select>
+	
+	
+	<!-- 插入自定义信息数据 -->
+	
+	<insert id="insEntCustomMapSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [EtEnt].[dbo].[Ent_CustomMap]
+           ([Name]
+           ,[MapLayerID]
+           ,[LonLat]
+           ,[OriginLngLat]
+           ,[MapIconID]
+           ,[CustomType]
+           ,[MapType]
+           ,[Radius])
+     VALUES
+           ( 	#name#,
+            	#mapLayerID#,
+            	#lngLat#,
+            	#originLngLat#,
+            	#mapIconID#,
+            	#customType#,
+            	#mapType#,
+            	#Radius#)
+	</insert>
+	
+	<!--根据Name查询自定义信息 	-->
+    <select id="getEntCustomMapByNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	     select
+			top 1
+			ec.id,
+			ec.name,
+			<isEqual property="flag" compareValue="0">
+			  eci.name as nameType,
+			  eci.imageURL ,
+			</isEqual>
+			 ec.LonLat   
+			from Ent_CustomMap  ec
+			<isEqual property="flag" compareValue="0">
+			  left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+			</isEqual>
+			where ec.name='$name$'
+			 <isNotNull property="customType" >
+				 AND	ec.customType = #customType# 
+		     </isNotNull>
+		  
+			 <isNotNull property="mapType" >
+				 AND	ec.mapType = #mapType# 
+			 </isNotNull>
+    </select>
+    
+    
+    <!-- 根据ID删除自定义信息   -->
+   <delete id="deleteEntCustomMapSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM Ent_CustomMap WHERE ID in ($id$)
+	</delete>
+	
+	
+	<!--根据用户ID查询自定义信息 	-->
+    <select id="getEntCustomMapByUserListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	        select 
+ 	        ec.id,
+			ec.name,
+			eci.name as nameType,
+			eci.imageURL ,
+			ec.LonLat,
+			ec.CustomType,
+			ec.Radius        
+			from Ent_CustomMap  ec
+			left join Ent_CustomMapIcon eci on ec.mapIconId=eci.id
+			left join Pub_CustomMapLayer cm on ec.MapLayerId=cm.id
+	        where cm.UserID = #userId#
+	        <isNotEqual property="customType" compareValue="-1"> 
+		         <isNotNull property="customType" >
+					 AND	ec.CustomType = #customType# 
+			     </isNotNull>
+		     </isNotEqual>
+		     <isNotNull property="name" >
+				 AND    ec.name like '%$name$%'
+		     </isNotNull>
+    </select>
+
+  
+</sqlMap>

@@ -1,0 +1,306 @@
+
+
+$(function(){
+	
+	findUsers();
+	
+	/**
+	 * 查询
+	 */
+	$("#btnSearch").click(searchUsers);
+	
+	
+	
+
+	$("#roleTab").validation();
+
+	
+	/**
+	 * 更新角色
+	 */
+	$("#btnUpdateRole").click(function(){
+		
+		
+		var userId = $("#txtUID").val();
+		var roleId = $("#slRoles").val();
+		
+		var flag = $("#roleTab").beforeSubmit();
+		if(flag){
+		$.ajax({
+				url:"sys/user/assignRole.action", 
+				type:"POST",
+				data:{"userId":userId,"roleId":roleId},
+				dataType:"TEXT",
+				success:function(data)
+				{
+					if(data=="SUCCESS")
+					{
+						 reloadDate();
+						 $("#roleDlg").dialog("close");
+						 
+					}
+					else
+					{
+						$.messager.alert('提示信息','分配角色失败！','info');
+					}
+				},
+				error:function(){$.messager.alert('提示信息','分配角色失败！','info');}
+				});
+		}
+	});
+	
+	
+		
+});
+
+
+
+
+
+
+/**
+ * 用户查询
+ */
+function findUsers()
+{
+	$("#tbUsers").flexigrid( {
+		url : 'sys/user/findUsers.action',
+		dataType : 'json',
+		colModel : [{
+			display : '用户名',//表头
+			name : 'Name',//序号列为固定值fid
+			width : 80,// 得加上，要不IE报错
+			sortable:false,// 序号列不能排序
+			align : 'left'//对齐方式
+		}, {
+			display : '登陆名',//表头
+			name : 'UserName',//JSON数据中属性名
+			width : 80,// 得加上，要不IE报错
+			sortable : true,//此列是否能排序
+			align : 'left'//对齐方式
+		}, 
+		{
+			display : '所属企业',
+			name:"shortname",
+			width : 100,
+			sortable : false,
+			align : 'left'
+		}, 
+		{
+			display : '状态',
+			name:"Status",
+			paramcolnames : ['Status'],
+			handlefunction : 'paserStatus',
+			width : 100,
+			sortable : false,
+			align : 'center'
+		}, 
+		{
+			display : '用户类型',
+			name : 'IsSuperUser',
+			paramcolnames : ['isSuper'],
+			handlefunction : 'paserUserType',
+			width : 100,
+			sortable : false,
+			align : 'center'
+		}, 		
+		{
+			display : '创建时间',
+			name : 'CreateTime',
+			width : 130,
+			sortable : false,
+			align : 'center'
+		},
+		{
+			display : '过期时间',
+			name : 'OverTime',
+			width : 130,
+			sortable : false,
+			align : 'center'
+		},
+		 {
+			display : '操作',
+			name : 'Handler',
+			handlefunction : 'getHandleColumn',
+			paramcolnames : ['ID','IsSuperUser','isSuper','WorkUnitID'],
+			width :230,
+			sortable : false,//操作列不能排序
+			align : 'center'
+		} ],
+		
+		sortname : "ID",//第一次加载数据时排序列
+		sortorder : "desc",//第一次加载数据时排序类型
+		usepager : true,//是否分页，默认为true。
+		showTableToggleBtn : true,//是否显示收起/打开按钮,默认不显示。
+		useRp : true,//是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,//每页记录数，默认为10
+		checkbox : false,//是否要多选框,默认为false。
+		rowId : 'ID',// 多选框绑定行的id,只有checkbox : true时才有效。
+		singleSelect:false,
+		width : 'auto',//表格宽度
+		height : getBaseHeight()//表格高度
+	});	
+}
+function setAdmin(ID,AdminState,WorkUnitID){
+	var flag = true;
+	if(AdminState==1){
+		flag = confirm("如果已有企业管理员则会替换,是否继续?");
+	}
+	if(flag){
+		$.ajax({
+		    type : "POST",
+		    url : "sys/user/setAdmin.action",
+		    data : {id:ID,WorkUnitID:WorkUnitID,adminState:AdminState},
+		    dataType : "JSON",
+		    success : function(data) {
+		    	if(data){
+		    		$.messager.alert('提示信息','设置成功！','info');
+		    		$("#tbUsers").flexReload();
+		    	}else{
+		    		$.messager.alert('提示信息','设置失败,请重试！','info');
+		    	}
+		    },
+		    error : function(data) {
+		    	showError();
+		    }
+	    });
+	}
+}
+
+/**
+ * 组装操作列显示内容
+ * @param id
+ * @returns {String}
+ */
+function getHandleColumn(ID,IsAdmin,IsSuperUser,WorkUnitID){
+	var rolePlatFormStr = "";
+	var setAdminStr="";
+	var roleStr = "";
+	var editStr = "";
+	var pwdStr = "";
+	var deleteStr = "";
+	if(resources!=null){
+		if(resources.indexOf("|setAdmin")!=-1){
+			  roleStr = '<a href="javascript:void(0)" title="分配角色"  onclick="userRole.openRoleListDialog(' + ID + ')">分配角色</a>'
+		}
+		
+	}
+	return roleStr ;
+}
+
+
+/**
+ * 用户查询
+ */
+function searchUsers()
+{
+	var name = $("#txtQueryUserName").val();
+	
+	//查询参数
+	var params = 
+	[{
+		name : 'name',
+		value : name
+	}];
+	
+	reloadDate(params);
+}
+
+
+/**
+ * 重新加载列表
+ * @param params
+ */
+function reloadDate(params)
+{
+	if(params)
+	{
+		// 重置表格的某些参数
+		$("#tbUsers").flexOptions({
+					newp : 1,// 设置起始页
+					params : params// 设置查询参数
+				}).flexReload();// 重新加载
+	}
+	else
+	{
+		// 重置表格的某些参数
+		$("#tbUsers").flexOptions({
+					newp : 1// 设置起始页
+				}).flexReload();// 重新加载
+	}
+	
+}
+
+
+
+/**
+ * 解析状态
+ * @param status
+ * @returns {String}
+ */
+function paserStatus(status)
+{
+	if(status==0)
+		return "正常";
+	
+	else if (status==1)
+		return "禁止";
+	else
+		return "未知";
+}
+
+
+
+/**
+ * 解析用户类型
+ * @param type
+ * @returns {String}
+ */
+function paserUserType(type)
+{
+	if(type!=-1)
+		return "企业管理员";
+	else
+		return "普通管理员";
+	
+}
+
+
+
+
+
+/**
+ * 打开分配角色对话框
+ * @param userId
+ */
+function  openRoleDlg(userId)
+{
+	$("#roleDlg select").each(function(i){
+		$(this).empty();
+	});
+	
+	$("#txtUID").val(userId);
+	initRole();
+	$("#roleDlg").css("display", "block");
+	$("#roleDlg").dialog( {
+		width : 450,
+		height : 140,
+		title : '分配角色'
+	});
+}
+
+ 
+
+
+//打开一个对话框
+function openDialog(id, widthValue, heightValue, titleValue) {
+    $("#" + id).css("display", "block");
+	$("#" + id).dialog( {
+		width : widthValue,
+		height : heightValue,
+		title : titleValue,
+		maximizable : true
+	});
+}
+
+

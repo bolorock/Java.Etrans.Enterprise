@@ -1,0 +1,720 @@
+/**
+ * InitSelectServices.java
+ * Create on 2012-4-26 15:43:24
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.services.sys;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Tree;
+import com.etrans.bubiao.http.ParamMap;
+import com.etrans.bubiao.http.Result;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.json.JSONUtil;
+
+@Service
+public class TreeServices {
+
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+
+	/**
+	 * 行业类型
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getTradeKindTree(String id) throws Exception {
+		// 行业类型
+		List<Map<String, String>> tradeKinds = null;
+		if (id == null || id.equals("")) {
+			tradeKinds = this.ibatisServices.queryForList(Map.class,
+					"getTradeKindsSQL", new HashMap());
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != tradeKinds && tradeKinds.size() > 0) {
+			trees = new ArrayList<Tree>(tradeKinds.size());
+			Tree tree = null;
+			for (Map<String, String> map : tradeKinds) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+
+	/**
+	 * 区域树形
+	 * 
+	 * @param mapWhere
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getAreaTreeList(Map mapWhere, String id) throws Exception {
+
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		List<Map<String, String>> areas = null;
+		String parentFullId = "";
+
+		if (id == null || id.equals("")) {
+			areas = this.ibatisServices.queryForList(Map.class,
+					"getAreaRootSQL", new HashMap());
+		} else {
+			parentFullId = id;
+		}
+		if (!parentFullId.equals("")) {
+			areas = this.ibatisServices.queryForList(Map.class,
+					"getAreaTreeSQL", mapWhere);
+			;
+		}
+
+		if (areas != null && areas.size() > 0) {
+			for (Map<String, String> map : areas) {
+				jsonString.append("{");
+				jsonString.append("\"id\":\"" + String.valueOf(map.get("id"))
+						+ "|" + (String) map.get("fullId") + "\",");
+				jsonString.append("\"text\":\""
+						+ ((String) map.get("name")).trim() + "\",");
+				jsonString.append("\"iconCls\":\"icon-group\",");
+				jsonString.append("\"state\":\"closed\"");
+				jsonString.append("}");
+				jsonString.append(",");
+			}
+			jsonString.deleteCharAt(jsonString.toString().length() - 1);
+
+		}
+
+		jsonString.append("]");
+		// System.out.println("---------------:"+jsonString.toString());
+		return jsonString.toString();
+
+	}
+
+	/**
+	 * 企业树形
+	 * 
+	 * @param mapWhere
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getWorkUnitTreeList(String id) throws Exception {
+
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		List<Map<String, String>> areas = null;
+		String parentFullId = "";
+
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		if(id == null || id.equals("")){
+			//得到最高级别的单位
+			Result result = this.getRootWorkUnit();
+			areas = (List<Map<String,String>>)result.getData();	
+		}
+		//超级管理员UserContext.isBsRootUser()
+		else if(UserContext.isBsRootUser()){
+			parentFullId=id;
+		}
+		//企业管理员&&user.isWorkUnitSuperAdmin()
+		else if(user!=null&&user.isWorkUnitSuperAdmin()){
+			parentFullId=id;
+		}
+		//如果父id不等于空
+		if(!parentFullId.equals("")){
+			if(parentFullId!="null" && parentFullId!=null){
+				String[] ary = id.split("\\|");
+				String []str=new String[2];
+				 for (int i = 0; i < ary.length; i++){ 
+					 str[i]=ary[i];
+				 }
+                  
+				 parentFullId=str[1];
+			}
+			Map whereMap = new HashMap();
+			whereMap.put("parentFullId", parentFullId.trim());
+			areas = this.ibatisServices.queryForList(Map.class, "getWorkUnitTreeSQL",whereMap);
+		}
+		
+		
+
+		if (areas != null && areas.size() > 0) {
+			for (Map<String, String> map : areas) {
+				jsonString.append("{");
+				jsonString.append("\"id\":\"" + String.valueOf(map.get("id"))
+						+ "|" + (String) map.get("fullId") + "\",");
+				jsonString.append("\"text\":\""
+						+ ((String) map.get("name")).trim() + "\",");
+				jsonString.append("\"iconCls\":\"icon-group\",");
+				jsonString.append("\"state\":\"closed\"");
+				jsonString.append("}");
+				jsonString.append(",");
+			}
+			jsonString.deleteCharAt(jsonString.toString().length() - 1);
+
+		}
+
+		jsonString.append("]");
+		// System.out.println("---------------:"+jsonString.toString());
+		return jsonString.toString();
+
+	}
+	
+	
+	/**
+	 * 查询最高级别单位
+	 * @param whereMap
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public Result getRootWorkUnit() throws Exception {
+		Result result = new Result();
+		Map params = new HashMap();
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		if(user != null){
+			//超级管理员UserContext.isBsRootUser()
+			if(UserContext.isBsRootUser()){
+				params.put("lengths", 8);
+			}
+			//企业管理员或者是普通用户
+			else{
+				params = user.getParamsOrFullid(params);
+			}
+		}
+		List<Map<String,Object>> listInfo = this.ibatisServices.queryForList(Map.class, "getWorkUnitRootSQL",params);
+		result.setData(listInfo);
+		return result;
+	}
+	
+
+	/**
+	 * 车辆树形
+	 * 
+	 * @param mapWhere
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	
+	@SuppressWarnings("unchecked")
+	public String getVehicleTreeList(SessionUser sessionUser,String registrationNo) throws Exception {
+		List<HashMap<String, String>> list = null;
+		String userId = String.valueOf(sessionUser.getUserID());
+		String fullId = String.valueOf(sessionUser.getWorkUnitID());
+		Map paramMap = new HashMap();
+
+	
+		if(registrationNo!=null){
+//			System.out.println("车牌号码=============================："+new String(registrationNo.getBytes("ISO-8859-1"), "gbk"));
+			if (UserContext.isBsRootUser()) {// 超级管理员
+				paramMap.put("registrationNo", new String(registrationNo.getBytes("ISO-8859-1"), "gbk"));
+				list = this.ibatisServices.queryForList(Map.class,"getAdminsesVehicleIdSQL",paramMap);
+			} else {
+				if (sessionUser.isWorkUnitSuperAdmin()) {// 企业管理员
+					paramMap.put("fullId", fullId);
+					paramMap.put("registrationNo", new String(registrationNo.getBytes("ISO-8859-1"), "gbk"));
+					list = this.ibatisServices.queryForList(Map.class,
+							"getAdminVehicleIdSQL", paramMap);
+
+				} else {// 普通用户
+					paramMap.put("userId", userId);
+					paramMap.put("registrationNo", new String(registrationNo.getBytes("ISO-8859-1"), "gbk"));
+					list = this.ibatisServices.queryForList(Map.class,
+							"getVehicleIdstatSQL", paramMap);
+				}
+			}
+
+		}else{
+			if (UserContext.isBsRootUser()) {// 超级管理员
+				list = this.ibatisServices.findIbatisList("getAdminsesVehicleIdSQL");
+			} else {
+				if (sessionUser.isWorkUnitSuperAdmin()) {// 企业管理员
+					paramMap.put("fullId", fullId);
+					list = this.ibatisServices.queryForList(Map.class,
+							"getAdminVehicleIdSQL", paramMap);
+
+				} else {// 普通用户
+					paramMap.put("userId", userId);
+					list = this.ibatisServices.queryForList(Map.class,
+							"getVehicleIdstatSQL", paramMap);
+				}
+			}
+
+		}
+		
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != list && list.size() > 0) {
+			trees = new ArrayList<Tree>(list.size());
+			Tree tree = null;
+			for (Map<String, String> map : list) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState("closed");
+				tree.setIconCls("icon-group");
+				tree.setText(String.valueOf(map.get("registrationNo")
+						.toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+
+	/**
+	 * 车牌颜色
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getRegistrationNoColorTree(String id) throws Exception {
+		// 车牌颜色
+		List<Map<String, String>> tradeKinds = null;
+		if (id == null || id.equals("")) {
+			tradeKinds = this.ibatisServices.queryForList(Map.class,
+					"getRegistrationNoColorsSQL", new HashMap());
+
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != tradeKinds && tradeKinds.size() > 0) {
+			trees = new ArrayList<Tree>(tradeKinds.size());
+			Tree tree = null;
+			for (Map<String, String> map : tradeKinds) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				tree.setChildren(null);
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	
+	/**
+	 * 车辆类型
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getVehicleKindTree(String id) throws Exception {
+		// 车辆类型
+		List<Map<String, String>> vehicleKinds = null;
+		if (id == null || id.equals("")) {
+			vehicleKinds = this.ibatisServices.queryForList(Map.class,
+					"getKindsSQL", new HashMap());
+
+		}
+
+		// 车辆类型
+		List<Tree> trees = null;
+
+		if (null != vehicleKinds && vehicleKinds.size() > 0) {
+			trees = new ArrayList<Tree>(vehicleKinds.size());
+			Tree tree = null;
+			for (Map<String, String> map : vehicleKinds) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	/**
+	 * 车牌类型
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getRegistrationNoKindTree(String id) throws Exception {
+		// 车牌类型
+		List<Map<String, String>> registrationNoKinds = null;
+		if (id == null || id.equals("")) {
+			registrationNoKinds = this.ibatisServices.queryForList(Map.class,
+					"getRegistrationNoKindsSQL", new HashMap());
+
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != registrationNoKinds && registrationNoKinds.size() > 0) {
+			trees = new ArrayList<Tree>(registrationNoKinds.size());
+			Tree tree = null;
+			for (Map<String, String> map : registrationNoKinds) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	/**
+	 * 车辆颜色
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getVehicleColorTree(String id) throws Exception {
+		// 车辆颜色
+		List<Map<String, String>> vehicleColors = null;
+		if (id == null || id.equals("")) {
+			vehicleColors = this.ibatisServices.queryForList(Map.class,
+					"getColorsSQL", new HashMap());
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != vehicleColors && vehicleColors.size() > 0) {
+			trees = new ArrayList<Tree>(vehicleColors.size());
+			Tree tree = null;
+			for (Map<String, String> map : vehicleColors) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	/**
+	 * 终端号码
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getTerminalTree(String id,String workUnitId) throws Exception {
+		// 终端号码
+		Map paramMap = new HashMap();
+		paramMap.put("workUnitId", workUnitId);
+		List<Map<String, String>> terminals = null;
+		if (id == null || id.equals("")) {
+			terminals = this.ibatisServices.queryForList(Map.class,
+					"getTerminalsSQL", paramMap);
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != terminals && terminals.size() > 0) {
+			trees = new ArrayList<Tree>(terminals.size());
+			Tree tree = null;
+			for (Map<String, String> map : terminals) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	/**
+	 * 终端类型
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getTerminalKindIDTree(String id) throws Exception {
+		// 终端号码
+		Map paramMap = new HashMap();
+		List<Map<String, String>> list = null;
+		
+		if (id == null || id.equals("")) {
+			list = this.ibatisServices.queryForList(Map.class,"initTerminalKindSQL", paramMap);
+		}
+		
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != list && list.size() > 0) {
+			trees = new ArrayList<Tree>(list.size());
+			Tree tree = null;
+			for (Map<String, String> map : list) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	/**
+	 * Sim卡号码
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getSimTree(String id,String workUnitId) throws Exception {
+		// 终端号码
+		Map paramMap = new HashMap();
+		paramMap.put("workUnitId", workUnitId);
+		List<Map<String, String>> list = null;
+		if (id == null || id.equals("")) {
+			list = this.ibatisServices.queryForList(Map.class,
+					"getSimsSQL", paramMap);
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != list && list.size() > 0) {
+			trees = new ArrayList<Tree>(list.size());
+			Tree tree = null;
+			for (Map<String, String> map : list) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("code").toString().trim()));
+				//tree.setText(String.valueOf(map.get("phoneNO").toString().trim()));
+				
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	/**
+	 * 所属车队
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getVehicleTeamTree(String id,String workUnitId) throws Exception {
+		// 所属车队
+		Map paramMap = new HashMap();
+		paramMap.put("workUnitId", workUnitId);
+		List<Map<String, String>> vehicleTeams = null;
+		if (id == null || id.equals("")) {
+			vehicleTeams = this.ibatisServices.queryForList(Map.class,
+					"checkVehicleTeamSQL", paramMap);
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != vehicleTeams && vehicleTeams.size() > 0) {
+			trees = new ArrayList<Tree>(vehicleTeams.size());
+			Tree tree = null;
+			for (Map<String, String> map : vehicleTeams) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	/**
+	 * 司机
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getDriverTree(String id,String workUnitId) throws Exception {
+		// 司机
+		Map paramMap = new HashMap();
+		paramMap.put("workUnitId", workUnitId);
+		List<Map<String, String>> drivers = null;
+		if (id == null || id.equals("")) {
+			drivers = this.ibatisServices.queryForList(Map.class,
+					"getDriversSQL", paramMap);
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != drivers && drivers.size() > 0) {
+			trees = new ArrayList<Tree>(drivers.size());
+			Tree tree = null;
+			for (Map<String, String> map : drivers) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	/**
+	 * 用途
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getUsagesTree(String id) throws Exception {
+		// 用途
+		
+		List<Map<String, String>> usages = null;
+		if (id == null || id.equals("")) {
+			usages = this.ibatisServices.queryForList(Map.class,
+					"getUsagesSQL",new HashMap());
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != usages && usages.size() > 0) {
+			trees = new ArrayList<Tree>(usages.size());
+			Tree tree = null;
+			for (Map<String, String> map : usages) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	/**
+	 * 品牌
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getBandTree(String id) throws Exception {
+		// 品牌
+		List<Map<String, String>> bands = null;
+		if (id == null || id.equals("")) {
+			bands = this.ibatisServices.queryForList(Map.class,
+					"getBandsSQL",new HashMap());
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != bands && bands.size() > 0) {
+			trees = new ArrayList<Tree>(bands.size());
+			Tree tree = null;
+			for (Map<String, String> map : bands) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+	
+	
+	
+	/**
+	 * 厂商
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getManufactoryTree(String id) throws Exception {
+		// 厂商
+		List<Map<String, String>> bands = null;
+		if (id == null || id.equals("")) {
+			bands = this.ibatisServices.queryForList(Map.class,
+					"getManufactorysSQL",new HashMap());
+		}
+
+		// 组装树
+		List<Tree> trees = null;
+
+		if (null != bands && bands.size() > 0) {
+			trees = new ArrayList<Tree>(bands.size());
+			Tree tree = null;
+			for (Map<String, String> map : bands) {
+				tree = new Tree();
+				tree.setId(String.valueOf(map.get("id")));
+				tree.setState(null);
+				tree.setIconCls("icon-vehicle");
+				tree.setText(String.valueOf(map.get("name").toString().trim()));
+				trees.add(tree);
+			}
+		}
+		return JSONUtil.toJson(trees);
+	}
+
+
+
+
+}

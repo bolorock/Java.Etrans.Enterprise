@@ -1,0 +1,637 @@
+/**
+ * BaseServices.java
+ * Create on 2012-1-16上午11:41:00
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.services;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import com.etrans.bubiao.http.HttpException;
+import com.etrans.bubiao.http.ParamMap;
+import com.etrans.bubiao.http.Response;
+import com.etrans.bubiao.http.Result;
+import com.etrans.common.util.json.JSONUtil;
+import com.google.gson.reflect.TypeToken;
+
+/**
+ * @author Ivan
+ * @version 1.0
+ * @brief Services 层基类，所有的Services 必须继承此类
+ */
+public class BaseServices extends AbstractServices
+{
+
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#insert(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public Response insert(String tableName, Map<String, Object>  paramMap) throws HttpException
+ {
+	return httpClient.insert(tableName, paramMap);
+ }
+ 
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#insertBatch(java.lang.String, java.util.List)
+  */
+ @Override
+ public Response insertBatch(String tableName, List<Map<String, Object>> paramMap) throws HttpException
+ {
+	return httpClient.insertBatch(tableName, paramMap);
+ }
+ 
+ 
+ /**
+  * 批量插入并返回JSON结果
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public String insertBatchAsJson(String tableName, List<Map<String, Object>> paramMap) throws HttpException
+ {
+	Response response = httpClient.insertBatch(tableName, paramMap);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+ 
+ 
+ public String insertAsJson(String tableName, Map<String, Object>  paramMap) throws HttpException
+ {
+	Response response = httpClient.insert(tableName, paramMap);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#update(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public Response update(String tableName, Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException
+ {
+	return httpClient.update(tableName, setParam,whereParam);
+ }
+ 
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#update(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public String updateByIbatis(String tableName, Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException
+ {
+	 Response response = httpClient.updateByIbatis(tableName, setParam, whereParam);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+ public String updateAsJson(String tableName, Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException
+ {
+	Response response = httpClient.update(tableName, setParam, whereParam);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#delete(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public Response delete(String tableName, Map<String, Object> whereParam) throws HttpException
+ {
+	// TODO Auto-generated method stub
+	return httpClient.delete(tableName, whereParam);
+ }
+ 
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#delete(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public String deleteByIbatis(String tableName, Map<String, Object> whereParam) throws HttpException
+ {
+	// TODO Auto-generated method stub
+	Response response = httpClient.deleteByIbatis(tableName, whereParam);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+ public String deleteAsJson(String tableName, Map<String, Object> whereParam) throws HttpException
+ {
+	// TODO Auto-generated method stub
+	Response response = httpClient.delete(tableName, whereParam);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+
+ 
+ /**
+  * 按ID删除，删除主键必须是ID
+  * @param tableName
+  * @param id
+  * @return
+  * @throws HttpException
+  */
+ public String deleteByIDAsJson(String tableName,Object id) throws HttpException
+ {
+
+	Map<String, Object> whereParam = new HashMap<String, Object>();
+	whereParam.put("id", id);
+	
+	return deleteAsJson(tableName,whereParam);
+	
+ }
+ 
+ /* (non-Javadoc)
+  * @see com.etrans.bubiao.services.AbstractServices#query(java.lang.String, com.etrans.bubiao.http.ParamMap)
+  */
+ @Override
+ public Response query(String tableName, Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	// TODO Auto-generated method stub
+	return httpClient.query(tableName,whereParam,orderParam);
+ }
+
+ 
+ /**
+  *  查询
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  */
+ public  Response query(String tableName,String totalName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	return httpClient.query(tableName,totalName,whereParam,orderParam);
+ }
+ 
+ 
+ 
+ /**
+  *  查询
+  * @param paramMap 查询参数，包含TableName，TotalName，Where条件集合，Order排序集合
+  * @return
+  */
+ public  Response query(ParamMap paramMap) throws HttpException
+ {
+	
+	return httpClient.query(paramMap);
+	
+ }
+ 
+ 
+ /**
+  *  查询
+  * @param paramMap 查询参数，包含TableName，TotalName，Where条件集合，Order排序集合
+  * @return
+  */
+ public  String queryAsJson(ParamMap paramMap) throws HttpException
+ {
+	
+	 Response response = this.query(paramMap);
+	 if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asString();
+	  }
+	  else {
+		 throw new HttpException(response.asString());
+		}
+	
+ }
+ 
+ 
+ public  Result queryAsResult(ParamMap paramMap) throws HttpException
+ {
+	
+	 Response response = this.query(paramMap);
+	 if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(Result.class);
+	  }
+	  else {
+		 throw new HttpException(response.asString());
+		}
+	
+ }
+ 
+ 
+ 
+ /**
+  *  查询
+  * @param paramMap 查询参数，包含TableName，TotalName，Where条件集合，Order排序集合
+  * @return
+  */
+ public  String queryAsPageJson(ParamMap paramMap) throws HttpException
+ {
+	
+	 Result result = this.queryAsResult(paramMap);
+	   
+	 return JSONUtil.toJson(result.getData());
+	
+ }
+ 
+ 
+ 
+ 
+ 
+ /**
+  * 调用存储过程
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public  Response callProcedure(String tableName,Map<String, Object> paramMap) throws HttpException
+ {
+	return httpClient.callProcedure(tableName, paramMap);
+ }
+ 
+ /**
+  * 调用存储过程
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public Result callProcedureAsResult(String tableName,Map<String, Object> paramMap) throws HttpException
+ {
+	Response response = httpClient.callProcedure(tableName, paramMap);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asObject(Result.class);
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+ /**
+  * 调用存储过程
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public String callProcedureAsJson(String tableName,Map<String, Object> paramMap) throws HttpException
+ {
+	Response response = httpClient.callProcedure(tableName, paramMap);
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+ 
+ /**
+  *  查询并返回Result对象
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  */
+ public Result queryAsResult(String tableName,String totalName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	
+	 Response response =  this.query(tableName, totalName, whereParam, orderParam);
+	 
+	 if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(Result.class);
+	  }
+	  else {
+		 throw new HttpException(response.asString(),response.getStatusCode());
+		}
+	 
+ }
+ 
+ 
+ 
+ 
+ /**
+  *  查询并返回Result对象
+  * @param tableName 表名
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  */
+ public Result queryAsResult(String tableName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	
+	return queryAsResult(tableName, null, whereParam, orderParam);
+	 
+ }
+ 
+ 
+ /**
+  *  查询并返回Result对象
+  * @param tableName 表名
+  * @param whereParam 参数集合
+  * @return
+  */
+ public Result queryAsResult(String tableName,Map<String, Object> whereParam) throws HttpException
+ {
+	
+	return queryAsResult(tableName, null, whereParam, null);
+	 
+ }
+ 
+ 
+ 
+ /**
+  * 查询并返回JSON   
+  * @param tableName
+ * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public String queryAsJson(String tableName, Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	  Response response =  this.query(tableName, whereParam,orderParam);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asString();
+	  }
+	  else {
+		 throw new HttpException(response.asString(),response.getStatusCode());
+		}
+ }
+ 
+ /**
+  * 查询并返回JSON 
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  * @throws HttpException
+  */
+ public  String queryAsJson(String tableName,String totalName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	Response response =  this.query(tableName,totalName, whereParam,orderParam);
+  if(response.getStatusCode() == HttpStatus.OK.value())
+  {
+   return response.asString();
+  }
+  else {
+	 throw new HttpException(response.asString(),response.getStatusCode());
+	}
+ }
+ 
+ 
+ /**
+  * 查询并返回JSON 
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 参数集合
+  * @return
+  * @throws HttpException
+  */
+ public  String queryAsJson(String tableName,String totalName,Map<String, Object> whereParam) throws HttpException
+ {
+	
+	return queryAsJson(tableName, totalName, whereParam, null);
+ }
+ 
+ 
+ 
+ /**
+  * 查询并返回JSON   
+  * @param tableName
+  * @param whereParam 查询条件
+  * @return
+  * @throws HttpException
+  */
+ public String queryAsJson(String tableName, Map<String, Object> whereParam) throws HttpException
+ {
+	  
+	return queryAsJson(tableName, whereParam, null);
+ }
+ 
+ 
+
+ 
+ 
+ /**
+  * 查询并返回实体对象
+  * @param <T> 要转换的目标类型。
+  * @param clz 实体对象
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(Class<T> clz,String tableName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	 Response response =  this.query(tableName, whereParam,orderParam);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(clz);
+	  }
+	  else {
+		 throw new HttpException(response.asString(),response.getStatusCode());
+		}
+ }
+ 
+ 
+ /**
+  * 查询并返回实体对象
+  * @param <T> 要转换的目标类型。
+  * @param clz 实体对象
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(Class<T> clz,String tableName,String totalName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	 Response response =  this.query(tableName,totalName, whereParam,orderParam);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(clz);
+	  }
+	  else {
+		 throw new HttpException(response.asString(),response.getStatusCode());
+		}
+ }
+ 
+ 
+ 
+ /**
+  * 查询并返回实体对象
+  * @param <T> 要转换的目标类型。
+  * @param clz 实体对象
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(Class<T> clz,String tableName,String totalName,Map<String, Object> whereParam) throws HttpException
+ {
+	 return queryAsObject(clz, tableName, totalName, whereParam,null);
+ }
+ 
+ 
+ /**
+  * 查询并返回实体对象
+  * @param <T> 要转换的目标类型。
+  * @param clz 实体对象
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(Class<T> clz,String tableName,Map<String, Object> whereParam) throws HttpException
+ {
+	return queryAsObject(clz,tableName, whereParam, null);
+ }
+ 
+ 
+ 
+ /**
+  *  查询并返回实体对象
+  * @param  <T> 要转换的目标类型。
+  * @param token token {@code com.google.gson.reflect.TypeToken} 的类型指示类对象。
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(TypeToken<T> token,String tableName, Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	 Response response =  this.query(tableName, whereParam,orderParam);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(token);
+	  }
+	  else {
+		 throw new HttpException(response.asString());
+		}
+ }
+ 
+ 
+ /**
+  *  查询并返回实体对象
+  * @param  <T> 要转换的目标类型。
+  * @param token token {@code com.google.gson.reflect.TypeToken} 的类型指示类对象。
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(TypeToken<T> token,String tableName,String totalName, Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException
+ {
+	 Response response =  this.query(tableName, totalName,whereParam,orderParam);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asObject(token);
+	  }
+	  else {
+		 throw new HttpException(response.asString());
+		}
+ }
+ 
+ 
+ 
+ /**
+  *  查询并返回实体对象
+  * @param  <T> 要转换的目标类型。
+  * @param token token {@code com.google.gson.reflect.TypeToken} 的类型指示类对象。
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @param orderParam 排序
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(TypeToken<T> token,String tableName,String totalName, Map<String, Object> whereParam) throws HttpException
+ {
+	
+	return queryAsObject(token, tableName, totalName, whereParam,null);
+ }
+ 
+ 
+ 
+ /**
+  * 查询并返回实体对象
+  * @param  <T> 要转换的目标类型。
+  * @param token token {@code com.google.gson.reflect.TypeToken} 的类型指示类对象。
+  * @param tableName 表名
+  * @param whereParam 查询条件
+  * @return
+  * @throws HttpException
+  */
+ public <T> T queryAsObject(TypeToken<T> token,String tableName, Map<String, Object> whereParam) throws HttpException
+ {
+	 return queryAsObject(token,tableName,whereParam,null);
+ }
+
+@Override
+public String insertVehicleByIbatis(String tableName,
+		Map<String, Object> paramMap) throws HttpException {
+	Response response =  httpClient.insertVehicleByIbatis(tableName, paramMap);
+	  if(response.getStatusCode() == HttpStatus.OK.value())
+	  {
+	   return response.asString();
+	  }
+	  else {
+		 throw new HttpException(response.asString(),response.getStatusCode());
+	}
+}
+
+@Override
+ public String updateVehicleByIbatis(String tableName, Map<String, Object>  setParam , Map<String,Object> whereParam) throws HttpException
+ {
+	Response response = httpClient.updateVehicleByIbatis(tableName, setParam, whereParam);
+	
+	if (response.getStatusCode() == HttpStatus.OK.value()) {
+		return response.asString();
+	} else {
+		throw new HttpException(response.asString(),
+				response.getStatusCode());
+	}
+ }
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+}

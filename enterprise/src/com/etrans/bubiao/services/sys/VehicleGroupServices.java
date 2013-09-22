@@ -1,0 +1,412 @@
+/**
+ * VehicleServices.java
+ * Create on 2012-5-17 11:05:49
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.services.sys;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.entities.Tree;
+import com.etrans.bubiao.entities.Vehicle;
+import com.etrans.bubiao.entities.VehicleGroup;
+import com.etrans.bubiao.entities.WorkUnit;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+
+@Service
+public class VehicleGroupServices {
+
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	private boolean queryHasChildren(String statement, Map<String, Object> param) {
+		List<HashMap> vehicleGroupBean = ibatisServices.queryForList(
+				HashMap.class, statement, param);
+		if (vehicleGroupBean != null && vehicleGroupBean.size() > 0)
+			return true;
+		return false;
+	}
+
+	private List<Object> filterVehicleList(List<Map> listVehicle) {
+		List<Map> workunitMap = new ArrayList<Map>();
+		Map<String, List<Map>> vehicleListMap = new HashMap<String, List<Map>>();
+		List<Map> $listVehicleMap;
+		List<Object> savefilterAfterList = new ArrayList<Object>();
+		if (listVehicle != null && listVehicle.size() > 0) {
+			for (Map group : listVehicle) {
+				// 企业单独存储,并用一个集合存储当前企业的车辆 1:企业，0：车辆
+				if ("1".equals(group.get("isVehicle").toString())) {
+					workunitMap.add(group);
+				} else {// 存储车辆每个企业分为一个List
+					$listVehicleMap = (List<Map>) vehicleListMap.get(group.get(
+							"workUnitId").toString());
+					if ($listVehicleMap != null) {
+						$listVehicleMap.add(group);
+					} else {
+						List<Map> listVehicleMap = new ArrayList<Map>();
+						listVehicleMap.add(group);
+						vehicleListMap.put(group.get("workUnitId").toString(),
+								listVehicleMap);
+					}
+				}
+			}
+		}
+		savefilterAfterList.add(workunitMap);
+		savefilterAfterList.add(vehicleListMap);
+		return savefilterAfterList;
+	}
+
+	public List<Tree> buildTreeByListMap(List<Map> listMap) {
+		List<Tree> listTree = new ArrayList<Tree>();
+		Tree tree = null;
+		for (int i = 0; i < listMap.size(); i++) {
+			tree = new Tree();
+			tree.setId("v|" + listMap.get(i).get("id").toString());
+			tree.setText(listMap.get(i).get("registrationNo").toString());
+			if (listMap.get(i).get("isSelected") != null) {
+				tree.setChecked(true);
+			}
+			tree.setIconCls("icon-group");
+			tree.setState("open");
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+
+	public Tree buildTreeByMap(Map map) {
+		Tree tree = new Tree();
+		tree.setId(map.get("id").toString());
+		tree.setText(map.get("registrationNo").toString());
+		tree.setIconCls("icon-group");
+		tree.setState("closed");
+		return tree;
+	}
+
+	public Tree getPrexTree(int index, List<Tree> tree) {
+		for (int i = 0; i < index - 1; i++) {
+			tree = tree.get(0).getChildren();
+		}
+		return tree.get(0);
+	}
+
+	/**
+	 * 
+	 * @param listVehicle
+	 * @return
+	 */
+	public List<Tree> buildJsonVehicleGroup(List<Map> listVehicle) {
+		List<Tree> listTree = new ArrayList<Tree>();
+		List<Tree> childrenTree;
+		List<Object> listVehicleMap = filterVehicleList(listVehicle);
+		System.out.println("listVehicleMap:" + listVehicleMap.toString());
+		System.out.println("listVehicleMap大小:" + listVehicleMap.size());
+		Tree tree = null;
+		if (listVehicleMap != null && listVehicleMap.size() == 2) {
+			List<Map> workunitMap = (List<Map>) listVehicleMap.get(0);
+			Map<String, List<Map>> vehicleListMap = (Map<String, List<Map>>) listVehicleMap.get(1);
+			System.out.println("workunitMap(0):" + workunitMap.toString());
+			for (int i = 0; i < workunitMap.size() + 1; i++) {
+				if (i > 0) {// 开始循环子企业及车辆
+					childrenTree = new ArrayList<Tree>();
+					if (i < workunitMap.size())
+						childrenTree.add(buildTreeByMap(workunitMap.get(i)));
+					Tree nTree = getPrexTree(i, listTree);
+					try {
+						if (vehicleListMap.get(nTree.getId()) != null) {
+							childrenTree.addAll(buildTreeByListMap(vehicleListMap.get(nTree.getId())));
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					nTree.setChildren(childrenTree);
+				} else {
+					tree = new Tree();
+					tree.setId(workunitMap.get(i).get("id").toString());
+					tree.setText(workunitMap.get(i).get("registrationNo")
+							.toString());
+					tree.setIconCls("icon-group");
+					tree.setState("closed");
+					listTree.add(tree);
+				}
+			}
+		}
+
+		return listTree;
+	}
+
+	/**
+	 * 
+	 * @param statement
+	 * @param param
+	 * @return
+	 * @throws Exception
+	 */
+	private String buildJsonByIbatisQueryVehicleGroup(String statement,
+			Map<String, Object> param) throws Exception {
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		try {
+			List<HashMap> vehicleGroupBean = ibatisServices.queryForList(
+					HashMap.class, statement, param);
+			if (vehicleGroupBean != null && vehicleGroupBean.size() > 0) {
+				for (HashMap group : vehicleGroupBean) {
+					jsonString.append("{");
+					jsonString.append("\"id\":\"" + group.get("Kind") + "|"
+							+ group.get("ID") + "\",");
+					jsonString.append("\"attributes\":{\"kind\":"
+							+ group.get("Kind") + ",\"workId\":"
+							+ group.get("WorkUnitID") + ",\"workUnitName\":\""
+							+ group.get("workUnitName") + "\"},");
+					jsonString.append("\"text\":\""
+							+ group.get("Name").toString().trim() + "\",");
+					jsonString.append("\"iconCls\":\"icon-group\",");
+					boolean flag = true;
+					if ((param.get("level").equals("0"))) {
+						param.put("level", "1");
+						flag = true;
+						if (group.get("Kind").toString().equals("0")) {
+							flag = false;
+						}
+					} else {
+						flag = true;
+					}
+					param.put("id", group.get("ID"));
+					param.remove("ParentGroupID");
+					if (flag)
+						flag = queryHasChildren(statement, param);
+					if (flag) {
+						jsonString.append("\"state\":\"closed\"");
+					} else {
+						jsonString.append("\"state\":\"open\"");
+					}
+					jsonString.append("}");
+					jsonString.append(",");
+				}
+				jsonString.deleteCharAt(jsonString.toString().length() - 1);
+			}
+		} catch (Exception e) {
+			throw new Exception(e.getMessage());
+		}
+		jsonString.append("]");
+		return jsonString.toString();
+	}
+
+	/**
+	 * 
+	 * @param statement
+	 * @param param
+	 * @return
+	 * @throws Exception
+	 */
+	private String buildJsonByIbatisQueryWorkUnit(String statement,
+			Map<String, Object> param) throws Exception {
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		try {
+			List<WorkUnit> workUnit = ibatisServices.queryForList(
+					WorkUnit.class, statement, param);
+			if (workUnit != null && workUnit.size() > 0) {
+				for (WorkUnit work : workUnit) {
+					jsonString.append("{");
+					jsonString
+							.append("\"id\":\"" + "w|" + work.getId() + "\",");
+					jsonString.append("\"attributes\":[{\"kind\":" + -1
+							+ ",\"parentGroupId\":\""
+							+ work.getVehicleGroupId() + "\"}],");
+					jsonString.append("\"text\":\"" + work.getName().trim()
+							+ "\",");
+					jsonString.append("\"iconCls\":\"icon-group\",");
+					jsonString.append("\"state\":\"closed\"");
+					jsonString.append("}");
+					jsonString.append(",");
+
+				}
+				jsonString.deleteCharAt(jsonString.toString().length() - 1);
+			}
+		} catch (Exception e) {
+			throw new Exception(e.getMessage());
+		}
+		jsonString.append("]");
+		return jsonString.toString();
+	}
+
+	/**
+	 * 构建车辆组树形结构Json串
+	 * 
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	public String getVehicleGroupTreeJson(String id, long random)
+			throws Exception {
+		Map<String, Object> param = new HashMap<String, Object>();
+		String jsonTree = "";
+		// 首次根节点ID必为空
+		if (id == null) {
+			if (UserContext.isBsRootUser()) {
+				jsonTree = buildJsonByIbatisQueryWorkUnit("getAllWorkUnit",
+						param);
+			} else {
+				param.put("workUnitID", UserContext.getLoginUser()
+						.getWorkUnitID());
+				jsonTree = buildJsonByIbatisQueryWorkUnit("getAllWorkUnit",
+						param);
+			}
+		} else {
+			String[] nId = id.split("\\|");
+			param.put("id", nId[1]);
+			if ("w".equalsIgnoreCase(nId[0])) {
+				param.put("level", "0");
+			} else {
+				param.put("level", "1");
+			}
+			jsonTree = buildJsonByIbatisQueryVehicleGroup(
+					"getTreeVehicleGroup", param);
+		}
+		return jsonTree;
+	}
+
+	/**
+	 * 车辆分组
+	 * 
+	 * @param vehicleId
+	 * @param groupId
+	 * @return
+	 */
+	public int addGroupVehicle(String[] vehicleId, long groupId) {
+		try {
+			List<Map<String, Object>> listMap = new ArrayList<Map<String, Object>>();
+			for (String vehicle : vehicleId) {
+				if (vehicle.startsWith("v")) {
+					Map map = new HashMap();
+					map.put("VehicleID",
+							Long.parseLong(vehicle.split("\\|")[1]));
+					map.put("VehicleGroupID", groupId);
+					listMap.add(map);
+				}
+			}
+			ibatisServices.batchInsertIbatisObject("addGroupVehicle", listMap);
+			return 1;
+		} catch (Exception e) {
+			return -1;
+		}
+	}
+
+	/**
+	 * 
+	 * @param vehicleGroupBean
+	 * @return
+	 */
+	public long addVehicleGroup(VehicleGroup vehicleGroupBean) {
+		return (Long) ibatisServices.insertIbatisObject("addVehicleGroup",
+				vehicleGroupBean);
+	}
+
+	/**
+	 * 根据车辆分组ID删除车辆分组 对应的关系表数据也需要删除
+	 * 
+	 * @param id
+	 *            车辆分组ID
+	 */
+	public void delVehicleGroup(String id) {
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		map.put("id", id);
+		ibatisServices.deleteIbatisObject("delVehicleGroup", map);
+		ibatisServices.deleteIbatisObject("delGroupVehicle", map);
+	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param random
+	 * @return
+	 */
+	public List getVehicleListByVehicleGroupId(Map<String, Object> map,
+			long random) {
+		return ibatisServices.queryForList(HashMap.class,
+				"getVehicleByVehicleGroupId", map);
+	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param random
+	 * @return
+	 */
+	public List getVehicleListByVehicleGroupIdNoPage(Map<String, Object> map,
+			long random) {
+		return ibatisServices.queryForList(Vehicle.class,
+				"getVehicleByGroupId", map);
+	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param random
+	 * @return
+	 */
+	public long findVehicleCount(Map<String, Object> map, long random) {
+		return ibatisServices.findIbatisListCount("findVehicleCount", map);
+	}
+
+	private String initContext(List<HashMap<String, String>> workunitMap,HashMap<String, Object> mapParam) {
+		StringBuilder jsonString = new StringBuilder();
+		for (Map<String, String> map : workunitMap) {
+			String id1 = String.valueOf(map.get("id"));
+			String registrationNo1 = String.valueOf(map.get("registrationNo"));
+			String isSelected = String.valueOf(map.get("isSelected")).trim();
+			String isVehicle = String.valueOf(map.get("isVehicle")).trim();
+			jsonString.append("{");
+			if(isVehicle.equals("0")){
+				jsonString.append("\"id\":\""+"v|"+  id1 + "\",");
+			}else{
+				jsonString.append("\"id\":\""+  id1 + "\",");
+			}
+			
+			jsonString.append("\"text\":\"" + registrationNo1 + "\",");
+			jsonString.append("\"iconCls\":\"icon-group\",");
+			if(!isSelected.equals("null")){
+				//System.out.println("isSelected"+isSelected);
+				jsonString.append("\"checked\":\"" + true + "\",");;
+			}
+			jsonString.append("\"children\":");
+			jsonString.append("[");
+			//HashMap<String, Object> temp = new HashMap<String, Object>();
+			mapParam.put("parentId", id1);
+			List<HashMap<String, String>> wMap = ibatisServices.findIbatisList(
+					"getSonWorkAndVehicleSQL", mapParam);
+			if (wMap.size() > 0) {
+				jsonString.append(initContext(wMap,mapParam));
+			}
+			jsonString.append("]");
+			jsonString.append("}");
+			jsonString.append(",");
+		}
+		
+		jsonString.deleteCharAt(jsonString.toString().length() - 1);
+
+		return jsonString.toString();
+	}
+
+	public String workVehicleGroupTree(HashMap<String, Object> mapParam) {
+
+		StringBuilder jsonString = new StringBuilder();
+		List<HashMap<String, String>> workunitMap = ibatisServices.findIbatisList("getParentWorkSQL", mapParam);
+
+		jsonString.append("[");
+		if (workunitMap.size() > 0) {
+			jsonString.append(initContext(workunitMap,mapParam));
+		}
+		jsonString.append("]");
+		System.out.println("tree:" + jsonString.toString());
+		return jsonString.toString();
+	}
+
+}

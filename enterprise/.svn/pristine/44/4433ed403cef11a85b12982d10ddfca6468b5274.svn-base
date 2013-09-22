@@ -1,0 +1,51 @@
+$(function() {
+	/**设置高度**/
+	var height = $("#count").height();
+	var mainjspHeigth = parseFloat(height)-90-30;
+	$("#mainjsp").height(mainjspHeigth+"px");
+});
+
+
+/**
+ * 显示模块
+ * @return
+ */
+function blackIframe(name){
+	$('#mainjsp div').each(function(i){
+		var id  = $(this).attr("id");
+//		alert("ss:"+id+" bb:"+name);
+		if(id==name){
+			$(this).show();//显示
+		}else{
+			$(this).hide();//隐藏
+		}
+	}
+	);
+}
+
+/**
+ * 删除模块
+ * @return
+ */
+function deleteIframe(name){
+	$('#mainjsp div').each(function(i){
+		var id  = $(this).attr("id");
+//		alert("id:"+id+" name:"+name);
+		if(id==name){
+			$(this).remove();
+		}
+	}
+	);
+}
+
+
+function aa(){
+	$('#mainFrame').show();
+}
+
+function bb(){
+	$('#mainFrame').hide();
+}
+
+
+

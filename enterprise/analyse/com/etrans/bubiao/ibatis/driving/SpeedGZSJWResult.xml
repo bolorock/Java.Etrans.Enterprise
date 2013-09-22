@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 行驶速度分析（交委） -->
+
+<select id="getSpeedGZSJWResultSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (    
+		SELECT v.id
+	      ,[VehicleID]
+	      ,[RegistrationNO]
+	      ,[AnalyseGroupID]
+	      ,[AnalyseGroupName]
+	      ,[AnalyseID]
+	      ,[AnalyseName]
+	      ,[GenerateTime]
+	      ,[LowerSpeed]
+	      ,[MinSpeed]
+	      ,[MaxSpeed]
+	      ,[AvgSpeed]
+	      ,[OverSpeedType]
+	      ,[Duration]
+	      ,[DurationText]
+	      ,[StartTime]
+	      ,[EndTime]
+	      ,[StartLongitude]
+	      ,[StartLatitude]
+	      ,[EndLongitude]
+	      ,[EndLatitude]
+	      ,[GroupID]
+	  FROM [V_Ent_SpeedGZSJWResult_OverSpeed] V
+	  left join Ent_AnalyseGroupsIDAddUserID as au on v.AnalyseGroupID=au.AnalyseGroupsID
+		WHERE  1=1
+		<isNotEmpty property="startDate">
+		    AND  StartTime>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" >
+		     AND #endDate#>=EndTime
+        </isNotEmpty>
+        <isNotEmpty property="registrationNO" >
+			AND RegistrationNo like '%$registrationNO$%' 
+		</isNotEmpty>
+		<isNotEmpty property="workUnitId">
+			AND GroupID = #workUnitId# 
+	     </isNotEmpty>
+	     <!--普通用户权限-->
+<isNotEmpty property="userId">
+ and au.UserID = #userId#
+</isNotEmpty>
+	      <!--轨迹分析组条件-->
+	      <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and AnalyseGroupID=#analyseGroupID#
+		  </isNotEqual>
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+ </select>
+ 
+ 
+ <select id="getSpeedGZSJWResultCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+    select 
+	count(*)
+	
+   FROM [V_Ent_SpeedGZSJWResult_OverSpeed] v
+    left join Ent_AnalyseGroupsIDAddUserID as au on v.AnalyseGroupID=au.AnalyseGroupsID
+		WHERE  1=1
+		<isNotEmpty property="startDate">
+		    AND  StartTime>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" >
+		     AND #endDate#>=EndTime
+        </isNotEmpty>
+        <isNotEmpty property="registrationNO" >
+			AND RegistrationNo like '%$registrationNO$%' 
+		</isNotEmpty>
+		<isNotEmpty property="workUnitId">
+			AND GroupID = #workUnitId# 
+	     </isNotEmpty>
+	     <!--普通用户权限-->
+<isNotEmpty property="userId">
+ and au.UserID = #userId#
+</isNotEmpty>
+	      <!--轨迹分析组条件-->
+	      <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and AnalyseGroupID=#analyseGroupID#
+		  </isNotEqual>
+ </select>
+ 
+ 
+  
+
+  
+</sqlMap>

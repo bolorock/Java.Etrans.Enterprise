@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap   PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	
+	<!-- 查询列表 -->
+	<select id="findANA_DrivingOvertimeSQL" resultClass="java.util.HashMap"> 
+		select * from ( 
+		select ROW_NUMBER() OVER (order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+		) RowNo,
+			 b.ID as id
+			,b.VehicleID as vehicleID
+			,b.AnalyseGroupID as analyseGroupID
+			,b.GenerateTime as generateTime
+			,b.OvertimeTypeID as overtimeTypeID
+			,b.CheckInterval as checkInterval
+			,b.Driver as driver
+			,b.BounceOverTime as bounceOverTime
+			,b.RecordOverTime as recordOverTime
+			,b.OvertimeTime as overtimeTime
+			,b.Longitude as longitude
+			,b.Latitude as latitude
+			,b.OverType as overType
+			,b.TireType as tireType
+			,b.RegistrationNO as registrationNo
+			,b.groupName
+		from (
+			select aa.*,v.RegistrationNO,g.name as groupName 
+			from (
+				select *, 
+				CASE WHEN RecordOverTime >= 1.5 * BounceOverTime THEN '严重疲劳'
+				ELSE '一般疲劳'
+				END AS TireType
+				from V_ANA_DrivingOvertime
+				where 
+				AnalyseGroupID in(Select ID from ANA_AnalyseGroups where 1=1
+					<!--企业权限（普通管理员也一样）-->
+				 	<isNotEmpty property="workUnitId">
+						and groupID = #workUnitId#
+					</isNotEmpty>
+				 )
+			)aa left join Pub_Vehicle v on aa.VehicleID=v.id      		    <!--车辆表-->
+				left join ANA_AnalyseGroups g on aa.AnalyseGroupID = g.id   <!--轨迹分析组表-->
+				left join Ent_AnalyseGroupsIDAddUserID as au on aa.AnalyseGroupID=au.AnalyseGroupsID
+				where 1=1
+				<!--轨迹分析组id-->
+				<isNotEqual property="analyseGroupID" compareValue="-1">
+			   		and aa.AnalyseGroupID=#analyseGroupID#
+			 	</isNotEqual>
+			 	
+				<!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+			 	<!--车牌号码-->
+			 	<isNotEmpty property="registrationNO">
+					and v.RegistrationNO like '%$registrationNO$%' 
+			 	</isNotEmpty>
+			 	<!--时间段-->
+			 	 <isNotNull property="beginTime">
+			    	and aa.GenerateTime between #beginTime# and #endTime#
+	      		</isNotNull>
+		)b 
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	
+	</select> 
+	
+	<!-- 查记录数  -->
+	<select id="findANA_DrivingOvertimeCountSQL" resultClass="Long"> 
+	 select count(*) 
+	 from (
+		select *, 
+		CASE WHEN RecordOverTime >= 1.5 * BounceOverTime THEN '严重疲劳'
+		ELSE '一般疲劳'
+		END AS TireType
+		from V_ANA_DrivingOvertime
+		where 
+		AnalyseGroupID 
+		in(Select ID from ANA_AnalyseGroups where 1=1  
+			<!--企业权限（普通管理员也一样）-->
+		 	<isNotEmpty property="workUnitId">
+				and groupID = #workUnitId#
+			</isNotEmpty>
+		)
+		)aa left join Pub_Vehicle v on aa.VehicleID=v.id    <!--车辆表-->
+			left join ANA_AnalyseGroups g on aa.AnalyseGroupID = g.id  <!--轨迹分析组表-->
+			left join Ent_AnalyseGroupsIDAddUserID as au on aa.AnalyseGroupID=au.AnalyseGroupsID
+			where 1=1
+				<!--轨迹分析组id-->
+				<isNotEqual property="analyseGroupID" compareValue="-1">
+			   		and aa.AnalyseGroupID=#analyseGroupID#
+			 	</isNotEqual>
+			 	<!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+			 	<!--车牌号码-->
+			 	<isNotEmpty property="registrationNO">
+					and v.RegistrationNO like '%$registrationNO$%' 
+			 	</isNotEmpty>
+			 	<!--时间段-->
+			 	 <isNotNull property="beginTime">
+			    	and aa.GenerateTime between #beginTime# and #endTime#
+	      		</isNotNull>
+	</select> 
+    
+    
+</sqlMap>

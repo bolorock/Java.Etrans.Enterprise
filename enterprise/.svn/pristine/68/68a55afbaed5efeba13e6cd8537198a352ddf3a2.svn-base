@@ -1,0 +1,64 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ page import="com.etrans.bubiao.sys.Constants"%>
+<%@ page import="com.etrans.bubiao.auth.SessionUser"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+
+	SessionUser user = new SessionUser(); //用户
+	user = (SessionUser)request.getSession().getAttribute(Constants.LOGIN_USER);
+	if(user == null)
+	{
+		response.sendRedirect("../");
+	}
+%>
+<html>
+<style type="text/css">
+<!--
+body{overflow:hidden;}
+.anchorBL{
+display:none;
+}
+-->
+</style>
+<head>
+<title>道路运输车辆卫星定位企业平台</title>
+<script type="text/javascript" src="<%=basePath %>js/jq/jquery-1.7.1.min.js"></script>
+<meta http-equiv=Content-Type content=text/html;charset=utf-8>
+<script type="text/javascript" src="<%=basePath %>js/query/index3.js"></script>
+<script type="text/javascript">
+
+ function parentShowHandle(){
+	 parent.showHandle(); 
+}
+ </script>
+</head>
+ <%--框架形式begin--%>
+<%--  <frameset rows="90,*,30"  frameborder="NO" border="0" framespacing="0" id="frame">--%>
+<%--	<frame src="<%=basePath %>common/top.jsp" id="topFrame" name="topFrame" noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />--%>
+<%--	<frame src="../common/main.jsp"  name="mainFrame" id="mainFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no">--%>
+<%--	<frame src="../common/bottom.jsp" name="bottomFrame" id="bottomFrame" marginwidth="0"  marginheight="0" frameborder="0" noresize="noresize"/>--%>
+<%--  </frameset>--%>
+<%--框架形式end--%>
+ <body>
+ 
+<%--Div框架形式begin--%>
+ 	<div id="count" style="width: 100%; height: 100%">
+ 		<div id="topjsp" style=" float:none; width: 100%; border: solid 0px green;">
+ 			<iframe src="../common/top.jsp" id="topFrame" name="topFrame" width=100% style="border: 0px;" height="90px;"   scrolling="no" noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" ></iframe>
+ 		</div>
+ 		<div id="mainjsp" style=" float:none; width: 100%;">
+<%--			默认有首页--%>
+			<div id="mainFrame_index" style=" width: 100%; height: 100%; border: solid 0px red;">
+ 				<iframe  src="../common/main.jsp" id="mainFrame_index" name="mainFrame_index" width=100% style="border: 0px;" marginwidth="0" height="100%;" frameborder="0" scrolling="no" ></iframe>
+ 			</div>
+ 		</div>
+ 		<div id="buttonjsp" style=" float:none; width: 100%; height: 30px; padding-bottom: 0px; border: solid 0px blue;">
+ 			<iframe src="../common/bottom.jsp" name="bottomFrame" id="bottomFrame"  width=100% style="border: 0px;" height="30px;" marginwidth="0" frameborder="0" scrolling="no" ></iframe>
+ 		</div>
+ 	</div>
+<%--Div框架形式end--%>
+ </body>
+</html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:dwr="http://www.directwebremoting.org/schema/spring-dwr"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+    http://www.directwebremoting.org/schema/spring-dwr http://www.directwebremoting.org/schema/spring-dwr-2.5.xsd
+    http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+	<bean id="SqlMapClient" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name="configLocation" value="classpath:ibatisToXmlConfig.xml" />
+		<property name="dataSource" ref="dataSource" />
+		<property name="useTransactionAwareDataSource" value="true" />
+	</bean>
+	
+	<bean id="SqlMapClientTemplate" class="org.springframework.orm.ibatis.SqlMapClientTemplate">
+		<property name="sqlMapClient" ref="SqlMapClient" />
+	</bean>
+
+	<!-- ibatis 数据层实现类 -->
+	<bean id="ibatisDAO" class="com.etrans.bubiao.daobase.IbatisDAOImpl" scope="singleton">
+		<constructor-arg ref="SqlMapClientTemplate" />
+	</bean>
+
+	<!-- 数据源定义 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass">
+			<value>com.microsoft.sqlserver.jdbc.SQLServerDriver</value>
+		</property>
+		<property name="jdbcUrl">
+			<value>${datasource.url}</value>
+		</property>
+		<property name="user">
+			<value>${datasource.username}</value>
+		</property>
+		<property name="password">
+			<value>${datasource.password}</value>
+		</property>
+
+		<property name="acquireIncrement">
+			<value>${c3p0.acquireIncrement}</value>
+		</property>
+
+		<property name="acquireRetryAttempts">
+			<value>${c3p0.acquireRetryAttempts}</value>
+		</property>
+	</bean>
+	
+<!-- 声明方法的事物属性 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED"    />
+			<tx:method name="insert*" propagation="REQUIRED"  />
+			<tx:method name="add*" propagation="REQUIRED"     />
+			<tx:method name="update*" propagation="REQUIRED"  />
+			<tx:method name="create*" propagation="REQUIRED"  />
+			<tx:method name="delete*" propagation="REQUIRED"    />
+			<tx:method name="del*" propagation="REQUIRED"  />
+			<tx:method name="*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut id="point-service"
+			expression="execution(* com.etrans.bubiao..*Services.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="point-service" />
+	</aop:config>
+	
+		  
+<!--spring Transaction Manager-->   
+	<bean id="transactionManager"  
+	    class="org.springframework.jdbc.datasource.DataSourceTransactionManager">   
+	    <property name="dataSource" ref="dataSource" />   
+	</bean>   
+
+	
+	 
+</beans>

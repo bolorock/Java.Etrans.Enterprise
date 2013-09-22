@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--终端类型信息分页查询SQL  -->
+ <select id="getTerminalKindListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		 select * from 
+			(SELECT 
+		        ptk.ID ID, 
+		        ptk.Kind as Kind, 
+		        ptk.Name as Name
+		     FROM dbo.Pub_TerminalKind ptk
+		       ) C where 1=1
+		<dynamic>
+		    <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+<!--终端类型信息总数量SQL	-->
+	<select id="getTerminalKindCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		 select count(*) from 
+			(SELECT 
+		        ptk.ID ID, 
+		        ptk.Kind as Kind, 
+		        ptk.Name as Name
+		     FROM dbo.Pub_TerminalKind ptk
+		       ) C where 1=1
+        
+         <dynamic>
+            <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+	</select>
+		
+
+<!--插入终端类型信息数据 -->
+	<insert id="insertTerminalKindSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_TerminalKind]
+           (
+            [Kind]
+           ,[Name]
+           )
+     VALUES
+           (
+           	#Kind#,
+           	#Name#
+           )
+	</insert>
+	
+<!--根据ID查询终端类型信息	-->
+    <select id="getTerminalKindByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		        ptk.ID as ID, 
+		        ptk.Kind as Kind, 
+		        ptk.Name as Name
+        FROM Pub_TerminalKind ptk
+       WHERE 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				ptk.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改终端类型信息   -->
+     <update id="updateTerminalKindSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [Pub_TerminalKind]
+             SET 
+             [Kind] = '$Kind$'
+             ,[Name] = '$Name$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除外设型号信息  -->
+     <delete id="deleteTerminalKindSQL"  parameterClass="java.util.HashMap">
+		DELETE  FROM dbo.Pub_TerminalKind WHERE ID in ($id$)
+	</delete>
+
+   
+<!-- 验证不能有相同的终端类型名称  -->
+     <select id="checkTeminalKindNameSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,Name  FROM dbo.Pub_TerminalKind where Name='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+	
+	
+	<!-- 验证不能有相同的终端类型编号 -->
+     <select id="checkKindSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,Kind  FROM dbo.Pub_TerminalKind where Kind='$Kind$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+</sqlMap>

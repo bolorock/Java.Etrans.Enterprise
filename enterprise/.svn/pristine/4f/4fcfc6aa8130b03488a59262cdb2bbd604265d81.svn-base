@@ -1,0 +1,304 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@page import="com.etrans.common.util.Tools"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+			
+			String bp = Tools.getProjectPath();
+			//String bp="F:\\YC_java\\work\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp0\\wtpwebapps\\enterprise\\jiankong\\video";
+			//String bp2="F:\\YC_java\work\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\enterprise\jiankong\video";
+%>
+<html>
+<head>
+<base href="<%=basePath%>"></base>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+	
+	<script type="text/javascript" src="<%=basePath%>jiankong/jquery-1.7.1.min.js"></script>
+	
+	<!------------------- 全屏---------------------->
+    <script language="javascript" type="text/javascript" for="UserProxy1" event="OnDoubleClick(x,y)">
+        FullScreen();
+    </script>
+    <script language="javascript" type="text/javascript" for="UserProxy2" event="OnDoubleClick(x,y)">
+        FullScreen();
+    </script>
+    <script language="javascript" type="text/javascript" for="UserProxy3" event="OnDoubleClick(x,y)">
+        FullScreen();
+    </script>
+    <script language="javascript" type="text/javascript" for="UserProxy4" event="OnDoubleClick(x,y)">
+        FullScreen();
+    </script>
+	
+	
+    <script type="text/javascript">
+	
+	$(function(){
+	//////////////////////////////////////////////////////
+		//赋值
+		//$("#aa").attr("title","ljhy110");
+		//得到值
+		//var c = $("#aa").attr("title"); 
+	///////////////////////////////////////////////////////
+		load();
+	});
+	
+	
+	/**
+	*初始化
+	*/
+	function load(){
+		     this.ShowCamera(3);
+		}
+
+       function ShowCamera(nodeId) {
+           //alert("nodeId:"+nodeId);
+                Channels = "0,1,2,3"
+                PalyByServerIPAndVideoID('203.88.210.56', 'dns:AH7310', Channels);
+         
+        }
+        //播放指定的ServerIP与VideoID视频监控
+        function PalyByServerIPAndVideoID(ServerIP, VideoID, Channels) {
+             //获取视屏总个数
+            var cameraCount = 4;
+            var cameraid;
+            var objCamera;
+            var ss;
+            var ClosedCamera = []; 
+            var cameraArray = [];
+            for (var i = 1; i < cameraCount+1; i++) {
+                cameraid = "UserProxy" + i;
+                //ss=window.document.getElementById(cameraid);
+				var ss = $("#"+cameraid).attr("value");
+                if (ss=="0") {
+                    ClosedCamera.push(cameraid);
+                }
+            }
+            if (ClosedCamera == "") {
+                alert("当前全部录像窗口已经打开，需要关闭部分窗口后方可继续打开");
+                return false;
+            }
+            //获取当前可用的视屏数
+            var vediocount = 4;
+            //获取当前摄像头的通道数
+            ChannelArray = Channels.split(',');
+			//alert("ChannelArray通道数:"+ChannelArray);
+            if (vediocount < ChannelArray.length) {
+                alert("当前视屏为关闭状态的个数只有" + vediocount + "个,请确保至少有" + ChannelArray.length + "个");
+                return false;
+            }
+            //初始化视频
+            
+            for (var i = 0; i < vediocount; i++) {
+            //alert("ClosedCamera[0]:"+ClosedCamera[i]);
+                Init(ClosedCamera[i], ServerIP, VideoID);
+            }
+            //播放视频
+            for (var j = 0; j < ChannelArray.length; j++) {
+                Play(ClosedCamera[j], j);
+            }
+        }
+        //初始化
+        function Init(objects, ServerIP, VideoID) {
+       // alert("objects:"+objects);
+          
+            var objOcx =window.document.getElementById(objects);
+			// var objOcx=$("#"+objects);
+            var iRet;
+			//设置设备信息
+            iRet = objOcx.SetDeviceInfo2(121, VideoID, ServerIP);
+			//打开设备
+            iRet = objOcx.SetRegIP(ServerIP);
+           
+        }
+       
+        //开始播放
+        function Play(objects, Channel) {
+            var objOcx = window.document.getElementById(objects);
+			//var objOcx=$("#"+objects);
+			$("#"+objects).attr("value","0")
+            //objOcx.value = "0";
+            var iRet;
+            objOcx.OpenVideo(Channel);
+        }	
+		
+		
+		
+		
+        
+        ////////////////////////////////////////////////////////////////////////////////////
+	
+        //结束播放
+        function Stop(objOcxID) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx =$("#"+objOcxID);
+            var iRet;
+			$("#"+objOcxID).attr("value","0");
+            //objOcx.value = "0";
+            objOcx.CloseVideo();
+        }
+        //打开或关闭声音bEnable 0 关闭，1打开
+        function SetEnableSound(objOcxID,bEnable) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+            objOcx.SetEnableSound(bEnable);
+        }
+        //全屏
+        function FullScreen(objOcxID) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+            objOcx.FullScreen();
+        }
+        //抓图
+        function CapturePic(objOcxID) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+			var path = "D:\\视屏截图"+objOcxID+".jpg";
+            var res = objOcx.CapturePic(path, 0);
+            if (res == 0) {
+                alert("拍照成功，视屏截图"+objOcxID+".jpg");
+            }else{
+            	 alert("拍照失败!");
+               }
+        }
+		
+		//////////////////////////////////////测试begin///////////////////////////////////////////////////////////
+		/////////////录像
+		function lujunyong(op){
+			 var objOcx = window.document.getElementById("UserProxy1");
+			 objOcx.Save(op);
+		}
+		
+		//下载录像文件并转换成AVI 
+		function lujunyong2(){
+		 	var objOcx = window.document.getElementById("UserProxy1");
+			//var res = objOcx.DownloadFileConvert("D:\\视屏录像.test","ljy",0,0,0,2);
+			//alert("结果："+res);
+			var res = objOcx.PlayOpen("D:\\视屏录像.avi",7310,0);
+			objOcx.PlaySeek(5);
+			alert("结果0就成功："+res);
+		}
+		//////////////////////////////////////测试end//////////////////////////////////////////////////////////////
+		
+		
+		
+        //开始或者停止录像
+        function RecordOrStopRecord(objOcxID) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+			var isCamera = $("#"+objOcxID).attr("IsCamera");
+			alert(isCamera);
+            if (isCamera == "0") {
+			 	$("#"+objOcxID).attr("IsCamera","1");
+				$("#"+objOcxID+"Video").attr("alt","停止录像");
+				$("#"+objOcxID+"Video").attr("title","停止录像");
+				Record(objOcxID);
+            }
+            else {
+                $("#"+objOcxID).attr("IsCamera","0");
+				$("#"+objOcxID+"Video").attr("alt","开始录像");
+				$("#"+objOcxID+"Video").attr("title","开始录像");
+                StopRecord(objOcxID);
+            }
+        }
+        //保存录像路径Record
+        function Record(objOcxID) {
+            var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+           // var path = '<%=bp%>'+"\\jiankong\\video\\视屏录像.avi";
+           // var path = '/F:/YC_java/work/.metadata/.plugins/org.eclipse.wst.server.core/tmp0/wtpwebapps/enterprise/'+"\\jiankong\\video\\视屏录像.avi";
+            var path = "D:\\ljy\\视屏录像.avi";
+            alert(path);
+            
+            var result = objOcx.Record(path);
+            if(result=="0")
+            alert("开始录像");
+        }
+        //停止录像
+        function StopRecord(objOcxID) {
+           var objOcx = window.document.getElementById(objOcxID);
+			//var objOcx=$("#"+objOcxID);
+            objOcx.StopRecord();
+            alert("停止录像成功,文件存放在");
+        }
+      
+    </script>
+	
+</head>
+<body   style="background-color: transparent;">
+    <input type="text" id="txtWindowType" value="4" style="display: none" />
+    <center>
+        <table  width="670px;">
+            <tr>
+              <td ><object  id="UserProxy1" style="width: 330px; height: 175px;background-color:#485869;" IsCamera="0" classid="clsid:E24D8362-0622-4D15-94AA-2E83A6616EAC" 
+                        value="0">
+                <a href="<%=basePath%>jiankong/sofware/Netvideo.exe" style="color:red; font-family:'宋体';">下载播放软件</a>
+              </object></td>
+		   <td>
+		   	     <object id="UserProxy2"  style="width: 330px; height: 175px;background-color:#485869;" IsCamera="0" classid="clsid:E24D8362-0622-4D15-94AA-2E83A6616EAC"
+                        value="0">
+						<a href="<%=basePath%>jiankong/sofware/Netvideo.exe" style="color:red; font-family:'宋体';">下载播放软件</a>
+                </object>
+				</td>
+            </tr>
+            <tr>
+                <td style="background-color: #485869">
+                <center>
+                    <img onclick="Stop('UserProxy1')" src="<%=basePath%>jiankong/VideoMonitoringImg/stop.png" alt="停止播放" title="停止播放" style="cursor: pointer;" />
+                    <img id="UserProxy1Video" onclick="RecordOrStopRecord('UserProxy1')" src="<%=basePath%>jiankong/VideoMonitoringImg/video.png" alt="开始录像" title="开始录像" style="cursor: pointer;" />
+                    <img onclick="CapturePic('UserProxy1')" src="<%=basePath%>jiankong/VideoMonitoringImg/photoGraph.png" alt="照相" title="照相" style="cursor: pointer;" />
+                    <img onclick="FullScreen('UserProxy1')" src="<%=basePath%>jiankong/VideoMonitoringImg/fullScreen.png" alt="全屏" title="全屏" style="cursor: pointer;" />
+                    <img onclick="SetEnableSound('UserProxy1',0)" src="<%=basePath%>jiankong/VideoMonitoringImg/close.png" alt="静音" title="静音" style="cursor: pointer;" />                
+                </center>    
+                </td>
+                <td style="background-color: #485869">
+                <center>
+                    <img onclick="Stop('UserProxy2')" src="<%=basePath%>jiankong/VideoMonitoringImg/stop.png" alt="停止播放" title="停止播放" style="cursor: pointer;" />
+                    <img id="UserProxy2Video" onclick="RecordOrStopRecord('UserProxy2')" src="<%=basePath%>jiankong/VideoMonitoringImg/video.png" alt="开始录像" title="开始录像" style="cursor: pointer;" />
+                    <img onclick="CapturePic('UserProxy2')" src="<%=basePath%>jiankong/VideoMonitoringImg/photoGraph.png" alt="照相" title="照相" style="cursor: pointer;" />
+                    <img onclick="FullScreen('UserProxy2')" src="<%=basePath%>jiankong/VideoMonitoringImg/fullScreen.png" alt="全屏" title="全屏" style="cursor: pointer;" />
+                    <img onclick="SetEnableSound('UserProxy2',0)" src="<%=basePath%>jiankong/VideoMonitoringImg/close.png" alt="静音" title="静音" style="cursor: pointer;" />                
+                 </center>
+                 </td>
+            </tr>
+            <tr>
+			<!--iscamera="0"-->
+              <td >
+                    <object id="UserProxy3" style="width: 330px; height: 175px; background-color:#485869;" IsCamera="0" classid="clsid:E24D8362-0622-4D15-94AA-2E83A6616EAC"
+                        value="0" >
+						<a href="<%=basePath%>jiankong/sofware/Netvideo.exe" style="color:red; font-family:'宋体';">下载播放软件</a>
+                    </object>
+					</td>
+					<td>
+                    <object id="UserProxy4" style="width: 330px; height: 175px; background-color:#485869;" IsCamera="0" classid="clsid:E24D8362-0622-4D15-94AA-2E83A6616EAC"
+                        value="0">
+						<%--http://www.macromedia.com/go/getflashplayer--%>
+						<a href="<%=basePath%>jiankong/sofware/Netvideo.exe" style="color:red; font-family:'宋体';">下载播放软件</a>
+                    </object></td>
+            </tr>
+             <tr>
+                <td style="background-color: #485869">
+                    <center>
+                    <img onclick="Stop('UserProxy3')" src="<%=basePath%>jiankong/VideoMonitoringImg/stop.png" alt="停止播放" title="停止播放" style="cursor: pointer;" />
+                    <img id="UserProxy3Video" onclick="RecordOrStopRecord('UserProxy3')" src="<%=basePath%>jiankong/VideoMonitoringImg/video.png" alt="开始录像" title="开始录像" style="cursor: pointer;" />
+                    <img onclick="CapturePic('UserProxy3')" src="<%=basePath%>jiankong/VideoMonitoringImg/video.png" alt="照相" title="照相" style="cursor: pointer;" />
+                    <img onclick="FullScreen('UserProxy3')" src="<%=basePath%>jiankong/VideoMonitoringImg/fullScreen.png" alt="全屏" title="全屏" style="cursor: pointer;" />
+                    <img onclick="SetEnableSound('UserProxy3',0)" src="<%=basePath%>jiankong/VideoMonitoringImg/close.png" alt="静音" title="静音" style="cursor: pointer;" />
+                    </center>
+                 </td>
+                <td style="background-color: #485869">
+                 <center>
+                    <img onclick="Stop('UserProxy4')" src="<%=basePath%>jiankong/VideoMonitoringImg/stop.png" alt="停止播放" title="停止播放" style="cursor: pointer;" />
+                    <img id="UserProxy4Video" onclick="RecordOrStopRecord('UserProxy4')" src="<%=basePath%>jiankong/VideoMonitoringImg/video.png" alt="开始录像" title="开始录像" style="cursor: pointer;" />
+                    <img onclick="CapturePic('UserProxy4')" src="<%=basePath%>jiankong/VideoMonitoringImg/photoGraph.png" alt="照相" title="照相" style="cursor: pointer;" />
+                    <img onclick="FullScreen('UserProxy4')" src="<%=basePath%>jiankong/VideoMonitoringImg/fullScreen.png" alt="全屏" title="全屏" style="cursor: pointer;" />
+                    <img onclick="SetEnableSound('UserProxy4',0)" src="<%=basePath%>jiankong/VideoMonitoringImg/close.png" alt="静音"  title="静音" style="cursor: pointer;" />                
+                  </center>
+                </td>
+            </tr>
+        </table>
+    </center>
+</body>
+</html>

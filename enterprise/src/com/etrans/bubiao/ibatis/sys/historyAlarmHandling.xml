@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--企业管理员用户查询历史报警督办start  -->
+ <select id="getHistoryAlarmHandlingsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		    select * from
+			(select
+				 A.id,
+				 A.vehicleid,
+				 A.registrationno,
+				 A.alarmtype,
+				 convert(varchar, A.alarmDate,120) as alarmDate,
+				 A.overSeeingId,
+				 convert(varchar, A.OverSeeingDate,120) as OverSeeingDate,
+				 A.OverSeeingBackDate,
+				 A.OverSeeingBackContent,
+				 A.OverSeeingType,
+				 A.OverSeeingTypepram,
+				 A.RegistrationNOColor,
+				 pwu.FULLID
+		from 
+        (select 
+		   eao.id as id,
+		   eao.vehicleid as vehicleid,
+		   pv.RegistrationNo as registrationno,
+		   eao.alarmtype as alarmtype,
+		   convert(varchar, eao.alarmDate,120) as alarmDate,
+		   eao.OverSeeingId as overSeeingId,
+		   convert(varchar, eao.OverSeeingDate,120) as OverSeeingDate,
+		   eao.OverSeeingBackDate as OverSeeingBackDate,
+		   eao.OverSeeingBackContent as OverSeeingBackContent,
+		   (case eao.OverSeeingType when '1' then '自动' else '手动' end) as OverSeeingType,
+		   eao.OverSeeingType as OverSeeingTypepram,
+		   prc.Name AS RegistrationNOColor,
+           pv.workUnitId
+			from ent_alarm_overseeing eao
+				left join Pub_Vehicle pv on eao.vehicleid=pv.id
+				left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID)A,
+				dbo.pub_WorkUnit pwu
+           where A.workUnitId=pwu.id) C
+	      where 1=1		      
+		
+          <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="alarmTypepram">
+               <isNotEmpty property="alarmTypepram" >
+                 <isNotEqual property="alarmTypepram" prepend="and" compareValue="-1">
+                    C.alarmtype = '$alarmTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="OverSeeingTypepram">
+               <isNotEmpty property="OverSeeingTypepram" >
+                 <isNotEqual property="OverSeeingTypepram" prepend="and" compareValue="-1">
+                    C.OverSeeingTypepram = '$OverSeeingTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationno like '%$RegistrationNopram$%'
+			  </isEmpty>
+            
+             <isNotEmpty property="OverSeeingDateStart" prepend="and">
+      			C.OverSeeingDate >=#OverSeeingDateStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="OverSeeingDateEnd" prepend="and">
+      			 #OverSeeingDateEnd#>=C.OverSeeingDate
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--历史报警督办总数量SQL	-->
+	<select id="historyAlarmHandlingCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	 select
+			 A.id,
+			 A.registrationno,
+			 A.vehicleid,
+			 A.alarmtype,
+			 convert(varchar, A.alarmDate,120) as alarmDate,
+			 A.overSeeingId,
+			 convert(varchar, A.OverSeeingDate,120) as OverSeeingDate,
+			 A.OverSeeingBackDate,
+			 A.OverSeeingBackContent,
+			 A.OverSeeingType,
+			 A.OverSeeingTypepram,
+			 A.RegistrationNOColor,
+			 pwu.FULLID
+		from 
+        (select 
+		   eao.id as id,
+		   eao.vehicleid as vehicleid,
+		   pv.RegistrationNo as registrationno,
+		   eao.alarmtype as alarmtype,
+		   eao.alarmDate as alarmDate,
+		   eao.OverSeeingId as overSeeingId,
+		   eao.OverSeeingDate as OverSeeingDate,
+		   eao.OverSeeingBackDate as OverSeeingBackDate,
+		   eao.OverSeeingBackContent as OverSeeingBackContent,
+		   (case eao.OverSeeingType when '1' then '自动' else '手动' end) as OverSeeingType,
+		   eao.OverSeeingType as OverSeeingTypepram,
+		   prc.Name AS RegistrationNOColor,
+           pv.workUnitId
+			from ent_alarm_overseeing eao
+				left join Pub_Vehicle pv on eao.vehicleid=pv.id
+				left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID)A,
+				dbo.pub_WorkUnit pwu
+           where A.workUnitId=pwu.id) 
+		  C where 1=1
+      
+        <dynamic>
+             <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="alarmTypepram">
+               <isNotEmpty property="alarmTypepram" >
+                 <isNotEqual property="alarmTypepram" prepend="and" compareValue="-1">
+                    C.alarmtype = '$alarmTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="OverSeeingTypepram">
+               <isNotEmpty property="OverSeeingTypepram" >
+                 <isNotEqual property="OverSeeingTypepram" prepend="and" compareValue="-1">
+                    C.OverSeeingTypepram = '$OverSeeingTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationno like '%$RegistrationNopram$%'
+			  </isEmpty>
+            
+             <isNotEmpty property="OverSeeingDateStart" prepend="and">
+      			C.OverSeeingDate >=#OverSeeingDateStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="OverSeeingDateEnd" prepend="and">
+      			 #OverSeeingDateEnd#>=C.OverSeeingDate
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--企业管理员用户查询历史报警督办end	-->
+
+
+<!--普通用户查询历史报警督办start  -->
+ <select id="getUserHistoryAlarmHandlingsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		    select * from
+			(select
+			 A.id,
+			 A.vehicleid,
+			 PUV.registrationno,
+			 A.alarmtype,
+			 convert(varchar, A.alarmDate,120) as alarmDate,
+			 A.overSeeingId,
+			 convert(varchar, A.OverSeeingDate,120) as OverSeeingDate,
+			 A.OverSeeingBackDate,
+			 A.OverSeeingBackContent,
+			 A.OverSeeingType,
+			 A.OverSeeingTypepram,
+			 PUV.RegistrationNOColor,
+			 PUV.FULLID
+	from 
+        (select
+           eao.vehicleid as vehicleid, 
+		   eao.id as id,
+		   eao.alarmtype as alarmtype,
+		   eao.alarmDate as alarmDate,
+		   eao.OverSeeingId as overSeeingId,
+		   eao.OverSeeingDate as OverSeeingDate,
+		   eao.OverSeeingBackDate as OverSeeingBackDate,
+		   eao.OverSeeingBackContent as OverSeeingBackContent,
+		   (case eao.OverSeeingType when '1' then '自动' else '手动' end) as OverSeeingType,
+		   eao.OverSeeingType as OverSeeingTypepram
+			from etent.dbo.ent_alarm_overseeing eao)A,
+				(select ev.VEHICLEID,
+						   PV.workunitID as workunitID,
+                           pv.RegistrationNo as registrationno,
+                           prc.name as RegistrationNOColor,
+						   pwu.FULLID as FULLID
+            from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu,Pub_RegistrationNOColor prc 
+            where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID 
+            and pv.RegistrationNOColorID = prc.ID) PUV 
+            where  A.VEHICLEID = PUV.VEHICLEID ) C
+	      where 1=1		      
+		
+          <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="alarmTypepram">
+               <isNotEmpty property="alarmTypepram" >
+                 <isNotEqual property="alarmTypepram" prepend="and" compareValue="-1">
+                    C.alarmtype = '$alarmTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="OverSeeingTypepram">
+               <isNotEmpty property="OverSeeingTypepram" >
+                 <isNotEqual property="OverSeeingTypepram" prepend="and" compareValue="-1">
+                    C.OverSeeingTypepram = '$OverSeeingTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+             <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationno like '%$RegistrationNopram$%'
+			  </isEmpty>
+            
+             <isNotEmpty property="OverSeeingDateStart" prepend="and">
+      			C.OverSeeingDate >=#OverSeeingDateStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="OverSeeingDateEnd" prepend="and">
+      			 #OverSeeingDateEnd#>=C.OverSeeingDate
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--历史报警督办总数量SQL	-->
+	<select id="UserhistoryAlarmHandlingCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	 select
+			 A.id,
+			 A.vehicleid,
+			 PUV.registrationno,
+			 A.alarmtype,
+			 convert(varchar, A.alarmDate,120) as alarmDate,
+			 A.overSeeingId,
+			 convert(varchar, A.OverSeeingDate,120) as OverSeeingDate,
+			 A.OverSeeingBackDate,
+			 A.OverSeeingBackContent,
+			 A.OverSeeingType,
+			 A.OverSeeingTypepram,
+			 PUV.RegistrationNOColor,
+			 PUV.FULLID
+	from 
+        (select
+           eao.vehicleid as vehicleid, 
+		   eao.id as id,
+		   eao.alarmtype as alarmtype,
+		   eao.alarmDate as alarmDate,
+		   eao.OverSeeingId as overSeeingId,
+		   eao.OverSeeingDate as OverSeeingDate,
+		   eao.OverSeeingBackDate as OverSeeingBackDate,
+		   eao.OverSeeingBackContent as OverSeeingBackContent,
+		   (case eao.OverSeeingType when '1' then '自动' else '手动' end) as OverSeeingType,
+		   eao.OverSeeingType as OverSeeingTypepram
+			from etent.dbo.ent_alarm_overseeing eao)A,
+				(select ev.VEHICLEID,
+						   PV.workunitID as workunitID,
+                           pv.RegistrationNo as registrationno,
+                           prc.name as RegistrationNOColor,
+						   pwu.FULLID as FULLID
+            from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu,Pub_RegistrationNOColor prc 
+            where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID 
+            and pv.RegistrationNOColorID = prc.ID) PUV 
+            where  A.VEHICLEID = PUV.VEHICLEID ) 
+		  C where 1=1
+      
+        <dynamic>
+             <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="alarmTypepram">
+               <isNotEmpty property="alarmTypepram" >
+                 <isNotEqual property="alarmTypepram" prepend="and" compareValue="-1">
+                    C.alarmtype = '$alarmTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="OverSeeingTypepram">
+               <isNotEmpty property="OverSeeingTypepram" >
+                 <isNotEqual property="OverSeeingTypepram" prepend="and" compareValue="-1">
+                    C.OverSeeingTypepram = '$OverSeeingTypepram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+             <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationno like '%$RegistrationNopram$%'
+			  </isEmpty>
+            
+             <isNotEmpty property="OverSeeingDateStart" prepend="and">
+      			C.OverSeeingDate >=#OverSeeingDateStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="OverSeeingDateEnd" prepend="and">
+      			 #OverSeeingDateEnd#>=C.OverSeeingDate
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--普通用户查询历史报警督办end	-->
+</sqlMap>

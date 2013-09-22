@@ -1,0 +1,8 @@
+
+if和elseif修改
+
+monitor.jsp
+	把ipType.equals(IpUtils.INNERIP)和ipType.equals(IpUtils.OUTERIP)换一下位置
+
+carlist.js
+	把gotoTrack方法的ipType=="innerip"和ipType=="outerip"换一下位置

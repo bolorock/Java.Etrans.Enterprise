@@ -1,0 +1,86 @@
+/**
+ * Constants.java
+ * Create on 2012-1-16下午05:33:05
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.sys;
+
+/**
+ * @author Ivan
+ * @version 1.0
+ * @brief 系统常量
+ */
+public class Constants
+{
+
+	/**
+	 * 系统登录用户
+	 */
+	public static final String LOGIN_USER = "login_user";
+
+	/**
+	 * 处理实时报警的状态mag的key【ljy】
+	 */
+	public static final String ALARMDEL = "alarm";
+
+	/**
+	 * 用户权限车辆
+	 */
+	public static final String USER_VEHICLE="user_vehicle";
+	
+	/**
+	 * 车牌号码自动补全
+	 */
+	public static final String VEHICLEREGISTRATIONNO ="vehicleRegistrationNO";
+	
+	/*
+	 * 系统验证码
+	 */
+	public static final String SESSION_VER_CODE = "session_ver_code";
+
+	public static final String IS_EXPORT = "2";// 导出
+
+    public static final String EXCEL = "xls";
+	
+	
+	// EXCEL最大行数
+	public final static int EXCEL_MAX_ROW = 65530;
+	
+	// 业务数据队列的最大长度
+	public final static int BusinessQueueMaxNum = 5000;
+
+	// 定位/业务之外的数据接收接收队列的最大长度
+	public final static int CommandBackQueueMaxNum = 50;
+
+	// 定位数据接收队列的最大长度
+	public final static int GpsInfoQueueMaxNum = 10000;
+
+	// 指令发送队列的最大长度
+	public final static int CommandSendQueueMaxNum =10000;
+	
+	//接受上级平台队列最大长度
+	public final static int UpPlatFormQueueMaxNum = 50;
+	
+	
+	//获取交换链路连接状态请求指令
+	public final static String COMMAND_7001="##seq,7001,0,LA==";
+	
+	
+	
+   //地图
+//	public final static String MAP_BASE_URL="http://e.gis.cttic.cn:9000";
+	public final static String MAP_BASE_URL="http://e.smartearth.cn:9000";
+	
+//	public final static String MAP_UID="e-trans1";
+	public final static String MAP_UID="e-trans";
+	
+	public final static String  MAP_OK="ok";
+	
+	public final static String  MAP_ERROR="error";
+	
+
+	
+	
+	
+	
+}

@@ -1,0 +1,106 @@
+var vehicleId='';
+$(function() {
+	var mainFrame = window.dialogArguments; // 接收Left页面传来的参数
+	vehicleId=$.query.get("vehicleId");//mainFrame[1];
+	getCommandResult();
+});
+
+function changeTerminalParams(){
+	var paramsId=$("#terminalParams").val();
+	var paramsName=	 $("#terminalParams").find("option:selected").text();
+	$("#paramsName").html(paramsName);
+	$("#paramsValue").val("");
+	
+}
+
+function addParams(){
+	var paramsName=$("#paramsName").html();
+	var paramsValue=$("#paramsValue").val();
+	var paramsId=$("#terminalParams").val();
+	if(paramsValue==""){
+		alert(paramsName+"值不能为空");
+		return ;
+	}
+	var tbody="";
+	tbody +="<tr class='odd'>"
+		+"<td align='left'>"+paramsId+"</td>"
+		+"<td align='left'>"+paramsName+"</td>"
+	    +"<td align='left'>"+paramsValue+"</td>";
+		tbody+="</tr>";
+	  $("#vechList").append(tbody);
+}
+
+function sendMessage(){
+	var params='';
+	var paramsCount=0;
+	  $("#vechList tr").each(function(){
+		  var paramsId = $(this).children("td:first").text();
+		  var paramsValue = $(this).children("td:eq(2)").text();
+		  if(paramsId!=''){
+			  if(params==""){
+				  params=params+paramsId+","+paramsValue;
+			  }else{
+				  params=params+";"+paramsId+","+paramsValue;
+			  }
+			  paramsCount++;
+		  }
+		    });
+	  params=paramsCount+";"+params;
+	     var commandName ="终端参数设置";
+		var commandId ="506";
+		var vehicleId= $.query.get('vehicleId');
+		var jsonParams = {
+			commandCode :"7103",
+			commandTarget : vehicleId,
+			paramMeassage : params,
+			commandName : commandName,
+			commandId   : commandId,
+			datetimes : new Date()
+		};
+		$.post("command/sendSpecialCommand.action", jsonParams, function(data) {
+				if (data== 'true') {
+						$("#result").html('发送成功!');
+				} else {
+					$("#result").html('发送失败!');
+				}
+			});
+		var paramsNameValue="";
+		//参数设置入库
+		 $("#vechList tr").each(function(){
+			  var paramsId = $(this).children("td:first").text();
+			  var paramName = $(this).children("td:eq(1)").text();
+			  var paramValue = $(this).children("td:eq(2)").text();
+			  if(paramsId!=''){
+				  if(paramsNameValue==""){
+						paramsNameValue=paramName+":"+paramValue;
+					}else{
+						paramsNameValue=paramsNameValue+"|"+paramName+":"+paramValue;
+					} 
+			  }
+			    });
+		 var  addParams = {
+					commandTarget : vehicleId,
+					paramsNameValue : paramsNameValue,
+					datetimes : new Date()
+				};
+		 $.post("command/addTerminalParam.action", addParams, function(data) {
+
+			});
+}
+
+//取结果
+function getCommandResult() {
+	var vehicleId= $.query.get('vehicleId');
+	var jsonParams = {
+		vehicleId : vehicleId,
+		datetimes : new Date().getTime()
+	};
+	$.post("command/findCommandResult.action", jsonParams, function(data) {
+	if (data != 'false' && data!='') {
+	     var resultObj = $("#result");
+	 	resultObj.html("回复结果："+data);
+	}
+	setTimeout('getCommandResult()', 5000);
+}	);
+}
+

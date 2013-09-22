@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 疲劳驾驶报警（交委） -->
+
+<select id="getDrivingDOTGZSJWSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (    
+			select * from (SELECT dra.ID as id 
+		      , dra.VehicleID
+		      , dra.AnalyseGroupID
+		      , PV.RegistrationNO
+		      , AG.name as AnalyseGroupName
+		      , dra.AnalyseID
+		      , dra.GenerateTime
+		      , dra.BeginTime
+		      , dra.EndTime
+		      , dra.DOTDuration
+		      , dra.DOTMileage
+		      , AG.groupid
+		      ,(case  when dra.DOTDuration >= 1.5 * ay.DrivingOverTime then '严重疲劳' else '一般疲劳' end) as TireType
+		  FROM ANA_DrivingDOTGZSJW  dra 
+		left outer join ANA_AnalyserDOTGZSJW ay on dra.AnalyseGroupID=ay.AnalyseGroupID
+		left outer join Pub_Vehicle PV on dra.VehicleID=PV.id 
+		LEFT OUTER JOIN ANA_AnalyseGroups AG ON dra.AnalyseGroupID=AG.id
+		left join on Ent_AnalyseGroupsIDAddUserID as au on dra.AnalyseGroupID=au.AnalyseGroupsID
+		WHERE  1=1) D  where 1=1
+<!-- 		<![CDATA[PV.isDeleted <> 1]]> -->
+		<isNotEmpty property="startDate">
+		    AND  d.BeginTime>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" >
+		     AND #endDate#>=d.EndTime
+        </isNotEmpty>
+        <isNotEmpty property="registrationNO" >
+			AND d.RegistrationNO like '%$registrationNO$%' 
+		</isNotEmpty>
+		<isNotEmpty property="workUnitId">
+			AND d.groupid = #workUnitId# 
+	     </isNotEmpty>
+	     <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+	      <!--轨迹分析组条件-->
+	      <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and d.AnalyseGroupID=#analyseGroupID#
+		  </isNotEqual>
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+ </select>
+ 
+ 
+ <select id="getDrivingDOTGZSJWCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+    select 
+	count(*)
+	from
+    ANA_DrivingDOTGZSJW  dra 
+	left outer join ANA_AnalyserDOTGZSJW ay on dra.AnalyseGroupID=ay.AnalyseGroupID
+	left outer join Pub_Vehicle PV on dra.VehicleID=PV.id 
+	LEFT OUTER JOIN ANA_AnalyseGroups AG ON dra.AnalyseGroupID=AG.id
+	left join on Ent_AnalyseGroupsIDAddUserID as au on dra.AnalyseGroupID=au.AnalyseGroupsID
+	WHERE  1=1
+<!-- 	<![CDATA[PV.isDeleted <> 1]]> -->
+	<isNotEmpty property="startDate">
+	    AND  dra.BeginTime>=#startDate#
+    </isNotEmpty>
+    <isNotEmpty property="endDate" >
+	     AND #endDate#>=dra.EndTime
+    </isNotEmpty>
+    <isNotEmpty property="registrationNO" >
+		AND PV.RegistrationNO like '%$registrationNO$%' 
+	</isNotEmpty>
+	<isNotEmpty property="workUnitId">
+		AND AG.groupid = #workUnitId# 
+     </isNotEmpty>
+     <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+     <!--轨迹分析组条件-->
+     <isNotEqual property="analyseGroupID" compareValue="-1">
+	    and dra.AnalyseGroupID=#analyseGroupID#
+  	 </isNotEqual>
+ </select>
+ 
+ 
+  
+
+  
+</sqlMap>

@@ -1,0 +1,230 @@
+/**    
+ * ReceivedMessage.java
+ * Create on 2010-8-16
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.io.BufferedReader;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64ThreadLocal;
+
+/**
+ * 指令返回结果处理
+ * 
+ * @author lihaiyan
+ * @author Pomelo(柚子.)
+ * @version 1.0
+ */
+public class ReceivedMessage implements Runnable,MscSocketListener {
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	/**
+	 * 车辆订阅指令结果接收队列
+	 */
+	private GpsInfoQueue gpsInfoQueue;  
+	/**
+	 * 业务数据接收队列
+	 */
+	private BusinessQueue businessQueue; 
+	/**
+	 * 指令回复数据接收队列
+	 */
+	private CommandResultQueue commandResultQueue; 
+	/**
+	 * 报警数据接收队列
+	 */
+	private AlarmQueue alarmQueue; 
+	/**
+	 * socket连接模板
+	 */
+	private SocketTemplate socketTemplate; 
+	/**
+	 * 是否可以工作标志
+	 */
+	public boolean isCanWorkFlag = true;
+	/**
+	 * 日志记录对象
+	 */
+	private final Log logger = LogFactory.getLog(ReceivedMessage.class.getName());
+	/**
+	 * 带缓存读取流
+	 */
+	private BufferedReader br = null;  
+	
+	/**
+	 * 记录接收服务端轨迹数据时间
+	 */
+	private long receiveTime = System.currentTimeMillis();
+	
+	/**
+	 * 报警数据接收队列
+	 */
+	private AffixationQueue affixationQueue;
+	
+	
+	/**
+	 * 接收信息构造
+	 * 
+	 * @param socketTemplate
+	 * @param gpsInfoQueue
+	 * @param businessQueue
+	 * @param commandResultQueue
+	 * @param alarmQueue
+	 * @param affixationQueue 附加信息接收队列
+	 */
+	public ReceivedMessage(SocketTemplate socketTemplate,
+			GpsInfoQueue gpsInfoQueue, BusinessQueue businessQueue,
+			CommandResultQueue commandResultQueue, AlarmQueue alarmQueue,
+			AffixationQueue affixationQueue) {
+		this.socketTemplate = socketTemplate;
+		this.gpsInfoQueue = gpsInfoQueue;
+		this.businessQueue = businessQueue;
+		this.commandResultQueue=commandResultQueue;
+		this.alarmQueue=alarmQueue;
+		this.affixationQueue = affixationQueue;
+		new Thread(new CheckNOOPThread()).start();
+	}
+	
+	/**
+	 * 停止接收信息处理工作
+	 * 
+	 * @return boolean true, stop is OK,false stop is failed
+	 */
+	@Override
+	public void stopWork() {
+		canWork(false);		
+		logger.error("---------停止接收来自MSC的数据---------");
+	}
+	
+	/**
+	 * 是否可以进行工作
+	 * 
+	 * @param workFlag boolean
+	 */
+	public void canWork(boolean workFlag){
+		isCanWorkFlag = workFlag;
+	}
+	
+	/**
+	 * 重新开始接收信息
+	 * 
+	 * @param socketTemplate SocketTemplate
+	 */
+	@Override
+	public void starWork(SocketTemplate socketTemplate) {
+		this.socketTemplate = socketTemplate;
+		br = this.socketTemplate.getReader();
+		logger.error("---------重新接收来自MSC的数据---------");
+	}
+	
+	/**
+	 * 接收信息线程运行方法
+	 * 
+	 * 主要负责接收来自Msc的数据
+	 */
+	public void run() {
+		logger.info("---------接收线程启动!---------");
+		br = this.socketTemplate.getReader();
+		String receivedMessage = null;
+		while (true) {
+			try {
+				if(isCanWorkFlag && socketTemplate.isLogin()){
+					if ((receivedMessage = br.readLine()) != null) {
+						MessageHandle(receivedMessage); 					
+					}
+				}else{
+					Thread.sleep(5);
+				}				
+			} catch (Exception e) {}
+		}
+	}
+
+	/**
+	 * 接收指令结果的消息处理
+	 * TDataType =(
+	 * scpt_00_UserLogonOK       = 0,  // 用户认证成功
+     * scpt_01_UserLogonError    = 1,  // 用户认证失败
+     * scpt_02_OtherConnect      = 2,  // 其他用户登录
+     * scpt_03_OtherData         = 3,  // 其他数据
+     * scpt_04_OtherBroken       = 4,  // 其他用户退出
+     * scpt_05_GpsData           = 5,  // 轨迹数据
+     * scpt_06_Operation         = 6,  // 业务数据
+     * scpt_07_TransmitResult    = 7,  // 发送回应信息
+     * scpt_08_SendResult        = 8,  // 指令回复
+     * scpt_09_CarList           = 9,  // 车辆列表信息
+     * scpt_10_ImageData         = 10, // 图像 、音频、视频数据
+     * scpt_11_GpsHistory        = 11, // 历史数据、缓存书架
+     * scpt_12_Alarm             = 12, // 报警数据
+     * scpt_13_Trans             = 13  // 数据透传
+     * scpt_14_Command           = 14, // 发送终端指令
+	 * scpt_15_Command           = 15, // 发送平台指令
+	 * scpt_16_Request	         = 16, //请求类型
+	 * scpt_17_TA_Alarm	         = 17, //轨迹分析报警
+	 * scpt_18_Attach            = 18, //附加信息
+     * )##NOOP
+	 * @throws Exception 
+	 */
+	public void MessageHandle(String receivedMessage) throws Exception {
+		try {
+			//logger.error("【Web直连】"+receivedMessage);
+			receiveTime = System.currentTimeMillis();
+			if(receivedMessage.contains(",5,")) { 
+				gpsInfoQueue.produce(receivedMessage);
+			}
+			else if(receivedMessage.contains(",12,")){
+				alarmQueue.produce(receivedMessage+","+System.currentTimeMillis());
+			}else if(receivedMessage.contains(",8,")||receivedMessage.contains(",10,")){
+				commandResultQueue.produce(receivedMessage);
+			}else if (receivedMessage.contains(",6,")||receivedMessage.contains(",13,")) { 
+				businessQueue.produce(receivedMessage.toString());
+			}else if(receivedMessage.contains(",18,")){ //附加信息
+				affixationQueue.produce(receivedMessage.toString());
+			}else if(receivedMessage.contains(",19,")){//压力测试用
+				
+			}
+		} catch (Exception e) {
+			 throw new Exception("接收指令返回结果失败");
+		}
+	}
+	
+	/**
+	 * 心跳线程
+	 * 
+	 * @author Administrator
+	 */
+	class CheckNOOPThread implements Runnable{
+		/**
+		 * 间隔时间
+		 */
+		long timeInterval = 0l;
+		
+		/**
+		 * 心跳线程启动方法
+		 */
+		public void run(){
+			while (true){
+				//每10秒发送一次心跳包
+				timeInterval = System.currentTimeMillis() - receiveTime;
+				/**
+				 * 如果10秒内未收到任何数据，则进行重连
+				 */
+				if(timeInterval>30000){
+					try {
+						logger.error("【Web直连】30秒内未收到任何数据，则进行重连");
+						socketTemplate.emergencyReload();
+					} catch (Exception e) {
+						logger.error("重连异常！[Web直连]"+e.getMessage());
+					}
+				}
+				try {
+					Thread.sleep(30000);
+				} catch (InterruptedException e) {
+					logger.error("心跳检测线程异常!"+e.getMessage());
+				}
+			}
+		}
+	}
+
+}

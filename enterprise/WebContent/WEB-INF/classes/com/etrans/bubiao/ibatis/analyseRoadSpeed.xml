@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <select id="findANA_AnalyserRoadSpeedSQL" resultClass="java.util.HashMap">
+  	   SELECT * FROM (
+						SELECT    ROW_NUMBER() OVER (
+					<dynamic prepend="order by">
+						<isNotNull property="sortname">
+				           $sortname$ $sortorder$
+			           </isNotNull>
+					</dynamic>		
+							) RowNo,A.* from (
+		      select 			
+				      T.ID as id			
+				      ,T.AnalyseGroupID  as analyseGroupID
+				      ,B.name as analyseGroupName
+				      ,T.Name as name
+		              ,(case T.IsAlert when '1' then '报警' else '只记录' end) as isAlert
+				      ,T.CheckTimeTypeID  as checkTimeTypeId
+					  ,C.Name as checkTimeTypeName
+				      ,T.CheckTimeValue as checkTimeValue
+				      ,CONVERT(varchar(10),T.CheckTimeBegin,24) as checkTimeBegin
+		              ,CONVERT(varchar(10),T.CheckTimeEnd,24) as checkTimeEnd
+					  ,T.roadSegmentID as roadSegmentID
+					  ,D.name as roadSegmentName
+					  ,(case T.isMoreThan when '1' then '低速检测' else '超速检测' end) as isMoreThan
+					  ,T.bounceSpeed as bounceSpeed 
+					  ,B.groupid as groupid
+					  ,au.UserID as UserID
+		        FROM   dbo.ANA_AnalyserRoadSpeed  T
+				left join dbo.ANA_AnalyseGroups B  on T.AnalyseGroupID=B.id
+				left join dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+                left join dbo.ANA_ParamRoadSegments D on T.roadSegmentID=D.id 
+                LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+                ) A where 1=1
+        
+        	<!--企业管理员权限-->
+			<isNotNull property="workUnitId">
+				AND A.groupid = #workUnitId# 
+			</isNotNull>
+			
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and A.UserID = #userId#
+			</isNotEmpty>
+        	
+			 <isNotNull property="name" >
+	           and A.Name like '%$name$%'
+	         </isNotNull>
+		)X
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				X.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+   </select>
+   
+   <select id="findANA_AnalyserRoadSpeedCountSQL" resultClass="java.lang.Long">
+      select count(1) 
+       FROM   dbo.ANA_AnalyserRoadSpeed  T
+				left join dbo.ANA_AnalyseGroups B  on T.AnalyseGroupID=B.id
+				left join dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+                left join dbo.ANA_ParamRoadSegments D on T.roadSegmentID=D.id 
+                LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+      where   T.Name like '%$name$%'
+      		<!--企业管理员权限-->
+			<isNotNull property="workUnitId">
+				AND B.groupid = #workUnitId# 
+			</isNotNull>
+			
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_AnalyserRoadSpeedByIdSQL"  resultClass="java.util.HashMap">
+      SELECT 
+	       a.id		
+	      ,a.analyseGroupID 
+	      ,a.name
+	      ,ltrim(rtrim(str(a.isAlert))) [isAlert]
+	      ,a.checkTimeTypeId
+	      ,a.checkTimeValue
+	      ,CONVERT(varchar(10),a.checkTimeBegin,24)  as [checkTimeBegin]
+          ,CONVERT(varchar(10),a.checkTimeEnd,24)  as  [checkTimeEnd]
+	      ,ltrim(rtrim(str(a.roadSegmentID))) [roadSegmentIDs]
+		  ,ltrim(rtrim(str(a.isMoreThan))) [isMoreThan]
+		  ,a.bounceSpeed
+		  ,b.name as roadSegmentID
+  FROM ANA_AnalyserRoadSpeed a 
+  left join dbo.ANA_ParamRoadSegments b 
+  on a.roadSegmentID=b.id 
+  where a.id=#id# 
+   </select>
+   
+   
+   
+   <!-- 插入路段速度报警数据 -->
+	<insert id="insertAnalyseRoadSpeedSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [ANA_AnalyserRoadSpeed]
+           (
+           analyseGroupID 
+	      ,name
+	      ,isAlert
+	      ,checkTimeTypeId
+	      ,checkTimeValue
+	      ,checkTimeBegin
+	      ,checkTimeEnd
+	      ,roadSegmentID
+		  ,isMoreThan
+		  ,bounceSpeed
+           )
+     VALUES
+           (
+           	#analyseGroupID#,
+           	#name#,
+           	#isAlert#,
+           	#checkTimeTypeId#,
+           	#checkTimeValue#,
+           	#checkTimeBegin#,
+           	#checkTimeEnd#,
+           	#roadSegmentID#,
+           	#isMoreThan#,
+           	#bounceSpeed#
+           )
+	</insert>
+	
+	 <!-- 插入道路数据 -->
+	<insert id="insertParamRoadSegmentsSQL" parameterClass="java.util.HashMap">
+	  INSERT INTO dbo.ANA_ParamRoadSegments
+           ([GroupID]
+           ,[Name]
+           ,[Longitude]
+           ,[Latitude]
+           ,[Description]
+           ,[AnalyseGroupID])
+     VALUES
+           (#GroupID#
+           ,#Name#
+           ,#Longitude#
+           ,#Latitude#
+           ,#Description#
+           ,#AnalyseGroupID#)
+	 <selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+	</selectKey>
+	</insert>
+	
+	 <!-- 插入道路明细数据 -->
+	<insert id="insertParamRoadSegmentDetailSQL" parameterClass="java.util.HashMap">
+	  INSERT INTO [dbo].[ANA_ParamRoadSegmentDetail]
+           ([RoadID]
+           ,[IndexNO]
+           ,[Longitude]
+           ,[Latitude])
+     VALUES
+           (#RoadID#
+           ,#IndexNO#
+           ,#Longitude#
+           ,#Latitude#)
+	<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+	</selectKey>
+	</insert>
+	
+	
+	
+  <!-- 同名检查 -->
+   <select id="checkANA_AnalyserRoadSpeedByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserRoadSpeed
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>'$id$']]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+   <select id="getRoadSegmentSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select mli.id as id,mli.Name as name,mlp.Sequence as Sequence,mlp.Longitude as Longitude ,mlp.Latitude as Latitude
+		from Pub_CustomMapLine as mli,Pub_CustomMapLinePoint AS mlp
+		where mlp.MapLineID=mli.ID and 1=1
+	      <dynamic>
+			<isNotNull property="id">
+				<isNotEmpty property="id" prepend="and">
+					mli.id = '$id$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+   </select>
+   
+   
+ </sqlMap>
+

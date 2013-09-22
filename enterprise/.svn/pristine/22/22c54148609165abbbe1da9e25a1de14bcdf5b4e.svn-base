@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--查询系统公告设置信息 -->
+ <select id="getSystemNoticeSetSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		  SELECT *
+  			FROM dbo.Ent_SysSet
+		<dynamic prepend="where 1=1">
+            <isNotEmpty property="title" >
+      		 and title like '%$title$%'
+            </isNotEmpty>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+
+<!--系统公告设置信息 总数量SQL	-->
+	<select id="getSystemNoticeSetCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+		(SELECT  *
+  			FROM dbo.Ent_SysSet
+  			) C where 1=1
+		<dynamic>
+		    
+		     <isNotNull property="title">
+				<isNotEmpty property="title" >
+					and title like '%$title$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            
+		</dynamic>
+	</select>
+	
+	<!-- 插入系统公告设置信息 数据 -->
+	<insert id="insertSystemNoticeSetSQL" parameterClass="java.util.HashMap">
+		INSERT INTO Ent_SysSet
+           (
+             [title],
+             [contents],
+             [releaseDate],
+             [isDefault]
+           )
+     VALUES
+           (
+           	#title#,
+           	#contents#,
+           	#releaseDate#,
+           	#isDefault#
+           )
+	</insert>
+	
+<!--根据ID查询系统公告设置信息 	-->
+    <select id="getSystemNoticeSetByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		 id,title,isDefault,contents
+  			FROM dbo.Ent_SysSet
+	   where 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				id = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改系统公告设置信息    -->
+     <update id="updateSystemNoticeSetSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE  Ent_SysSet
+		   SET [title] = '$title$',
+		   [contents] = '$contents$'
+		     
+		     
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除系统公告设置信息   -->
+     <delete id="deleteSystemNoticeSetSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM Ent_SysSet WHERE ID in ($id$)
+	</delete>
+	
+
+	
+	   
+<!-- 验证不能有相同的名称  -->
+     <select id="checkSystemNoticeSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,title  FROM Ent_SysSet where title='$title$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+
+<!-- 根据修改系统公告设置信息    -->
+     <update id="installSystemNoticeSQLAll"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE  Ent_SysSet
+		   SET [isDefault] = '0'
+	 
+   </update>
+   
+   <!-- 根据修改系统公告设置信息    -->
+     <update id="installSystemNoticeSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE  Ent_SysSet
+		   SET [isDefault] = '1'
+	      WHERE [ID] = '$id$' 
+   </update>	
+   
+   <!-- 系统公告主页面显示 -->
+      <select id="getSystemNoticePageSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	   select top 1
+ 		 id,title,isDefault,contents,releaseDate
+  			FROM dbo.Ent_SysSet
+	   where 1=1
+ 	 <dynamic>
+ 	   <isNotNull property="startDate" prepend="AND">
+				releaseDate>=cast(#startDate#  AS dateTime)
+	  </isNotNull>
+	  <isNotEmpty property="endDate" prepend="AND">
+	      	    cast(#endDate# AS dateTime)>=releaseDate
+	   </isNotEmpty>
+	   
+	    <isNotEmpty property="isDefault" prepend="AND">
+	      	   isDefault=#isDefault#
+	   </isNotEmpty>
+ 	</dynamic>
+ 	order by releaseDate   desc 
+    </select>
+    
+ <!--系统公告历史信息查询  -->
+     <parameterMap id="getSystemNoticeInfoParams" class="java.util.HashMap">
+		<parameter property="@IsSplitPage" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@StarRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@EndRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+	</parameterMap>
+	
+	<procedure id="getSystemNoticeHistorySQL" parameterMap="getSystemNoticeInfoParams" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_getSystemNoticeHistory(?,?,?)}
+	    ]]>
+	</procedure>
+	
+</sqlMap>

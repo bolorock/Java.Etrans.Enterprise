@@ -1,0 +1,126 @@
+var vehicleId='';
+var getResultVehicle;
+$(function() {
+	
+	var mainFrame = window.dialogArguments; // 接收Left页面传来的参数
+	vehicleId=$.query.get("vehicleId");//mainFrame[1];
+	// 取结果
+	getCommandResult();
+
+	// 读取区域
+        var reurl="command/getCommandAreaSel.action?shapeId=3";
+	
+        $("#area").bind('change', function(){
+        	getPoint();
+         });
+	$.ajax({
+		type : "POST",
+		dataType : "json",
+		url : reurl,
+		success : function(data) {
+		    var area = $("#area").get(0);
+	    	area.options.add(new Option("请选择区域","-1"));
+			$(data).each(function(i, n) {
+				area.options.add(new Option(n.name,n.val));
+			});
+		},
+		error : function(msg) {
+			alert("因网络不畅,数据加载未完成,请刷新页面!");
+		}
+	});
+});
+
+// 取点
+function getPoint() {
+	var  selectArea = $('#area').val();
+	if (selectArea != '-1') {
+		var tbody="";
+		$("#list tr:gt(0)").remove();
+		var lonLngArray=selectArea.split(";");//纬度,经度;纬度,经度
+		var lonlngCount=lonLngArray.length;
+		for(var i=0;i<lonLngArray.length;i++){
+			var lonLng=lonLngArray[i].split(",");//纬度,经度
+			tbody +="<tr class='odd'>"
+				+"<td align='left'>纬度"+(i+1)+"<input id='lon"+i+"' value='"+lonLng[0]+"'/></td>"
+				+"<td align='left'>经度"+(i+1)+"<input width='100' id='lng"+i+"' value='"+lonLng[1]+"'/></td>";
+				tbody+="</tr>";
+			
+		}
+		 $("#lonlngCount").val(lonlngCount);
+		 $("#list").append(tbody);
+	}
+}
+
+function sendMessage(){
+	var params='';
+	var params14="";
+	var lonlngCount= $("#lonlngCount").val();
+	for(var i=0;i<lonlngCount;i++){
+		 var lon=$("#lon"+i).val();
+		 var lng=$("#lng"+i).val();
+		  if(i==0){
+			  params14=lon+","+lng;
+		  }else{
+			  params14=params14+","+lon+","+lng;
+		  }
+	}
+	var param2=$("#param2").val();
+	if(param2==''){
+		param2="0";
+	}
+	var param3=$("#param3").val();
+	if(param3==''){
+		param3="0";
+	}
+	  params=$("#param1").val()+","+param2+","+param3+"," +$("#param4").val()+","+$("#param5").val()+","
+	            +$("#param6").val()+","+$("#param7").val()+","+$("#param8").val()+","+$("#param9").val()+","+$("#param10").val()+","
+	            +$("#param11").val()+","+$("#param12").val()+","+$("#param13").val()+","+params14;
+	    
+	     
+	    var commandName ="设置多边形区域";
+		var commandId ="379";
+		var aryCar = parent.parent.leftFrame.getSelectedCarList();
+		if(aryCar==null || aryCar.length==0){
+			alert("请选择车辆！");
+			return;
+		}
+		getResultVehicle = aryCar;
+		for(var i=0;i<aryCar.length;i++){
+			vehicleId= aryCar[i];
+			var jsonParams = {
+				commandCode :"8604",
+				commandTarget : vehicleId,
+				paramMeassage : params,
+				commandName : commandName,
+				commandId   : commandId,
+				datetimes : new Date()
+			};
+			$.post("command/sendSpecialCommand.action", jsonParams, function(data) {
+				if (data== 'true') {
+						$("#result").html('发送成功!');
+				} else {
+					$("#result").html('发送失败!');
+				}
+			});
+		}
+}
+
+
+//取结果
+function getCommandResult() {
+	if(getResultVehicle!=null && getResultVehicle.length>0){
+		for(var i=0;i<getResultVehicle.length;i++){
+			var vehicleId= getResultVehicle[i];
+	var jsonParams = {
+		vehicleId : "8604|"+vehicleId,
+		datetimes : new Date().getTime()
+	};
+	$.post("command/findCommandResult.action", jsonParams, function(data) {
+	if (data != 'false' && data!='') {
+	     var resultObj = $("#result");
+	 	resultObj.html("回复结果："+data);
+	}	
+}	);
+		}}
+	setTimeout('getCommandResult()', 5000);
+}

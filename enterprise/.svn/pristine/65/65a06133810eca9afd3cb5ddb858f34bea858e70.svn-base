@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <typeAlias alias="roles" type="com.etrans.bubiao.entities.Pub_UserGroup"/>
+  <!-- feltky 插入 -->
+  <insert id="addRoleFunction" parameterClass="java.util.HashMap">
+  		INSERT INTO [Ent_Role_Function]
+           ([RoleID]
+           ,[FunctionID]
+           ,[roleType])
+     	VALUES
+           (#RoleID#,#FunctionID#,#roleType#)
+  </insert>
+  <delete id="DelRoleFunction" parameterClass="java.util.HashMap">
+  		DELETE FROM Ent_Role_Function
+  			WHERE ID=#id#
+  </delete>
+   <delete id="DelRoleFunctionByRoleId" parameterClass="java.util.HashMap">
+  		DELETE FROM Ent_Role_Function
+  			WHERE RoleID=#id# and roleType=1
+  </delete>
+  
+     <delete id="DelRoleFunctionByRoleIdTA" parameterClass="java.util.HashMap">
+  		DELETE FROM Ent_Role_Function
+  			WHERE RoleID=#id#  and roleType=2
+  </delete>
+  <!-- 新增角色组 -->
+  <insert id="addRoles" parameterClass="roles">
+  		INSERT INTO Pub_UserGroup 
+           ([Name]
+           ,[Abbre]
+           ,[Status]
+           ,[InnerPurviewGroupID]
+           ,[UserID]
+           ,[CreateDate]
+           ,[IsUseDataPurview]
+           ,[PrivilegeLevelID]
+           ,[WorkUnitID])
+     	VALUES
+           (
+            #name#,
+            #abbre#,
+            #status#,
+            #innerPurviewGroupId#,
+            #userId#,
+            #createDate#,
+            #isUseDataPurview#,
+            #privilegeLevelId#,
+            #workUnitId#
+            )
+   </insert>
+   <!-- 更新角色组 -->
+  <update id="updateRoles" parameterClass="roles">
+  	UPDATE Pub_UserGroup 
+   		SET [Name] = #name#,
+   		 	[Abbre] = #abbre#,
+   			[WorkUnitID] = #workUnitId#,
+   			[Status] = #status#     			
+ 		WHERE ID=#id#
+  </update>
+  <!-- 删除角色 -->
+  <delete id="delRoles" parameterClass="roles">
+  		DELETE FROM [Pub_UserGroup] WHERE ID=#id#
+  </delete>
+  <!-- feltky end -->
+  <!-- 查询所有角色组  -->
+	<select id="findRoles" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (  
+		 select 
+		 r.ID
+        ,r.Name
+        ,r.Status
+        ,r.CreateDate
+        ,u.UserName as userName
+		from 
+		Pub_UserGroup r
+		LEFT OUTER JOIN
+		Pub_User u on r.UserID=u.id
+		where 1=1
+		<isNotNull property="workUnitId">
+		   	<isNotEmpty property="workUnitId">
+		        and  u.workunitid=#workUnitId#
+             </isNotEmpty>
+		</isNotNull>
+		<isNotNull property="userId">
+		   	<isNotEmpty property="userId">
+		        and  r.UserID=#userId#
+             </isNotEmpty>
+		</isNotNull>
+		<isNotNull property="name">
+		   	<isNotEmpty property="name">
+		        and  r.NAME like '%$name$%' 
+             </isNotEmpty>
+		</isNotNull>
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	   <!--
+		SELECT  
+			TOP <![CDATA[ $pageSize$ ]]> 
+				    R.*, U.NAME AS userName
+			FROM 
+				Pub_UserGroup R,Pub_User U
+			 
+			WHERE R.USERID = U.ID 
+					
+			  AND R.ID NOT IN 
+			  (
+			   SELECT TOP 
+			   	(($page$ -1 ) * $pageSize$)
+			      R.ID
+			    FROM  
+			        Pub_UserGroup R,Pub_User U
+			    WHERE 
+			     R.USERID = U.ID
+			         <isNotNull property="name" prepend="AND">
+								    R.NAME like '%$name$%' 
+					 </isNotNull>
+					 <isNotNull property="userId" prepend="AND">
+					 	R.USERID=#userId#
+					 </isNotNull>
+						ORDER BY $sortname$  $sortorder$
+				)
+			<isNotNull property="name" prepend="AND">
+			      R.NAME  like  '%$name$%'
+			 </isNotNull>
+			 
+			 <isNotNull property="userId" prepend="AND">
+			 	R.USERID=#userId#
+			 </isNotNull>
+			ORDER BY $sortname$  $sortorder$
+		-->
+		</select> 
+  
+  
+  
+	<!-- 查询所有角色组 个数  -->
+	<select id="findRolesCount" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		 SELECT  
+				count(*)
+			FROM 
+				Pub_UserGroup R  LEFT OUTER JOIN
+                Pub_User U on  R.USERID = U.ID 
+			WHERE   1=1
+			<isNotNull property="name">
+			     and  R.NAME  like  '%$name$%'
+			 </isNotNull>
+			 
+			 <isNotNull property="userId" >
+			 	and R.USERID=#userId#
+			 </isNotNull>
+			 
+		  <isNotNull property="workUnitId">
+		   	<isNotEmpty property="workUnitId">
+		        and  U.workunitid=#workUnitId#
+             </isNotEmpty>
+		   </isNotNull>
+		
+		
+		
+	</select> 
+	
+	
+	
+	<!-- 根据ID查找角色 -->
+	<select id="findRoleById" resultClass="roles">
+		 SELECT R.id,r.Name,r.Abbre,r.Status,r.innerPurviewGroupID,
+		 r.Userid,r.CreateDate,r.IsUseDataPurview,
+		 r.PrivilegeLevelId,r.workunitId,w.name as workunitName
+		FROM 
+		   Pub_UserGroup R
+	       left join Pub_WorkUnit w on R.workUnitId=w.id
+			WHERE 1=1  and
+		R.ID=#id#		
+	</select> 
+	
+	
+	<select id="getNsRoleByNameSQL" resultClass="java.util.HashMap">
+	     SELECT id,name FROM Pub_UserGroup r where 1=1
+	      <isNotNull property="name" >
+					 and r.Name = #name# 
+		  </isNotNull> 
+		  <isNotNull property="id" >
+	     		<isNotEmpty property="id" prepend="AND">
+	     			<![CDATA[r.id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+    </select>
+	
+	<select id="findRoleIdBuUserId" resultClass="HashMap">
+	  SELECT UR.RoleID FROM Ns_User_Role UR WHERE UserID=#userId#
+	</select>
+	
+	
+	<select id="findAllRoles" resultClass="HashMap">
+	  SELECT *  FROM Pub_UserGroup UR WHERE UR.Status=1
+	</select>
+	
+	 <!-- 配置角色权限 -->
+    <parameterMap id="assignRoleFunctionParam" class="java.util.HashMap"> 
+        <parameter property="@_roleId"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="@_funcIds"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+    </parameterMap> 
+    
+    <!-- 修改 -->
+    <procedure id="assignRoleFunctionProSQL" parameterMap="assignRoleFunctionParam" resultClass="java.util.HashMap"> 
+    <![CDATA[
+     {call Add_RoleFuncitonPro(?,?)}
+    ]]>
+    </procedure>	
+	
+	<!-- 管理员分配角色的权限功能 -->
+	<select id="configRoleFunctionAdSQL" resultClass = "java.util.HashMap">
+	SELECT topFunName,ltrim(rtrim(str(topFunId)))topFunId,ltrim(rtrim(str(topFunOrder)))topFunOrder, ltrim(rtrim(str
+
+(parentFuncId)))parentFuncId
+			,ltrim(rtrim(str(functionId)))functionId,parentFuncName,functionName,ltrim(rtrim(str(ordering)))
+
+ordering
+	
+	FROM (   
+	
+	SELECT 
+					(SELECT TOP 1 w.function_name FROM Ent_function_menu w WITH(nolock) WHERE 
+
+w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunName,
+					 (SELECT TOP 1 w.id FROM Ent_function_menu w WITH(nolock) WHERE w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunId,
+					 (SELECT TOP 1 w.ordering FROM Ent_function_menu w WITH(nolock) WHERE 
+
+w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunOrder,
+					m.parent_func_id as parentFuncId,
+					m.id  as functionId,
+				   	(SELECT r.function_name FROM Ent_function_menu r WITH(nolock) WHERE 
+
+r.ID=m.parent_func_id)  parentFuncName,
+					m.function_name as functionName,
+					m.ordering
+						
+			 FROM Ent_function_menu m WITH(nolock)
+			 WHERE m.parent_func_id<![CDATA[ <> ]]>'0' 
+			 and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 )data
+			 
+			  ORDER BY topFunOrder,ordering
+			  
+	</select>
+	
+	<!-- 普通用户分配角色的权限功能 -->
+	<select id="configRoleFunctionUserSQL" resultClass = "java.util.HashMap">
+	SELECT topFunName,ltrim(rtrim(str(topFunId)))topFunId,ltrim(rtrim(str(topFunOrder)))topFunOrder, ltrim(rtrim(str
+
+(parentFuncId)))parentFuncId
+			,ltrim(rtrim(str(functionId)))functionId,parentFuncName,functionName,ltrim(rtrim(str(ordering)))
+
+ordering
+			
+	FROM (   
+	SELECT 
+					(SELECT TOP 1 w.function_name FROM Ent_function_menu w WITH(nolock) WHERE 
+
+w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunName,
+					 (SELECT TOP 1 w.id FROM Ent_function_menu w WITH(nolock) WHERE w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunId,
+					 (SELECT TOP 1 w.ordering FROM Ent_function_menu w WITH(nolock) WHERE 
+
+w.function_code
+					 	in (select distinct(substring(m.function_code,0,charindex
+
+(',',m.function_code,0))))
+					 )  topFunOrder,
+					m.parent_func_id as parentFuncId,
+					m.id  as functionId,
+				   	(SELECT r.function_name FROM Ent_function_menu r WITH(nolock) WHERE 
+
+r.ID=m.parent_func_id)  parentFuncName,
+					m.function_name as functionName,
+					m.ordering
+						
+			 FROM Ent_function_menu m WITH(nolock)
+			 
+			 WHERE m.parent_func_id<![CDATA[ <> ]]>'0' 
+			 	and m.STATE = 'ENABLED' AND m.function_type='RESOURCE'  AND m.state = 'ENABLED'
+			 	and exists(SELECT 1 FROM Pub_SysFunctionPurview nr WHERE  m.id=nr.SysFunctionID and 
+
+UserGroupID in (SELECT roleId FROM Ns_User_Role nu WHERE UserID=#userId#))
+			 )data
+			  ORDER BY topFunOrder,ordering
+			  
+	</select>
+	
+	<select id="findFunctionByRoleIdSQL" resultClass = "java.util.HashMap">
+	 	SELECT ltrim(rtrim(str(UserGroupID))) roleId,ltrim(rtrim(str(SysFunctionID))) id FROM Pub_SysFunctionPurview 
+
+WHERE UserGroupID=#roleId#
+	</select>
+	
+	<select id="getRolesAssign" resultClass="java.util.HashMap">
+		SELECT 
+			DISTINCT pu.*,
+			ug.UserID AS roleHas 
+		FROM Pub_UserGroup pu 
+		LEFT JOIN (
+			SELECT * FROM Pub_UserAndGroup t WHERE t.userid=#userId#
+		) ug on pu.id=ug.usergroupid 
+		WHERE 
+		1=1 and 
+		pu.workunitid=(SELECT workunitid FROM pub_user t WHERE id=#userId#)
+	</select>
+	<insert id="addUserRole" parameterClass="java.util.HashMap">
+		INSERT INTO Pub_UserAndGroup(USERID,USERGROUPID) VALUES (#userId#,#usergroupId#)
+	</insert>
+	<delete id="delUserRole" parameterClass="java.util.HashMap">
+		delete from Pub_UserAndGroup where userid=#id#
+	</delete>
+
+	<sql id="3level">
+		SELECT a.parent_func_id FROM  Ent_Function_Menu a,
+			(
+			SELECT d.parent_func_id FROM 
+				Ent_Role_Function b, 
+				Pub_UserAndGroup c ,
+				Ent_Function_Menu d 
+			WHERE b.RoleID = c.UserGroupID AND
+				b.FunctionID=d.ID AND 
+				c.UserId=#UserId#
+			  ) b
+		WHERE a.ID = b.parent_func_id
+	</sql>
+	<sql id="2level">
+		SELECT d.parent_func_id FROM 
+			Ent_Role_Function b, 
+			Pub_UserAndGroup c ,
+			Ent_Function_Menu d 
+		WHERE b.RoleID = c.UserGroupID AND
+			b.FunctionID=d.ID AND 
+			c.UserId=#UserId#
+	</sql>
+	<sql id="1level">
+		SELECT d.id AS parent_func_id FROM 
+			Ent_Role_Function b, 
+			Pub_UserAndGroup c ,
+			Ent_Function_Menu d 
+		WHERE b.RoleID = c.UserGroupID AND
+			b.FunctionID=d.ID AND 
+			c.UserId=#UserId#
+	</sql>	
+	<!-- 角色管理3个树形菜单Star 单独处理 -->
+	   <!--根据父菜单查找子菜单-->
+	<select id="findMenusByParent_Role" resultClass="HashMap"  parameterClass="hashMap" >
+		select * from (SELECT  * FROM (
+			SELECT 
+				m.ID ,
+				m.function_name as functionName,
+				m.function_code as functionCode,
+				m.function_level functionLevel ,
+				m.function_img as functionImg,
+				m.assembly_name as assemblyName ,
+				m.function_type as functionType ,
+				m.ordering  as ordering ,
+				m.state as state,
+				m.remark,
+				m.parent_func_id as parentFuncId 	 	
+			FROM  Ent_Function_Menu m   where m.parent_func_id=#parentFuncId#) m LEFT JOIN 
+			(SELECT FunctionID AS checkedId FROM Ent_Role_Function e WHERE e.RoleID=#roleId#) r
+			ON r.checkedId=m.ID
+			) t where 1=1  and id!=262 and t.state='ENABLED'
+			<dynamic>
+				<isNotNull prepend="and" property="UserId">
+					t.ID in(
+						SELECT 	 DISTINCT t.parent_func_id FROM (
+					<include refid="3level"/>
+					UNION
+					<include refid="2level"/>
+					UNION
+					<include refid="1level"/>
+				) t)
+				</isNotNull>
+			</dynamic>
+			ORDER BY ORDERING
+	</select>
+	
+	<sql id="getWorkunitTerminalKind">
+		select distinct CommandKindID from dbo.Pub_Command where TerminalKindId in 
+		(
+			select 
+				distinct b.terminalKindID 
+			from 
+				pub_vehicle a,
+				pub_terminal b 
+			where 
+				a.TerminalID=b.id and 
+				a.workUnitID = #workUnitId# 
+		)
+	</sql>
+	
+	<select id="getOneCommandMenu" resultClass="java.util.HashMap">
+		SELECT * FROM (
+			SELECT a.catalog ID,a.catalog functionName FROM Pub_CommandKind a,(<include refid="getWorkunitTerminalKind"/>) b where a.id = b.CommandKindID GROUP BY a.catalog) t
+		 WHERE 1=1
+		<dynamic>
+				<isNotNull prepend="and" property="UserId">
+					ID IN(
+						SELECT d.catalog FROM 
+							Pub_CommandPurview b, 
+							Pub_UserAndGroup c ,
+							Pub_CommandKind d 
+						WHERE b.UserGroupID = c.UserGroupID AND
+							b.CommandKindID=d.ID AND 
+							c.UserId=#UserId#
+					)
+				</isNotNull>
+			</dynamic>
+	</select>
+	<select id="getTwoCommandMenu" resultClass="java.util.HashMap">
+		SELECT * FROM (
+			SELECT * FROM (
+				SELECT 
+					str(t.ID) ID,catalog,
+					t.name as functionName 
+				FROM Pub_CommandKind t ,(<include refid="getWorkunitTerminalKind"/>) b WHERE t.catalog = #catalog# and t.id = b.CommandKindID) cd 
+					left join
+				(SELECT CommandKindID AS checkedId FROM Pub_CommandPurview WHERE UserGroupID=#roleId#) cp 
+				ON cp.checkedId=cd.id
+			) t  WHERE 1=1
+			<dynamic>
+				<isNotNull prepend="and" property="UserId">
+					ID IN(
+						SELECT d.ID FROM 
+							Pub_CommandPurview b, 
+							Pub_UserAndGroup c ,
+							Pub_CommandKind d 
+						WHERE b.UserGroupID = c.UserGroupID AND
+							b.CommandKindID=d.ID AND 
+							c.UserId=#UserId#
+					)
+				</isNotNull>
+			</dynamic>
+	</select>
+	<select id="getRoleVehicleGroupId" resultClass="java.util.HashMap">
+		SELECT d.ID FROM 
+						Pub_VehicleGroupPurview b, 
+						Pub_UserAndGroup c ,
+						pub_vehiclegroup d 
+					WHERE b.UserGroupID = c.UserGroupID AND
+						b.VehicleGroupID=d.ID AND 
+						c.UserId=#UserId#
+	</select>
+	<select id="getRoleVehicleGroupParentId" resultClass="java.util.HashMap">
+		SELECT parentGroupID,ID FROM pub_vehiclegroup t WHERE t.id=#id#;
+	</select>
+	<sql id="SelectGroupAndWorkUnit_Role">
+		 	SELECT * FROM (
+				SELECT wu.name as workUnitName, 
+					CASE vg.ParentGroupID
+						WHEN 0 then vg.WorkUnitID
+						ELSE vg.ParentGroupID
+					END as parentID,
+				vg.*  FROM     Pub_WorkUnit wu 
+				      LEFT JOIN Pub_VehicleGroup vg on 
+				vg.WorkUnitID = wu.ID		
+					    ) 
+				T WHERE 1=1
+	</sql>	
+	<select id="getTreeVehicleGroup_Role" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+			select *from (SELECT * FROM (<include refid="SelectGroupAndWorkUnit_Role"/>  
+			<dynamic>
+				<!--去掉基本组ljy-->
+				and T.Kind != 0
+				<isNotNull prepend="and" property="id">
+					T.parentID=#id#  
+				</isNotNull>
+				<isNotNull  prepend="and" property="nodeId">
+					T.ID=#nodeId#  
+				</isNotNull>
+			</dynamic>
+			) t LEFT JOIN (
+				SELECT 
+					VehicleGroupID AS checkedId 
+				FROM Pub_VehicleGroupPurview 
+					WHERE UserGroupID=#roleId#) 
+				vg ON t.id=vg.checkedId
+				) t where 1=1
+				<dynamic>
+					<isNotNull prepend="and" property="UserId">
+					t.id  IN <iterate property="groupId" open="(" close=")" conjunction=",">#groupId[]
+
+#</iterate>
+						</isNotNull>
+				</dynamic>
+	</select>	
+	
+	  <!-- 查询所有企业信息  -->
+  <select id="getAllWorkUnit_Role" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+  	  	SELECT 
+		  	   [ID]
+		      ,(case when datalength(shortName)>0 then shortName else name end) as shortName
+		      ,[code]
+		      ,[Name]
+		      ,[createDatetime]
+		      ,[createUserId]
+		      ,[modifyDatetime]
+		      ,[modifyUserId]
+		      ,[fullId]
+		      ,[isLeaf]
+		      ,[level]
+		      ,[organizationKindId]
+		      ,[tradeKindId]
+		      ,[linkMan]
+		      ,[phoneNo]
+		      ,[backupPhoneNo]
+		      ,[address]
+		      ,[postCode]
+		      ,[regAddress]
+		      ,[adminUserId]
+		      ,[isDeleted]
+		      ,[artificialPerson]
+		      ,[licenseNo]
+		      ,[licenseOrgan]
+		      ,[areaId]
+		      ,[vehicleSum]
+		      ,[businessScope]
+		      ,[memo]
+  		FROM  Pub_WorkUnit wu
+  			WHERE wu.IsDeleted!=1 and wu.id=(SELECT  workUnitid FROM Pub_UserGroup t WHERE id=#roleId# )
+ 
+  </select> 
+	<!-- 角色管理3个树形菜单End 单独处理 -->
+</sqlMap>

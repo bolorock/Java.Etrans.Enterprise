@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+<!--里程统计-->
+	<parameterMap id="mileageParams" class="java.util.HashMap">
+        <parameter property="@year" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@month" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@day" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@week" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@vehicle_list" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+        <parameter property="@toRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@fromRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@registrationNo" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@workunitid" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@workUnitName" mode="IN" jdbcType="varchar(500)" javaType="java.lang.String"/>
+        <parameter property="@SortName" mode="IN" jdbcType="varchar(50)" javaType="java.lang.String"/>
+        <parameter property="@SortOrder" mode="IN" jdbcType="varchar(50)" javaType="java.lang.String"/> 
+        <parameter property="@IsExport" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@VehicleIds" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+    </parameterMap>
+       
+       
+      <procedure id="getMileageInfoSQL" parameterMap="mileageParams" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetMileageData(?,?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+</sqlMap>
+

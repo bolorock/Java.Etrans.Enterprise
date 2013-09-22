@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 进出站点报警设置 -->
+  <select id="findInOutPolySQL" resultClass="java.util.HashMap">
+  	 	select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+       SELECT ao.ID as id
+      ,ao.AnalyseGroupID
+      ,ayp.Name as AnalyseGroupName
+      ,ao.Name
+      ,(case ao.IsAlert when '1' then '报警' else '只记录' end) as IsAlert
+      ,ao.CheckTimeTypeID
+      ,C.Name as checkTimeTypeName
+      ,ao.CheckTimeValue
+      ,CONVERT(varchar(10),ao.CheckTimeBegin,24) as CheckTimeBegin
+	  ,CONVERT(varchar(10),ao.CheckTimeEnd,24) as CheckTimeEnd
+      ,ao.PlaceTypeID
+      ,py.name as PlaceName
+      ,ao.BounceDistance
+      ,ao.BounceTime
+  FROM  [ANA_AnalyserInOutPlaceReport] ao
+		left join ANA_BasePlaceTypes py on ao.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on ao.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on ao.CheckTimeTypeID=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1
+            <isNotEmpty property="name">
+      			 and ao.Name like '%$name$%'
+            </isNotEmpty>
+            <!--企业管理员权限-->
+            <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			 <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+   </select>
+   
+   <select id="getInOutPolyCountSQL" resultClass="java.lang.Long">
+      select COUNT(*) from
+                 ANA_AnalyserInOutPlaceReport ao
+		left join ANA_BasePlaceTypes py on ao.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on ao.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on ao.CheckTimeTypeID=C.id
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+		where 1=1
+             <isNotEmpty property="name">
+      			 and ao.Name like '%$name$%'
+             </isNotEmpty>
+             <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 	and au.UserID = #userId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getInOutPolyByIdSQL"  resultClass="java.util.HashMap">
+       SELECT ao.ID as id
+      ,ao.analyseGroupID
+      ,ayp.Name as analyseGroupName
+      ,ao.name
+      ,ltrim(rtrim(str(ao.IsAlert))) isAlert
+      ,ao.checkTimeTypeID
+      ,ao.checkTimeValue
+      ,CONVERT(varchar(10),ao.checkTimeBegin,24) as checkTimeBegin
+	  ,CONVERT(varchar(10),ao.checkTimeEnd,24) as checkTimeEnd
+      ,ao.placeTypeID
+      ,ao.bounceDistance
+      ,ao.bounceTime
+      ,py.name as placeName
+  FROM  [ANA_AnalyserInOutPlaceReport] ao
+		left join ANA_BasePlaceTypes py on ao.PlaceTypeID=py.id
+		left join ANA_AnalyseGroups ayp on ao.AnalyseGroupID=ayp.id
+		LEFT JOIN ANA_BaseCheckTimeTypes C on ao.CheckTimeTypeID=C.id
+       where  ao.ID=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkInOutPolyByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserInOutPlaceReport
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+   <select id="getPointNamesSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+         select CM.id,CM.name,CM.longitude,CM.latitude from Pub_CustomMapPoint CM, Pub_CustomMapLayer PM
+         where CM.MapLayerID=PM.ID
+         <isNotNull property="areaId" >
+          and  CM.id = #areaId#
+         </isNotNull>
+    </select>
+    
+    <insert id="insertParamPlacesSQL" parameterClass="java.util.HashMap"> 
+    INSERT INTO [ANA_ParamPlaces]
+           ([GroupID]
+           ,[TypeID]
+           ,[Name]
+           ,[Longitude]
+           ,[Latitude]
+           ,[AutoTime]
+           ,[Description])
+          VALUES
+          (
+           	#groupID#,
+           	#typeID#,
+           	#name#,
+           	#longitude#,
+           	#latitude#,
+           	#autoTime#,
+           	#description#
+           )
+	</insert>  
+	
+ 
+	  <insert id="insertBasePlaceTypesSQL" parameterClass="com.etrans.bubiao.entities.ANABasePlaceTypes"> 
+			<selectKey resultClass="Long" keyProperty="id">     
+			
+					<![CDATA[
+				INSERT INTO [ANA_BasePlaceTypes]
+			           ([GroupID]
+			           ,[Name]
+			           ,[Description])
+		          VALUES
+		          (
+		           	#groupID#,
+		           	#name#,
+		           	#description#
+		           )
+			        SELECT SCOPE_IDENTITY() AS ID ]]>    
+					</selectKey>    
+	
+	  </insert>  
+
+	
+	<insert id="insertInOutPolySQL" parameterClass="java.util.HashMap">
+	  INSERT INTO [ANA_AnalyserInOutPlaceReport]
+		           ([AnalyseGroupID]
+		           ,[Name]
+		           ,[IsAlert]
+		           ,[CheckTimeTypeID]
+		           ,[CheckTimeValue]
+		           ,[CheckTimeBegin]
+		           ,[CheckTimeEnd]
+		           ,[PlaceTypeID]
+		           ,[BounceDistance]
+		           ,[BounceTime])
+	     VALUES
+		           (
+		           	#analyseGroupID#,
+		           	#name#,
+		           	#isAlert#,
+		           	#checkTimeTypeID#,
+		           	#checkTimeValue#,
+		           	#checkTimeBegin#,
+		           	#checkTimeEnd#,
+		           	#placeTypeID#,
+		           	#bounceDistance#,
+		           	#bounceTime#
+		            )
+	</insert>
+	
+	
+	
+	
+	
+	     <update id="updateInOutPolySQL"  parameterClass="java.util.HashMap"> 
+		     UPDATE [ANA_AnalyserInOutPlaceReport]
+		         SET [AnalyseGroupID] = '$analyseGroupID$'
+				      ,[Name] = '$name$'
+				      ,[IsAlert] ='$isAlert$'
+				      ,[CheckTimeTypeID] = '$checkTimeTypeID$'
+				      ,[CheckTimeValue] = '$checkTimeValue$'
+				      ,[CheckTimeBegin] = '$checkTimeBegin$'
+				      ,[CheckTimeEnd] = '$checkTimeEnd$'
+				      ,[BounceDistance] ='$bounceDistance$'
+				      ,[BounceTime] = '$bounceTime$'
+				       WHERE [ID] = '$id$' 
+         </update>
+         
+         
+
+ 
+	<!--删除-->
+    <delete id="delInOutPolySQL" parameterClass="java.util.HashMap">
+    	DELETE FROM ANA_AnalyserInOutPlaceReport WHERE  ID in ($id$)
+    </delete>
+
+ </sqlMap>

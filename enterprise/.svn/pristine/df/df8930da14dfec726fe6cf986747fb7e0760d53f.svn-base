@@ -1,0 +1,375 @@
+
+var time; // 定时器
+var mainFrame;// Left 页面参数
+var vehicleList;// 要处理的车辆列表
+$(function(){
+	$("#alarmType").html(source1+source10_all);
+	   // 实时报警和历史报警选项卡
+	  // 初始化数据
+	    initTableDate();
+	    mainFrame = $.query.get("mainFrame");//window.dialogArguments; // 接收Left页面传来的参数
+	 	/**
+	    * 全选、反选
+	    */
+	   $("#ckAll").click(function(){
+		   var str =$("#ckAll").attr("checked");
+		   if(!$("#ckAll").attr("checked")){
+			   $(":checkbox").removeAttr("checked");
+		   }else{
+			   $(":checkbox").attr("checked",$("#ckAll").attr("checked"));
+		   }
+	   });
+	   
+
+	    /**
+	     * 显示车辆
+	     */
+	    $("#btnShowVehicle").click(function(){
+	    	//openVehicleInfo("13290007524");
+	    	showVehicle();
+	    	
+	    });
+	      $("#btnSearch").click(function(){
+	    	//openVehicleInfo("13290007524");
+	    	initTableDate();
+	    	
+	    });
+	
+	    
+	    /**
+	     * 自动刷新或者手动刷新
+	     */
+	    $("#btnRefresh").click(function(){
+	    	
+	    	
+	    	//1 为自动，0 为手动
+	    	var tag = $(this).attr("tag");
+	    	
+	    	if(tag =="0")
+	    	{
+	    		$(this).val("自动刷新");
+	    		$(this).attr("tag",1);
+	    		clearTimeout(time);
+	    	}
+	    	else
+	    	{
+	    		$(this).val("手动刷新");
+	    		$(this).attr("tag",0);
+	    		time =setTimeout("initTableDate()", 10000);
+	    	}
+	    	
+	    });
+	  
+	    
+	    $("#btnAlarmTodoInfo").click(function(){
+	    	var cks = $(".ck:checked");
+	    	if(cks.length==0)
+	    	{
+	    		$.messager.alert('提示信息','请至少选择一条报警信息！','info'); 
+	    		return;
+	    	}
+	    		$("#shanbaoResult").html("");
+	    	showDiaoLog("todoDialog");
+	    	
+	    });
+	    
+	    
+	 	//初始化验证插件
+		$("#addForm").validation();
+});
+
+
+/**
+ * 显示车辆
+ * @return
+ */
+function showVehicle()
+{
+		//定位到group.jsp页面对象
+		var mapFrame=parent.mainIndexFrame.window.mainFrame.mapFrame;
+		
+	if(mapFrame==undefined){
+		$.messager.alert('提示信息','需要在地图上显示报警地点请先跳转到\"车辆监控\"页面再执行操作！','info'); 
+		return;
+	}
+	var cks = $(".ck:checked");
+	
+	if(cks.length==0)
+	{
+		$.messager.alert('提示信息','请选择一行数据！','info'); 
+		return ;
+	}
+	
+	if(cks.length > 1)
+	{
+		$.messager.alert('提示信息','只能选择一行数据！','info');
+		return ;
+	}
+	$(cks).each(function(i,n){
+		
+		var longitude =$(this).attr("longitude");//116.39885
+		var latitude =$(this).attr("latitude");//39.96571
+		//alert("精度："+longitude+" 纬度："+latitude);
+		//longitude="116.39885";
+		//latitude="39.96571";
+		var registrationNo=$(this).attr("registrationNo");
+		var alarmTime=$(this).attr("alarmTime");
+		var alarmName=$(this).attr("alarmName");
+		mapFrame.AlertGif(longitude,latitude,registrationNo,alarmTime,alarmName);
+		parent.closeDialog();
+	});
+	//}catch(e){
+			//$.messager.alert('提示信息','请先跳转到车辆监控！','info'); 
+	//}
+
+
+}
+
+/**
+ * 跟踪车辆
+ * @return
+ */
+function flowVehicle(vehicleId)
+{
+		//定位到group.jsp页面对象
+		var mapFrame=parent.mainIndexFrame.window.mainFrame.mapFrame;
+		
+		if(mapFrame==undefined){
+			$.messager.alert('提示信息','需要跟踪车辆请先跳转到\"车辆监控\"页面再执行操作！','info'); 
+			return;
+		}
+		mapFrame.addCallGps(vehicleId);
+		parent.closeDialog();
+}
+
+
+
+/**
+ * CheckBox事件
+ * @return
+ */
+function ck()
+{
+	
+	 if($(".ck:checked").length==$(".ck").length)
+	  {
+	  	$("#ckAll").attr("checked",true);
+	  }
+	 else
+	  {
+	   $("#ckAll").attr("checked",false);
+	  }
+}
+var source0='<option value="-1">全部报警</option>';
+var source1='<option value="-1">全部报警</option><option value="1">紧急报警</option><option value="2">超速报警</option><option value="3">疲劳驾驶报警</option>	<option value="4">预警</option>'+
+			'<option value="5">GNSS模块发生故障</option><option value="6">GNSS天线未接或被剪断</option><option value="7">GNSS天线短路</option>'+
+			'<option value="8">终端主电源欠压</option><option value="9">终端主电源掉电</option><option value="10">终端LCD或显示器故障</option>'+
+			'<option value="11">TTS模块故障</option><option value="12">摄像头故障</option><option value="13">当天累计驾驶超时</option>'+
+			'<option value="14">超时停车</option><option value="15">进出区域</option><option value="16">进出路线</option><option value="17">路段行驶时间不足/过长</option>'+
+			'<option value="18">路线偏离报警</option><option value="19">车辆VSS故障</option><option value="20">车辆油量异常</option>'+
+			'<option value="21">车辆被盗</option><option value="22">车辆非法点火</option><option value="23">车辆非法位移</option><option value="24">碰撞侧翻报警</option>';
+var source10='<option value="-1">全部报警</option><option value="315">超速报警</option><option value="316">疲劳驾驶报警</option><option value="317">地点超时停车报警</option><option value="318">进出地点报警</option><option value="319">进出区域报警</option><option value="320">路段偏离报警</option>';
+var source10_all='<option value="315">超速报警(平台)</option><option value="316">疲劳驾驶报警(平台)</option><option value="317">地点超时停车报警(平台)</option><option value="318">进出地点报警(平台)</option><option value="319">进出区域报警(平台)</option><option value="320">路段偏离报警(平台)</option>';
+function updateAlarmType(){
+	var alarmSourceNo = $("#alarmSource").val();
+	if(alarmSourceNo==1){//终端
+		$("#alarmType").html(source1);
+	}else if(alarmSourceNo==10){//平台
+		$("#alarmType").html(source10);
+	}else if(alarmSourceNo==9){//其他 
+		$("#alarmType").html(source0);
+	}else{//全部来源
+		$("#alarmType").html(source1+source10_all);
+	}
+	initTableDate();
+}
+function initTableDate()
+{
+	//最近半小时报警
+	var alarmType=$("#alarmType").val();
+	var registrationNo=$("#registrationNo").val();
+	var alarmSourceNo = $("#alarmSource").val();
+	//alert(alarmSourceNo);
+	registrationNo=lrtrim(registrationNo);
+	var tbody="";
+	$.ajax({
+		url:"monitorCenter/findRealTimeAlarms.action",
+		type:"POST",
+		dataType:"json",
+		data:{"alarmType":alarmType,"registrationNo":registrationNo,"alarmSourceNo":alarmSourceNo},
+		success:function(data){
+		$("#alarmList tr:gt(0)").remove();
+		$(data).each(function(i,n){
+			try{
+				var desc=n.desc;
+				// 是否平台报警
+				if(n.alarmTypeId==10){
+					desc="报警时间："+n.alarmTime+","+n.desc;
+				}else{
+					desc="报警时间："+n.alarmTime;
+				}
+			//+"<td align='left'>"+n.alarmName+"</td>" 【ljy修改，修改时间2013-5-14】
+			tbody +="<tr>"
+				+"<td> <input type='checkbox' startTime='"+n.startTime+"'beginTime='"+n.beginTime+"' ' registrationNo='"+n.registrationNo+"'  alarmInfoId='"+n.alarmInfoId+"' longitude='"+n.longitude+"' latitude='"+n.latitude+"' vehicleId='"+n.vehicleId+"' alarmTime='"+n.alarmTime+"' alarmName='"+n.alarmName+"' alarmTypeId='"+n.alarmTypeId+"'   class='ck' onclick='ck()' /> </td>"
+				+"<td><a href='javascript:void(0)' onclick='openVehicleInfo(\""+n.vehicleId+"\")'>"+n.registrationNo+"</a></td>"
+				+"<td>"+n.registrationColor+"</td>"
+				+"<td>"+n.receveTime+"</td>"
+				+"<td>"+n.alarmName+"</td>"
+				+"<td>"+n.sourceStr+"</td>"
+				+"<td>"+desc+"</td>"
+				+"<td><div id='address"+n.alarmInfoId+"'><a href='javascript:void(0)' onclick='showAddress("+n.alarmInfoId+","+n.longitude+","+n.latitude+ ")'>显示位置</a></div></td>"
+				+"<td><a href='javascript:void(0)' onclick='flowVehicle("+n.vehicleId+ ")'>跟踪车辆</a></td>"
+				+"</tr>";
+			}catch(e){
+				alert(e);
+			}
+		});
+		$("#alarmList").append(tbody);
+		$("#alarmList tr:odd").addClass("odd");
+		$("#alarmList tr:even").addClass("even");
+	   }
+		
+	});
+	 time =setTimeout("initTableDate()", 10000);
+	 //time =setTimeout("initTableDate()", 50000);
+
+}
+
+function openVehicleInfo(vehicleId){
+		$.ajax({
+		url:"monitorCenter/getAlarmVehicleInfo.action",
+		type:"POST",
+		dataType:"json",
+		data:{"vehicleId":vehicleId},
+		success:function(data){
+			   if(data!=''){
+			   	  $("#rNo").html(data.registrationNO);
+			   	  $("#standType").html(data.standType);
+			   	  $("#phoneNo").html(data.phoneNo);
+			   	  $("#typeName").html(data.typeName);
+			   	  $("#rnoColor").html(data.registrationNOColor);
+			   	  $("#platformName").html(data.platformName);
+			   	  $("#areaName").html(data.areaName);
+			   	  $("#workUnitName").html(data.workUnitName);
+			   	  $("#transportPermits").html(data.transportPermits);
+			   	  $("#terminalName").html(data.terminalName);
+			   }
+		}
+	
+	});
+		showDiaoLogs("vehicleInfoDialog");
+}
+
+//显示中文地址
+function showAddress(id,lng,lat){
+	$('#address'+id).html( "正在加载报警地点");
+	 var param={
+    		 date:new Date(),
+             lnglat:lng+","+lat
+	 };
+     $.post("monitorCenter/getAddressRepeat.action", param, function(back) {
+        var data=back;//back.responseXML;
+        try{
+        	if(data.status=="ok"){
+				$("#address" + id).html(data.result.address);
+			}else{
+				$("#address" + id).html(data.result.error);
+			}
+        }catch(e){
+        	$("#address" + id).html("网络错误,请稍后再试");
+        }
+	     
+	},"json");	
+ 
+}
+ 
+function shangbao()
+{
+
+//‘##seq,7006,cmdseq,base64(800,1232,……)’
+//	800,1224,123456,1
+//	（解释：
+//	终端通讯类型：800
+//	车辆ID：1224
+//	报警信息ID：123456
+//	报警处理结果：已处理完毕
+//	)
+	var result = $("#paramDuban").val();
+	var content= $("#paramDuban").find("option:selected").text();
+	var handleConent=$("#handleConent").val();
+	handleConent=content+";"+handleConent;
+	var cks = $(".ck:checked");
+	var vehicleIdStr="";
+	var alarmInfoIdStr ="";
+	var beginTimeStr ="";
+	var startTimeStr ="";
+	var alarmTypeStr ="";
+	var alarmTimeStr =""; //报警时间
+	
+	$(cks).each(function(i,n){
+		vehicleIdStr =  vehicleIdStr + $(this).attr("vehicleId")+",";
+		alarmInfoIdStr =  alarmInfoIdStr + $(this).attr("alarmInfoId")+",";
+		beginTimeStr =  beginTimeStr + $(this).attr("beginTime")+",";
+		startTimeStr =  startTimeStr + $(this).attr("startTime")+",";
+		alarmTypeStr =  alarmTypeStr + $(this).attr("alarmTypeId")+",";
+		alarmTimeStr = alarmTimeStr+$(this).attr("alarmTime")+",";
+	});
+
+	if(vehicleIdStr!="" && alarmInfoIdStr!="" && beginTimeStr!="" && startTimeStr!=null && alarmTypeStr!=""&&alarmTimeStr!=""){
+		vehicleIdStr = vehicleIdStr.substring(0, vehicleIdStr.length-1);
+		alarmInfoIdStr = alarmInfoIdStr.substring(0, alarmInfoIdStr.length-1);
+		beginTimeStr = beginTimeStr.substring(0, beginTimeStr.length-1);
+		startTimeStr = startTimeStr.substring(0, startTimeStr.length-1);
+		alarmTypeStr = alarmTypeStr.substring(0, alarmTypeStr.length-1);
+		alarmTimeStr = alarmTimeStr.substring(0, alarmTimeStr.length-1);
+		
+		var jsonParams = {
+				commandTarget : vehicleIdStr,
+				alarmInfoIdStr : alarmInfoIdStr,
+				beginTimeStr : beginTimeStr,
+				startTimeStr : startTimeStr,
+				alarmTypeStr : alarmTypeStr,
+				alarmTimeStr:alarmTimeStr,
+				result : result,
+				handleConent:handleConent,
+				datetimes : new Date()
+		};
+		
+		$.ajax({
+		    type : "POST",
+		    url : "command/shangbaoAlarmCommand.action",
+		    data : jsonParams,
+		    dataType : "JSON",
+		    success : function(data) {
+				$("#shanbaoResult").html("发送成功");
+				$("#paramDuban").get(0).selectedIndex=0;
+//				document.getElementById("paramDuban").options[0].selected=true; 
+				$("#handleConent").html("");
+		    },
+		    error : function(data) {
+		    	$("#shanbaoResult").html("发送失败");
+		    }
+	    });
+		
+	}else{
+		alert("请最少选择一条报警记录！");
+	}
+}
+
+function showDiaoLog(id){
+	document.all.realTimeAlarmInfo.style.height="200px"; 
+	$("#"+id).animate({height: 'show', opacity: 'show'}, 10);
+}
+
+function showDiaoLogs(id){
+	document.all.realTimeAlarmInfo.style.height="150px"; 
+	$("#"+id).animate({height: 'show', opacity: 'show'}, 10);
+}
+
+function hideDiaoLog(id){
+	document.all.realTimeAlarmInfo.style.height="350px"; 
+$("#"+id).animate({height: 'hide', opacity: 'hide'}, 10);
+}
+
+
+

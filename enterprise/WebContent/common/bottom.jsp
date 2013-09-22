@@ -1,0 +1,163 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ page import="com.etrans.bubiao.sys.Constants"%>
+<%@ page import="com.etrans.bubiao.auth.SessionUser"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+			SessionUser user = new SessionUser(); //用户
+			user = (SessionUser)request.getSession().getAttribute(Constants.LOGIN_USER);
+			String userName=user.getUserName();
+%>
+<!--[if IE 8]>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<![endif]--> 
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <base href="<%=basePath%>"></base>
+<title>道路运输车辆卫星定位 企业平台-广州亿程交通信息有限公司</title>
+<link rel="stylesheet" type="text/css" href="<%=basePath%>css/body.css"></link>
+<script type="text/javascript" src="<%=basePath%>js/jq/jquery-1.7.1.min.js"></script>
+<script  type="text/javascript" src="<%=basePath%>js/common/bottom.js"></script>
+
+<!--[if IE 6]>
+<link rel="stylesheet" type="text/css" href="Css/ie6_hack.css">
+<![endif]--> 
+
+</head>
+<style>
+html { overflow-x:hidden; overflow-y:hidden;}
+</style>
+<body>
+<!--底部版权-->
+<div id="footer">
+    <div class="left a_company" id="linkStatus"></div>
+	<div class="right a_copy">
+	<span style="margin-top:5px;">
+	
+	<%if("admin".equals(userName)||"bs_root".equals(userName)){ %>
+	<a href="javascript:openBatchCommand('<%=basePath%>')">
+		<img src="Images/ico/batchCommand.png" id="imgPlatMessage" width="19" height="16" title="批量指令下发"/>
+	</a>
+	<a href="javascript:openplatForm('<%=basePath%>')">
+		<img src="Images/ico/ptzl.jpg" id="imgPlatMessage" width="16" height="16" title="平台指令"/>
+	</a>
+	<a href="javascript:openLowerLevelMessage('<%=basePath%>')">
+		<img src="Images/ico/zdxx.jpg" id="imgLowerMessage" width="17" height="18" title="终端信息"/>
+	</a>
+	<%}else{ %>
+	<a href="javascript:openLowerLevelMessage('<%=basePath%>')" style="display: none">
+		<img src="Images/ico/zdxx.jpg" id="imgLowerMessage" width="17" height="18" title="终端信息"/>
+	</a>
+	<%}%>
+<%--	<a href="javascript:openHigherLevelMessage('<%=basePath%>')">--%>
+<%--		<img src="Images/ico/footer_i_02.jpg" id="imgMessage" width="17" height="18" title="上级信息"/>--%>
+<%--	</a>--%>
+	<a href="javascript:openAlarm('<%=basePath%>')">
+		<img src="Images/ico/footer_i_01_02.jpg" id="imgAlarm" width="16" height="16" title="报警信息"/>
+	</a>
+	<a href="javascript:setAlarmAudioFlag()">
+		<img src="Images/ico/footer_i_03.jpg"  id="imgWav" width="16" height="16" title="报警声音开关"/>
+	</a></a>
+<%--	<a href="javascript:setParams('<%=basePath%>')">--%>
+<%--		<img src="Images/ico/system.gif"  id="imgWav" width="16" height="16" title="弹窗设置"/>--%>
+<%--	</a>--%>
+<%--	<a href="javascript:setSystemNotice('<%=basePath%>')">--%>
+<%--		<img src="Images/ico/SystemNotice.png"  id="imgSns" width="16" height="16" title="系统公告历史信息"/>--%>
+<%--	</a>--%>
+<%--	<a href="javascript:showHandle('<%=basePath%>')">--%>
+<%--		<img src="Images/ico/showHandle.png"  id="imgSns" width="16" height="16" title="操作指示"/>--%>
+<%--	</a>--%>
+<%--	--%>
+<%--	<a href="<%=basePath %>common/help/frame.htm" target="_blank">--%>
+<%--		<img src="Images/ico/help.jpg" width="16" height="16" title="系统帮助"/>--%>
+<%--	</a>--%>
+	<a href="javascript:openShowHideIcon()" style="text-align: center;">
+		<img src="Images/ico/arrows.png" id="ShowIcon" width="16" height="13" title="显示隐藏的图标"/>
+	</a>
+<%-- 	<a href="javascript:openHistoryGps('<%=basePath%>')"> --%>
+<!-- 		<img src="Images/ico/batchCommand.png" id="imgPlatMessage" width="19" height="16" title="批量指令下发"/> -->
+<!-- 	</a> -->
+	</span>
+	</div>
+	
+	<%--快捷按钮	--%>
+	<div align="center" >
+		<span id="showDivInfoIoc2" style="margin-top:-2px;">
+			<%--报警督办，查岗信息--%>
+			<a href="javascript:setparams2('dialogs2','showDivInfoIoc')">
+				<img id="showDivInfoIoc" src="Images/ico/0.png" style="display: none" width="16" height="16" title="报警督办/查岗信息窗口还原" />
+			</a>
+		</span>
+		<span id="vehilceInfoIoc2" style="margin-top:-2px;">
+			<%--车辆详细信息--%>
+			<a href="javascript:setparams2('vehicleInfoDiv','vehilceInfoIoc')">
+				<img id="vehilceInfoIoc" src="Images/ico/4.png" style="display: none" width="16" height="16" title="车辆信息窗口还原" />
+			</a>
+		</span>
+		<span id="controlIoc2" style="margin-top:-2px;">
+			<%--指令--%>
+			<a href="javascript:setparams2('controlDiv','controlIoc')">
+				<img id="controlIoc" src="Images/ico/5.png" style="display: none" width="16" height="16" title="指令窗口还原" />
+			</a>
+		</span>
+		<span id="quicklyDivIoc2" style="margin-top:-2px;">
+			<%--文本下发--%>
+			<a href="javascript:setparams2('quicklyDiv','quicklyDivIoc')">
+				<img id="quicklyDivIoc" src="Images/ico/1.png" style="display: none" width="16" height="16" title="文本下发窗口还原" />
+			</a>
+		</span>
+		<span id="photoDivIoc2" style="margin-top:-2px;">
+			<%--拍照--%>
+			<a href="javascript:setparams2('photoDiv','photoDivIoc')">
+				<img id="photoDivIoc" src="Images/ico/3.png" style="display: none" width="16" height="16" title="拍照窗口还原" />
+			</a>
+		</span>
+		<span id="videoDivIoc2" style="margin-top:-2px;">
+			<%--视频--%>
+			<a href="javascript:setparams2('videoDiv','videoDivIoc')">
+				<img id="videoDivIoc" src="Images/ico/2.png" style="display: none" width="16" height="16" title="视频监控窗口还原" />
+			</a>
+		</span>
+		<span style="margin-top:-2px;">
+		</span>
+	</div>
+</div>
+<!--底部版权结束-->
+     <object id="wav_alarm" height="0" width="0" classid="clsid:6bf52a52-394a-11d3-b153-00c04f79faa6">
+<param name="autostart" value="0">
+<!--是否自动播放-->
+<param name="balance" value="0">
+<!--调整左右声道平衡,同上面旧播放器代码-->
+<param name="enabled" value="-1">
+<!--播放器是否可人为控制-->
+<param name="enablecontextmenu" value="-1">
+<!--是否启用上下文菜单-->
+<param name="url" value="Images/war.wav">
+<!--播放的文件地址-->
+<param name="playcount" value="100000">
+<!--播放次数控制,为整数-->
+<param name="rate" value="1">
+<!--播放速率控制,1为正常,允许小数,1.0-2.0-->
+<param name="currentposition" value="0">
+<!--控件设置:当前位置-->
+<param name="currentmarker" value="0">
+<!--控件设置:当前标记-->
+<param name="defaultframe" value="">
+<!--显示默认框架-->
+<param name="invokeurls" value="0">
+<!--脚本命令设置:是否调用url-->
+<param name="baseurl" value="">
+<!--脚本命令设置:被调用的url-->
+<param name="volume" value="50">
+<!--默认声音大小0%-100%,50则为50%-->
+<param name="mute" value="0">
+<!--是否静音-->
+<param name="uimode" value="invisible">
+<!--播放器显示模式:full显示全部;mini最简化;none不显示播放控制,只显示视频窗口;invisible全部不显示-->
+<!--字幕id-->
+</object>
+</body>
+</html>
+

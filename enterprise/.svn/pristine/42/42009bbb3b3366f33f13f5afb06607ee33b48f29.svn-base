@@ -1,0 +1,130 @@
+/**    
+ * ReceivedMessage.java
+ * Create on 2010-8-16
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.io.BufferedReader;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64ThreadLocal;
+
+/**
+ * 指令返回结果处理
+ * @author lihaiyan
+ * @version 1.0
+ */
+
+public class ReceivedMessage implements Runnable {
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	private GpsInfoQueue gpsInfoQueue; // 车辆订阅指令结果接收队列
+	private BusinessQueue businessQueue;// 业务数据接收队列
+	private CommandResultQueue commandResultQueue;// 指令回复数据接收队列
+	private AlarmQueue alarmQueue;// 报警数据接收队列
+	private SocketTemplate socketTemplate; // socket连接模板
+	private int receivedNullCount = 0; // 接收NULL消息次数
+	private final Log logger = LogFactory.getLog(ReceivedMessage.class.getName());
+	private BufferedReader br = null; // 读
+
+	public ReceivedMessage(SocketTemplate socketTemplate, GpsInfoQueue gpsInfoQueue, BusinessQueue businessQueue,CommandResultQueue commandResultQueue,AlarmQueue alarmQueue) {
+		this.socketTemplate = socketTemplate;
+		this.gpsInfoQueue = gpsInfoQueue;
+		this.businessQueue = businessQueue;
+		this.commandResultQueue=commandResultQueue;
+		this.alarmQueue=alarmQueue;
+	}
+	
+	public void run() {
+		logger.error("---------接收线程启动!---------");
+
+		br = this.socketTemplate.getReader();
+		String receivedMessage = null;
+		while (true) {
+			try {
+				if ((receivedMessage = br.readLine()) != null) {
+					MessageHandle(receivedMessage); // 消息处理
+					receivedNullCount = 0;
+				}else{
+					++receivedNullCount;
+					if (receivedNullCount >60000) { // 60s内未收到就重新连接
+						System.out.println("--------808重连---------");
+						br = this.reloadSocket();
+						receivedNullCount = 0; // 重新记数
+//						this.commandSendQueue.produce("##noop#13#10");
+					}
+					Thread.sleep(1);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				//logger.error("连接出错:" + e);
+				br = this.reloadSocket(); // 重连MSC
+			}
+		}
+	}
+
+
+	
+
+	/**
+	 * 接收指令结果的消息处理
+	 * */
+	public void MessageHandle(String receivedMessage) {
+		/*
+		TDataType =(scpt_00_UserLogonOK       = 0,  // 用户认证成功
+              scpt_01_UserLogonError    = 1,  // 用户认证失败
+              scpt_02_OtherConnect      = 2,  // 其他用户登录
+              scpt_03_OtherData         = 3,  // 其他数据
+              scpt_04_OtherBroken       = 4,  // 其他用户退出
+              scpt_05_GpsData           = 5,  // 轨迹数据
+              scpt_06_Operation         = 6,  // 业务数据
+              scpt_07_TransmitResult    = 7,  // 发送回应信息
+              scpt_08_SendResult        = 8,  // 指令回复
+              scpt_09_CarList           = 9,  // 车辆列表信息
+              scpt_10_ImageData         = 10, // 图像 、音频、视频数据
+              scpt_11_GpsHistory        = 11, // 历史数据、缓存书架
+              scpt_12_Alarm             = 12, // 报警数据
+              scpt_13_Trans             = 13  // 数据透传
+              ); 
+	              */
+
+		try {
+			if (receivedMessage.contains(",5,")) { // 定位数据
+				gpsInfoQueue.produce(receivedMessage);
+			}else if(receivedMessage.contains(",12,")){//报警数据
+				alarmQueue.produce(receivedMessage);
+			}else if(receivedMessage.contains(",8,")||receivedMessage.contains(",10,")){//指令回复和图像数据
+				commandResultQueue.produce(receivedMessage);
+			}
+			else if (receivedMessage.contains(",6,")||receivedMessage.contains(",13,")) { // 业务数据和数据透传
+				businessQueue.produce(receivedMessage.toString());
+			}else{
+				Thread.sleep(1);
+			}
+
+		} catch (Exception e) {
+			 logger.error("接收指令返回结果失败:" + e);
+			 br = this.reloadSocket(); // 重连MSC
+		}
+	}
+
+	/**
+	 * 重连MSC
+	 * */
+	public BufferedReader reloadSocket() {
+		BufferedReader br = null;
+		 logger.error("------808MSC连接异常,1秒钟后重连------");
+		try {
+			this.socketTemplate.reloadSocket();
+			br = this.socketTemplate.getReader();
+		} catch (Exception e) {
+			 logger.error("-----------------808MSC重连失败----------------------" + e);
+			 this.reloadSocket();
+			br = null;
+		}
+		return br;
+	}
+
+}

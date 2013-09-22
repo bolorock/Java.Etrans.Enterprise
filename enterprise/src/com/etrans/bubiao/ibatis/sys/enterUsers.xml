@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <update id="enterPasswordUpdateSql" parameterClass="java.util.HashMap">
+  		UPDATE Pub_User  SET  Password = #Password#  WHERE ID=#ID#
+  </update>
+  
+  <select id="findEnterUserByIdSQL" parameterClass="java.lang.String">
+  		SELECT 
+  			ID, Name,    WorkUnitID, 
+  			UserName,    Password, 
+  			IsSuperUser, CreateTime, 
+  			Memo, 		 Status, 
+  			RunTime,     OverTime
+  		FROM Pub_User 
+  			WHERE ID=#ID#
+  </select>		
+  
+  <insert id="addEnterUserSQL"  parameterClass="java.util.HashMap">
+  		INSERT   INTO Pub_User
+              ( 
+               Name,
+               UserName,
+               Password,
+               WorkUnitID,
+               IsSuperUser,
+               IsShowHandle,
+               IsShowNotice,
+               CreateTime,
+               Status,
+               RunTime,
+               OverTime,
+               createUserId)
+   		VALUES (
+          #Name#,      
+          #UserName#,
+          #Password#,         
+          #WorkUnitID#,
+          #IsSuperUser#,
+          #IsShowHandle#,
+          #IsShowNotice#,
+          #CreateTime#,
+          #Status#,
+          #RunTime#,
+          #OverTime#,
+          #CreateUserId#
+       <selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+       )
+  </insert>
+  
+  
+   <update id="updateAdminUserIDS" parameterClass="java.util.HashMap">
+    	UPDATE    pub_workunit
+    	 	SET
+    	 	
+    	 	<isNotNull property="AdminUserID">
+    	 	 AdminUserID = #AdminUserID#
+    	 	</isNotNull>
+    	 	<isNull property="AdminUserID">
+    	 	 AdminUserID = null
+    	 	</isNull>
+    	 	
+    	 	WHERE id=#id#   	   
+     </update>
+     
+
+     
+<!-- 	———————————————————————————————————————————bubiaoService——————————————————————————————————————————————————————————— -->
+  
+  	
+  	<!-- 查询用户 -->
+  	<select id="findEnterUsers"  resultClass="HashMap">		
+	    select * from (
+		    select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		  select 
+	            u.ID, 
+				u.Name, 
+				u.UserName, 
+				u.WorkUnitID, 
+				u.IsSuperUser, 
+				u.CreateTime, 
+				u.Memo, 
+				u.Status,
+				u.RunTime,     
+				u.OverTime, 
+				pw.name as shortname, 
+				u.createUserId,
+	            CASE u.id WHEN pw.AdminUserID then u.id  ELSE -1   END  AS isSuper from pub_user u
+	inner join pub_workUnit pw on u.workUnitId=pw.id
+				and isdeleted != 1 and u.id=pw.AdminUserID
+				 
+				) A 
+				
+		<dynamic prepend="where 1=1">
+		        <isEqual property="IsSuperUser" compareValue="1">
+				    <isNotNull property="workunitid" >
+				      and  A.workunitid=#workunitid#
+				    </isNotNull>
+		        </isEqual>
+		       
+			   <isEqual property="IsSuperUser" compareValue="3">
+			         <isNotNull property="createUserId" >
+				      and  A.createUserId=#createUserId#
+				    </isNotNull>
+			   </isEqual>
+			    
+			     <isNotNull property="name" >
+			      and A.NAME  like  '%$name$%'
+			    </isNotNull>
+			    
+			    <isNotNull property="userId" >
+			     and  A.id!=#userId#
+			    </isNotNull>
+		</dynamic>
+		) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+  	</select>
+  
+    
+    <!-- 查找用户数量   -->
+	<select id="findEnterUsersCount" resultClass="java.lang.Long" >
+		 
+		     select  
+					count(*) from (
+					  select  
+						u.ID, 
+						u.Name, 
+						u.UserName, 
+						u.WorkUnitID,
+						u.IsSuperUser, 
+						u.CreateTime, 
+						u.Memo, 
+						u.Status, 
+						u.RunTime,
+						u.OverTime,
+						w.name as shortname,
+						CASE u.id
+							WHEN w.AdminUserID then u.id
+							ELSE -1
+						END   AS isSuper,
+						u.createUserId
+					
+			 FROM 
+				Pub_User u inner join pub_workunit w on u.workunitid=w.id 
+				and isdeleted != 1  and u.id=w.AdminUserID
+				  
+				) D 
+				
+		<dynamic prepend="where 1=1">
+			    <isEqual property="IsSuperUser" compareValue="1">
+				    <isNotNull property="workunitid" >
+				      and  D.workunitid=#workunitid#
+				    </isNotNull>
+		        </isEqual>
+		       
+			   <isEqual property="IsSuperUser" compareValue="3">
+			         <isNotNull property="createUserId" >
+				      and  D.createUserId=#createUserId#
+				    </isNotNull>
+			   </isEqual>
+			    
+			     <isNotNull property="name" >
+			      and D.NAME  like  '%$name$%'
+			    </isNotNull>
+			    
+			    <isNotNull property="userId" >
+			     and  D.id!=#userId#
+			    </isNotNull>
+		</dynamic>
+	</select>
+	
+	<!-- 查询用户 -->
+	<select id="findEnterUserById"  resultClass="HashMap">
+		 SELECT  
+					u.ID, 
+					u.Name, 
+					u.UserName, 
+					u.workUnitId,
+					u.IsSuperUser, 
+					u.CreateTime, 
+					u.Memo, 
+					u.Status, 
+					u.RunTime,
+					u.OverTime,
+					w.name as workunitName
+			FROM 
+				Pub_User u 
+		    left join Pub_WorkUnit w on u.workUnitId=w.id
+			WHERE 1=1 
+	        and   u.ID=#id#
+	</select>
+	
+	
+	<!-- 	删除用户 -->
+	<delete id="delEnterUserSQL" parameterClass="java.util.HashMap">
+		DELETE FROM  Pub_User WHERE ID = #id#
+	</delete>
+	<!-- 	删除用户 同时把 pub_workunit 表中的AdminUserID 设置null-->
+	 <update id="del_PubWorkUnit" parameterClass="java.util.HashMap">
+    	UPDATE    pub_workunit
+    	 	SET
+    	 	 AdminUserID = null
+    	 	WHERE id=#WorkUnitID#   	   
+     </update>
+     
+     <delete id="delEnt_User_MenuSQL" parameterClass="java.util.HashMap">
+		DELETE FROM  Ent_User_Menu WHERE userId = #id#
+	</delete>
+	
+	<!-- 	修改用户 -->
+	<update id="updateEnterUserSQL" parameterClass="java.util.HashMap">
+			UPDATE  Pub_User 
+			SET 
+				Name = #Name#, 
+				WorkUnitID = #workUnitId#, 
+				UserName = #UserName#,
+				IsSuperUser = #IsSuperUser#, 
+				Status = #Status#, 
+				RunTime =#RunTime#, 
+				OverTime = #OverTime# 
+			where id=#ID#
+	</update>
+	<update id="updateEnterUserIsSuperUser" parameterClass="java.util.HashMap">
+			UPDATE  Pub_User 
+			SET 
+				IsSuperUser = #IsSuperUser#
+			where id=#userId#
+	</update>
+	
+<!-- 修改显示操作指示 -->	
+<update id="updateEnterUserIsShowHandle" parameterClass="java.util.HashMap">
+			UPDATE  Pub_User 
+			SET 
+			IsShowHandle = #IsShowHandle#
+			where id=#userId#
+	</update>
+	
+</sqlMap>

@@ -1,0 +1,20 @@
+/**
+	IE8、IE6都可识别*，但FF不能识别。
+	所以拿*来做IE8的Hack，而_在FF和IE8中都不识别，只有IE6能识别，所以用_做IE6的Hack
+	*{ margin:0; padding:0;}
+	#3300FF
+**/
+	
+*{ margin:0; padding:0;}
+
+
+.tab-hd { float:left;margin:10px 0px 0px 16px ;*margin:11px 0px 0px 13px; height:23px; overflow:hidden;}
+/**vertical-align:middle; text-align:center;**/
+.tab-hd div{ cursor:hand; cursor:pointer; float:left; margin:0px 0px 0px 2px; width:150px; height:23px;   border:solid 0px red; color:#FFFFFF; text-align:center; border-left:solid 1px  #6633FF;   border-top: solid 1px #6633FF; border-right: solid 1px #6633FF;  background:#3f99d5; }
+.tab-hd div em{ border:solid 0px red;    float:none; font:12px/1.7 Arial; vertical-align:middle; text-align:center;}
+.tab-hd div span{ border:solid 0px red;  position:relative; float:right;}
+.tab-hd div.active{background:#6633FF; cursor:hand; cursor:pointer; border-left:solid 1px  #3300FF;  border-top: solid 1px #3300FF; border-right: solid 1px #3300FF; }
+
+
+
+

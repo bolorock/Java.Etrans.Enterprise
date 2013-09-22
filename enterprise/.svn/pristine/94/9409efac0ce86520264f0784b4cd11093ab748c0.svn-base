@@ -1,0 +1,59 @@
+package com.etrans.bubiao.action.query;
+
+
+import java.util.Random;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.services.query.LoginDateLogServices;
+
+/**
+ * 登录日志Action
+ * @author Administrator
+ *
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/query/log")
+public class LoginDateLogAction extends BaseAction {
+	
+	private static final long serialVersionUID = 1L;
+	
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+	
+	@Autowired
+	private LoginDateLogServices loginDateLogServices;
+	
+	public LoginDateLogServices getLoginDateLogServices() {
+		return loginDateLogServices;
+	}
+	
+	public void setLoginDateLogServices(LoginDateLogServices loginDateLogServices) {
+		this.loginDateLogServices = loginDateLogServices;
+	}
+
+	/**
+	 * 查询登录日志列表
+	 */
+	@Action(value = "getLoginLog")
+	public void getLoginLog() {
+		try {
+			this.renderJSON(loginDateLogServices.getLoginLog(this.getGridParams(),new Random().nextLong()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("查询登录日志异常！"+e.getMessage());
+		}
+		
+	}
+	
+	
+}

@@ -1,0 +1,229 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"%>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>车辆组管理</title>
+		<link rel="stylesheet" type="text/css" href="${basePath}css/style.css">
+		<script type="text/javascript" src="${basePath}js/easyui/plugins/jquery.tree.js"></script>
+		<script type="text/javascript" src="${basePath}js/sys/functionMenu/functionMenuList.js"></script>
+		<script type="text/javascript" src="${basePath}js/sys/vehicle/vehicleGroup.js"></script>
+		<script type="text/javascript" src="${basePath}js/sys/vehicle/vehicleList.js"></script>
+	</head>
+
+	<body>
+	
+		<div style="width: 100%" id="cont_box">
+		<div class="main">
+		<div class="mon_cont" style= "overflow-y:auto;">
+			<div class="E_Tit">车辆分组管理</div>
+            
+            <table width="100%">
+			<tbody>
+				<tr>
+					<td colspan="2" class="tdButton" align="center">
+						<div align="left">
+								<auth:authorize operation="addVehicleGroup">
+									<input type="button" value="新增" class="btn_customer" id="insertBut" />
+									&nbsp;&nbsp;&nbsp;
+								</auth:authorize>
+								<auth:authorize operation="updateVehicleGroup">
+									<input type="button" value="编辑" class="btn_customer" id="modifyBut" />
+									&nbsp;&nbsp;&nbsp;
+								</auth:authorize>
+								<auth:authorize operation="delVehicleGroup">
+									<input type="button" value="删除" class="btn_customer" id="deleteBut" />
+									&nbsp;&nbsp;&nbsp;
+								</auth:authorize>								
+						</div>
+					</td>
+					<td>
+					</td>
+				</tr>
+				<tr class="odd">
+					<td width="20%" class="even" valign="top">
+						<fieldset>
+							<div align="left" id="leftTd"
+								style="height:330;OVERFLOW-Y: auto; OVERFLOW-X: hidden;padding-top: 0;vertical-align: top;">
+								<ul id="vehicleGroupTree">
+								</ul>
+							</div>
+						</fieldset>
+					</td>
+					<td width="100%" class="even" valign="top" height="350">
+					<table>
+<%--						<tr>--%>
+<%--							<td>--%>
+<%--								<input type="button" value="客户资料" class="btn_customer" id="cancelBut" />--%>
+<%--								<!--<input type="button" value="车组资料" class="btn_customer" id="cancelBut" />--%>
+<%--								<input type="button" value="授权资料" class="btn_customer" id="cancelBut" />--%>
+<%--						         -->--%>
+<%--						    </td>--%>
+<%--						</tr>--%>
+						<tr>
+<%--							<td valign="top" style="padding-top: 0"> --%>
+<%--							<fieldset style="width: 250;height: 310">--%>
+<%--								<legend>基本信息</legend>--%>
+<%--									车组名称<input type="text"  id="vName" readonly="readonly"  class="mon_ser_text" style="width: 162px;">	--%>
+<%--									<br>车组类型<input type="text" id="vType"  readonly="readonly"  class="mon_ser_text" style="width: 162px;"/>	--%>
+<%--									<br>所属客户<input type="text" id="vCustomer" readonly="readonly"  class="mon_ser_text" style="width: 162px;"/>										--%>
+<%--								</fieldset>--%>
+<%--							</td>--%>
+							<td valign="top" style="padding-top: 0">
+							<table>
+								<tr>
+									<td valign="top" style="padding-top: 0"> 
+										<fieldset style="width: 450;height: 40">
+											<legend>车辆列表</legend>	
+											<auth:authorize operation="getVehicleByGroupId">							
+											<input type="text" size="20" id="vehicleRegisterId" class="mon_ser_text" style="width: 130px;"
+											       onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+			                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))" />	
+											<a id="searchBtn_List" href="javascript:void(0)" class="ser_btn" style="color: white;">查询</a>	
+											</auth:authorize>		            
+				            				<table id="areaList" style="display: none"></table>
+				            			</fieldset>
+									</td>
+								</tr>
+								<tr>
+									<td>
+							 			<table id="tbVehicle" style="margin-top: 5px"></table>
+									</td>
+								</tr>
+							</table>
+							</td>
+						</tr>
+						
+					</table>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+            
+		</div>
+		</div>
+		</div>
+		<div id="addGroupForm" style="display: none;">
+		<form    method="POST" id="form_addVehicleGroup">    
+	        <table class="maintable" >
+	            <tr>
+	                <td colspan="3">
+	                <fieldset style="width: 650;">
+						<legend>车组信息</legend>
+							&nbsp;&nbsp;车组名称&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" onBlur="isDigit()" value="" id="vehicleName" name="vehicleName" class="mon_ser_text"/>	
+							<span id="vehicleNamespan" class="errorMsg" style="display: none"></span>
+							<br>
+							&nbsp;&nbsp;车组类型&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" readonly="readonly"  value="自编组" id="addVehicleGroupType" name ="addVehicleGroupType"class="mon_ser_text"/>	
+							&nbsp;&nbsp;所属客户&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" name="addTheirCustomer" id="addTheirCustomer" readonly="readonly"  value="<s:property value='vehicleGroupBean.workUnitName'/>" id="otName" class="mon_ser_text"/>										
+					</fieldset>
+	                </td>
+	            </tr>
+	            <tr>
+	            <td>
+		            <fieldset style="width: 270;height: 260">
+							<legend>待选车辆列表</legend>															
+							<select size="15" style="width:270" id="allVehicle" name="allVehicle">
+							</select>
+					</fieldset>
+	            </td>
+	             <td>
+	             <br><br><br>
+	             <input type="button" id="rightBtn" value = "右移" onclick="vehicleList.moveDataBetweenList('allVehicle','selectVehicle')" 
+	                    class="btn_customer" style="width: 50px;"/> 
+	             <br>  <br>
+	             <input type="button" id="leftBtn" value = "左移" onclick="vehicleList.moveDataBetweenList('selectVehicle','allVehicle')"  
+	             		class="btn_customer" style="width: 50px;"/> 
+	             <br><br><br>
+	             <input type="button" id="allSel" value = "全选"  onclick="vehicleList.selectAll('allVehicle','selectVehicle')" 
+	             		class="btn_customer" style="width: 50px;"/> 
+	               <br>  <br>
+	             <input type="button" id="otName" value = "不选" onclick="vehicleList.selectAll('selectVehicle','allVehicle')" 
+	             		class="btn_customer" style="width: 50px;"/> 
+	            </td>
+	            <td>
+	             	<fieldset style="width: 270;height: 260">
+						<legend>已选车辆列表</legend>	
+					   		<select size="15" style="width:270" id="selectVehicle" name="selectVehicle">		
+						</select>				
+					</fieldset>					 
+	            </td>
+	            </tr>
+	            <tr>
+		              <td colspan="3" align="center">		                  
+			                <a id="addVehicleBtn" href="javascript:void(0)" class="btn" style="color: white;font-size: 12px;">确定</a>
+				            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				    	    <a href="javascript:void(0)" class="btn" 
+				    	    onclick="$('#addGroupForm').dialog('close');" style="color: white;font-size: 12px;">取消</a>
+			    	 </td>
+		          </tr>
+	        </table>
+        </form>
+		</div>
+		
+		
+		<div id="updateGroupForm" style="display: none;">
+		<form    method="POST" id="form_updateVehicleGroup">    
+	        <table class="maintable" >
+	            <tr>
+	                <td colspan="3">
+	                <fieldset style="width: 650;">
+						<legend>车组信息</legend>
+							&nbsp;&nbsp;车组名称&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" value="" id="updateVehicleName" class="mon_ser_text"/>	
+							<br>
+							&nbsp;&nbsp;车组类型&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" value="自编组" readonly="readonly"  id="updateVehicleGroupType" class="mon_ser_text"/>	
+							&nbsp;&nbsp;所属客户&nbsp;&nbsp;&nbsp;
+							<input type="text" size="30" readonly="readonly" value="<s:property value='vehicleGroupBean.workUnitName'/>" id="updateTheirCustomer" class="mon_ser_text"/>										
+					</fieldset>
+	                </td>
+	            </tr>
+	            <tr>
+	            <td>
+		            <fieldset style="width: 270;height: 260">
+							<legend>待选车辆列表</legend>															
+							<select size="15" style="width:270" id="updateAllVehicle" name="updateAllVehicle">
+							</select>
+					</fieldset>
+	            </td>
+	             <td>
+	             <br><br><br>
+	             <input type="button" id="rightBtn" value = "右移" onclick="vehicleList.moveDataBetweenList('updateAllVehicle','updateSelectVehicle')" 
+	                    class="btn_customer" style="width: 50px;"/> 
+	             <br>  <br>
+	             <input type="button" id="leftBtn" value = "左移" onclick="vehicleList.moveDataBetweenList('updateSelectVehicle','updateAllVehicle')"  
+	             		class="btn_customer" style="width: 50px;"/> 
+	             <br><br><br>
+	             <input type="button" id="allSel" value = "全选"  onclick="vehicleList.selectAll('updateAllVehicle','updateSelectVehicle')" 
+	             		class="btn_customer" style="width: 50px;"/> 
+	               <br>  <br>
+	             <input type="button" id="otName" value = "不选" onclick="vehicleList.selectAll('updateSelectVehicle','updateAllVehicle')" 
+	             		class="btn_customer" style="width: 50px;"/> 
+	            </td>
+	            <td>
+	             	<fieldset style="width: 270;height: 260">
+						<legend>已选车辆列表</legend>	
+					   		<select size="15" style="width:270" id="updateSelectVehicle" name="updateSelectVehicle">		
+						</select>				
+					</fieldset>					 
+	            </td>
+	            </tr>
+	            <tr>
+		              <td colspan="3" align="center">		                  
+			                <a id="updateVehicleBtn" href="javascript:void(0)" class="btn" style="color: white;font-size: 12px;">确定</a>
+				            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				    	    <a href="javascript:void(0)" class="btn" 
+				    	    onclick="$('#updateGroupForm').dialog('close');" style="color: white;font-size: 12px;">取消</a>
+			    	 </td>
+		          </tr>
+	        </table>
+        </form>
+		</div>
+	</body>
+</html>

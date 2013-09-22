@@ -1,0 +1,196 @@
+/**
+ * InitSelectServices.java
+ * Create on 2012-4-26 15:43:24
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.services.sys;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.entities.Tree;
+import com.etrans.bubiao.http.ParamMap;
+import com.etrans.bubiao.http.Result;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.common.util.json.JSONUtil;
+
+@Service
+public class TreeServices {
+
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+	
+     
+	/**
+	 * 行业类型
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getTradeKindTree(String id) throws Exception{
+	 //行业类型
+		 List<Map<String,String>> tradeKinds =null;
+		if(id == null || id.equals("")){
+		    tradeKinds= this.ibatisServices.queryForList(Map.class, "getTradeKindsSQL",new HashMap());
+		}
+		
+    
+	 //组装树
+	 List<Tree> trees = null;
+	 
+		if(null != tradeKinds && tradeKinds.size()>0){
+			trees = new ArrayList<Tree>(tradeKinds.size());
+			Tree tree = null;
+			for (Map<String,String> map: tradeKinds){
+				 tree = new Tree();
+				 tree.setId(String.valueOf(map.get("id")));
+				 tree.setState("closed");
+				 tree.setIconCls("icon-group");
+				 tree.setText(String.valueOf(map.get("name").toString().trim()));
+				 trees.add(tree);
+			}
+		}
+	  return JSONUtil.toJson(trees);
+	}
+	
+	
+	
+	
+	/**
+	 * 区域树形
+	 * @param mapWhere
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getAreaTreeList(Map mapWhere,String id) throws Exception {
+		
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		 List<Map<String,String>>  areas =null;
+		String parentFullId = "";
+		
+		if(id == null || id.equals("")){
+			areas = this.ibatisServices.queryForList(Map.class, "getAreaRootSQL",new HashMap());
+		}else{
+			parentFullId = id;
+		}
+		if(!parentFullId.equals("")){
+			areas = this.ibatisServices.queryForList(Map.class,"getAreaTreeSQL",mapWhere);;
+		}
+		
+		if(areas!=null && areas.size()>0){
+			for(Map<String,String> map : areas){
+				jsonString.append("{");
+				jsonString.append("\"id\":\"" +String.valueOf(map.get("id"))+"|"+(String)map.get("fullId") + "\",");
+				jsonString.append("\"text\":\"" + ((String)map.get("name")).trim() + "\",");
+				jsonString.append("\"iconCls\":\"icon-group\",");
+				jsonString.append("\"state\":\"closed\"");
+				jsonString.append("}");
+				jsonString.append(",");
+			}
+			jsonString.deleteCharAt(jsonString.toString().length() - 1);
+			
+		}
+		
+		jsonString.append("]");
+		//System.out.println("---------------:"+jsonString.toString());
+		return jsonString.toString();
+		
+	}
+	
+	
+	/**
+	 * 企业树形
+	 * @param mapWhere
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getWorkUnitTreeList(Map mapWhere,String id) throws Exception {
+		
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		 List<Map<String,String>>  areas =null;
+		String parentFullId = "";
+		
+		if(id == null || id.equals("")){
+			areas = this.ibatisServices.queryForList(Map.class, "getWorkUnitRootSQL",new HashMap());
+		}else{
+			parentFullId = id;
+		}
+		if(!parentFullId.equals("")){
+			areas = this.ibatisServices.queryForList(Map.class,"getWorkUnitTreeSQL",mapWhere);;
+		}
+		
+		if(areas!=null && areas.size()>0){
+			for(Map<String,String> map : areas){
+				jsonString.append("{");
+				jsonString.append("\"id\":\"" +String.valueOf(map.get("id"))+"|"+(String)map.get("fullId") + "\",");
+				jsonString.append("\"text\":\"" + ((String)map.get("name")).trim() + "\",");
+				jsonString.append("\"iconCls\":\"icon-group\",");
+				jsonString.append("\"state\":\"closed\"");
+				jsonString.append("}");
+				jsonString.append(",");
+			}
+			jsonString.deleteCharAt(jsonString.toString().length() - 1);
+			
+		}
+		
+		jsonString.append("]");
+		//System.out.println("---------------:"+jsonString.toString());
+		return jsonString.toString();
+		
+	}
+	
+	/**
+	 * 车牌颜色
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public String getRegistrationNoColorTree(String id) throws Exception{
+	 //车牌颜色
+		 List<Map<String,String>> tradeKinds=null;
+		if(id == null || id.equals("")){
+			 tradeKinds = this.ibatisServices.queryForList(Map.class, "getRegistrationNoColorsSQL",new HashMap());
+			   
+		}
+	 
+	 //组装树
+	 List<Tree> trees = null;
+	 
+		if(null != tradeKinds && tradeKinds.size()>0){
+			trees = new ArrayList<Tree>(tradeKinds.size());
+			Tree tree = null;
+			for (Map<String,String> map: tradeKinds){
+				 tree = new Tree();
+				 tree.setId(String.valueOf(map.get("id")));
+				 tree.setState("closed");
+				 tree.setIconCls("icon-group");
+				 tree.setText(String.valueOf(map.get("name").toString().trim()));
+				 trees.add(tree);
+			}
+		}
+	  return JSONUtil.toJson(trees);
+	}
+	
+	
+
+}

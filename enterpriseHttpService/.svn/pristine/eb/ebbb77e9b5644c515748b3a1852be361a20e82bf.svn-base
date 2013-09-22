@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+ <parameterMap id="getCarGpsInfoParams" class="java.util.HashMap"> 
+        <parameter property="carId"   mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/> 
+        <parameter property="startTime"  mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+       <parameter property="endTime"  mode="IN" jdbcType="VARCHAR" javaType="java.lang.String"/>
+</parameterMap> 
+<!-- 获取所有的报警督办设置-->
+<procedure id="getCarGpsInfo" resultClass="java.util.HashMap" parameterMap="getCarGpsInfoParams"> 
+	    <![CDATA[
+	     {call P_getCarGpsInfo(?,?,?)}
+	    ]]>
+</procedure>
+
+
+</sqlMap>

@@ -1,0 +1,97 @@
+package com.etrans.common.util;
+/** 
+ * 行驶记录仪数据采集命令
+ * @author Pomelo(柚子.)  
+ * @version 1.0
+ * @since 创建时间：2013-7-31 下午4:27:54 
+ */
+public class Command1792Util {
+	/**
+	 * 起始字头
+	 */
+	private String starCode;
+	/**
+	 * 命令字
+	 */
+	private String commandCode;
+	/**
+	 * 数据块长度
+	 */
+	private int dataLength;
+	/**
+	 * 保留字
+	 */
+	private String reserved;
+	/**
+	 * 数据块
+	 */
+	private String data;
+	/**
+	 * 效验字节
+	 */
+	private String efficacy;
+		
+	/**
+	 * 构造
+	 * 
+	 * @param str
+	 */
+	public Command1792Util(String str){
+		/**
+		 * 按照标准协议进行截取
+		 */
+		setStarCode(str.substring(0, 4));
+		setCommandCode(str.substring(4, 6));
+		setDataLength(ByteUtil.hexStringtoDecimal(str.substring(6, 8)));
+		setReserved(str.substring(8, 10));
+		setData(str.substring(10, 10+(getDataLength()*2)));
+		setEfficacy(str.substring(str.length()-2, str.length()));
+	}
+	
+	public String getStarCode() {
+		return starCode;
+	}
+	public void setStarCode(String starCode) {
+		this.starCode = starCode;
+	}
+	public String getCommandCode() {
+		return commandCode;
+	}
+	public void setCommandCode(String commandCode) {
+		this.commandCode = commandCode;
+	}
+	public int getDataLength() {
+		return dataLength;
+	}
+	public void setDataLength(int dataLength) {
+		this.dataLength = dataLength;
+	}
+	public String getReserved() {
+		return reserved;
+	}
+	public void setReserved(String reserved) {
+		this.reserved = reserved;
+	}
+	public String getData() {
+		return data;
+	}
+	public void setData(String data) {
+		this.data = data;
+	}
+	public String getEfficacy() {
+		return efficacy;
+	}
+	public void setEfficacy(String efficacy) {
+		this.efficacy = efficacy;
+	}
+	
+	/**
+	 * 解析数据,提取有用数据
+	 * 
+	 * @return String
+	 */
+	public String parseData(){
+		return null;
+	}
+}
+

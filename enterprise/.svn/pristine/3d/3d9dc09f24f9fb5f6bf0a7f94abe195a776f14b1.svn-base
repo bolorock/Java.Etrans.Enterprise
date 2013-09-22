@@ -1,0 +1,131 @@
+package com.etrans.bubiao.services;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.common.util.HttpConfig;
+import com.sun.java_cup.internal.runtime.virtual_parse_stack;
+
+/**
+ * 从TA获取接口数据服务
+ * @author hgq
+ *
+ */
+@Service
+@SuppressWarnings("unchecked")
+public class TaService extends BaseServices{
+	
+	/**
+	 * 设置配置服务路径
+	 */
+	private void SetHttpConfig() {
+		 httpClient.addServerURL(prepareServerURL());
+	}
+	
+	/**
+	 * 重设配置路径
+	 * @return
+	 */
+	private  List<String> prepareServerURL()
+	{
+		String config="/httpTAService_config.properties";
+		return HttpConfig.getServiceHttpConfig(config);
+	}
+	
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+	
+	/**
+	 * 获取超速数据
+	 * @param paramMap
+	 * @return
+	 */
+	public List<HashMap<String, Object>> getOverspeed(Map<String, Object> paramMap)
+	{
+		try 
+		{
+			SetHttpConfig();
+			List<HashMap<String, Object>> list =(List<HashMap<String, Object>>)super.queryAsResult("getOverspeedSql", paramMap).getData();// 调用存储过程
+			return list;
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取疲劳驾驶数据
+	 * @param paramMap
+	 * @return
+	 */
+	public List<HashMap<String, Object>> getFatiguedrive(Map<String, Object> paramMap)
+	{
+		try 
+		{
+			SetHttpConfig();
+			List<HashMap<String, Object>> list =(List<HashMap<String, Object>>)super.queryAsResult("getFatiguedriveSql", paramMap).getData();// 调用存储过程
+			return list;
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取区域进出数据
+	 * @param paramMap
+	 * @return
+	 */
+	public List<HashMap<String, Object>> getArea(Map<String, Object> paramMap) 
+	{
+		try 
+		{
+			SetHttpConfig();
+			List<HashMap<String, Object>> list =(List<HashMap<String, Object>>)super.queryAsResult("getAreaSql", paramMap).getData();// 调用存储过程
+			return list;
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取地点超时停车数据
+	 * @param paramMap
+	 * @return
+	 */
+	public List<HashMap<String, Object>> getOvertimeParking(Map<String, Object> paramMap) 
+	{
+		try 
+		{
+			SetHttpConfig();
+			List<HashMap<String, Object>> list =(List<HashMap<String, Object>>)super.queryAsResult("getOvertimeParkingSql", paramMap).getData();// 调用存储过程
+			return list;
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+
+}

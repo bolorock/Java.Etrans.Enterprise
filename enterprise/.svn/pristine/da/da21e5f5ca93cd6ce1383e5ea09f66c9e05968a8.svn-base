@@ -1,0 +1,96 @@
+body {
+	padding: 0;
+	margin: 0;
+	font-size: 12px;
+	font-family: Arial, Helvetica, sans-serif;
+	line-height: 140%;
+	margin-left: 0px;
+	margin-top: 0px;
+}
+
+v\:* {
+	behavior: url(#default#VML);
+}
+
+o\:* {
+	behavior: url(#default#VML);
+}
+
+#objectTitle {
+	font-size: 12px;
+}
+
+.gridheader {
+	font-size: 12px;
+}
+
+/*��ͼ��ʽ*/
+#maparea {
+	display: block;
+}
+
+#map {
+	display: block;
+	margin-bottom:5px;
+}
+
+#bar {
+	margin-top: 0px;
+	padding-left: 0px;
+	width: 100%;
+	height: 28px;
+	background-image: url(../Images/toolbg.gif);
+	background-repeat: repeat-x;
+	border-top-width: 0px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	border-top-color: #8db2e3;
+	border-right-color: #8db2e3;
+	border-bottom-color: #8db2e3;
+	border-left-color: #8db2e3;
+}
+#carinfo{
+width:100%;
+height:130px;
+}
+/*��~�б?��*/
+#CarList {
+	width: 100%;
+	height: 28px;
+	background: #cccccc;
+	background-image: url(../images/topimg/carlistbg.png);
+}
+
+#CarSerach {
+	width: 100%;
+}
+
+#CarContent {
+	width: 100%;
+	height: 100%;
+}
+
+
+#userdiv {
+	margin-left: 12px;
+	padding-left: 22px;
+	color: #369;
+	font-weight: bold;
+	background-image: url(../images/tree/car_ico.gif);
+	background-repeat: no-repeat;
+}
+
+
+#tool{
+	background-image:url(../mapgis/TileAjax/images/mapTools/toobg.gif);
+
+
+}
+#tool ul{list-style-type: none; height:27px;
+}
+#tool ul li{}

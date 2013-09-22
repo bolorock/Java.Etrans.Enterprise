@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+  <!--数据列表-->
+  <select id="findANA_AnalyserOverTimeSQL" resultClass="java.util.HashMap">
+  	  SELECT * FROM (
+						SELECT    ROW_NUMBER() OVER (
+					<dynamic prepend="order by">
+						<isNotNull property="sortname">
+				           $sortname$ $sortorder$
+			           </isNotNull>
+					</dynamic>		
+							) RowNo,A.* from (
+		      select A.ID as id			
+		      ,A.AnalyseGroupID 
+		      ,C.Name as AnalyseGroupName 
+		      ,A.Name as name
+		      ,(case A.IsAlert when '1' then '报警' else '只记录' end) as isAlert
+		      ,A.CheckTimeTypeID  as checkTimeTypeId
+		      ,B.Name as checkTimeTypeName
+		      ,A.CheckTimeValue as checkTimeValue
+		      ,CONVERT(varchar(10),A.CheckTimeBegin,24) as checkTimeBegin
+		      ,CONVERT(varchar(10),A.CheckTimeEnd,24) as checkTimeEnd
+		      ,A.BounceOverDistance as  bounceOverDistance 
+		      ,A.BounceOverTime  as bounceOverTime
+		      ,(case A.IsWarn when '0' then '是' else '否' end) as isWarn
+		      ,A.SoundContent as soundContent
+		      ,A.AllowMaxStopTime as allowMaxStopTime
+              ,c.groupid as groupid
+              ,au.UserID as UserID
+        FROM      ANA_AnalyserOverTime as A
+        LEFT JOIN ANA_BaseCheckTimeTypes B on A.checkTimeTypeId=B.id
+         LEFT JOIN ANA_AnalyseGroups C on A.AnalyseGroupID=C.id 
+         LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on C.id=au.AnalyseGroupsID
+         ) A where 1=1
+        
+        	<!--企业管理员权限-->
+			<isNotNull property="workUnitId">
+				AND A.groupid = #workUnitId# 
+			</isNotNull>
+			
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and A.UserID = #userId#
+			</isNotEmpty>
+        	
+			<!--查询条件-->
+			 <isNotNull property="name" >
+	          and A.Name like '%$name$%'
+	         </isNotNull>
+	         
+	         
+	         
+		)X
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				X.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+   </select>
+   
+   <!--总条数-->
+   <select id="findANA_AnalyserOverTimeCountSQL" resultClass="java.lang.Long">
+      		select count(*) FROM      ANA_AnalyserOverTime as A
+        	LEFT JOIN ANA_BaseCheckTimeTypes B on A.checkTimeTypeId=B.id
+         	LEFT JOIN ANA_AnalyseGroups C on A.AnalyseGroupID=C.id 
+         	LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on C.id=au.AnalyseGroupsID
+         	where 1=1
+				 <!-- 名称-->
+				 <isNotEmpty property="name">
+		           and A.Name like '%$name$%'
+		         </isNotEmpty>
+		        
+		        <!--企业管理员权限-->
+				<isNotEmpty property="workUnitId">
+					AND C.groupid = #workUnitId#
+				</isNotEmpty>
+				
+				<!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+				
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_AnalyserOverTimeByIdSQL"  resultClass="java.util.HashMap">
+      SELECT [id]
+      ,[analyseGroupID]
+      ,[name]
+      ,ltrim(rtrim(str(isAlert))) [isAlert]
+      ,[checkTimeTypeId]
+      ,[checkTimeValue]
+      ,CONVERT(varchar(10),[checkTimeBegin],24)  as [checkTimeBegin]
+      ,CONVERT(varchar(10),[checkTimeEnd],24)  as  [checkTimeEnd]
+      ,[bounceOverDistance]
+      ,[bounceOverTime]
+      ,ltrim(rtrim(str(IsWarn))) as [isWarn]
+      ,[soundContent]
+      ,[allowMaxStopTime]
+  FROM [ANA_AnalyserOverTime]
+   where id=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkANA_AnalyserOverTimeByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserOverTime
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+ </sqlMap>

@@ -1,0 +1,118 @@
+package com.etrans.bubiao.services.sys.proveInfoManage;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.PageBean;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.ParamKey;
+
+/**
+ * 证件信息表管理Services
+ * @author lujunyong
+ * 2013-08-14
+ */
+@Service
+public class ProveInfoManageServices {
+
+	@Autowired
+	private IbatisServices ibatisServices;
+	
+	public void setIbatisServices(IbatisServices ibatisServices)
+	{
+		this.ibatisServices = ibatisServices;
+	}
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+	
+	/**
+	 * 查询证件信息列表
+	 * @param params 查询参数信息
+	 * @param in 随机数（控制不调用内存重复数据）
+	 * @return PageBean 分页类
+	 * @throws Exception sql异常
+	 */
+	@SuppressWarnings("unchecked")
+	public PageBean findProveInfoList(Map params,long in) throws Exception{
+		PageBean pageBean = new PageBean();
+		
+		/**查询权限下的车辆id字符串**/
+		setVehicleStr(params);
+		
+		//查询车辆外设表信息列表
+		List<Map<String,Object>> listInfo  = this.ibatisServices.queryForList(Map.class, "findProveInfoListSql",params);
+		//总条数
+		Long total= this.ibatisServices.findIbatisListCount("findProveInfoListSqlCountSQL", params);
+		
+		pageBean.setPage((Integer)params.get(ParamKey.PAGE));
+		pageBean.setRows(listInfo);
+		pageBean.setTotal(total);
+		
+		return pageBean;
+		
+	}
+	
+	/**
+	 * 根据不用的用户【超级管理员，企业管理员，普通用户】设置查询条件【车辆id字符串】【以“，”隔开】
+	 * @param setParamsMap
+	 */
+	@SuppressWarnings("unchecked")
+	public  void setVehicleStr(Map setParamsMap){
+		SessionUser sessionUser = UserContext.getLoginUser();
+		Map paramMap =new HashMap();
+		List<Map<String,Object>> list=null;
+		String userId = String.valueOf(sessionUser.getUserID());//用户id
+		String fullId=String.valueOf(sessionUser.getWorkUnitID());//企业id
+		/**查询权限下的车辆begin**/
+		if(UserContext.isBsRootUser()){//超级管理员
+        	setParamsMap.put("vehicleIDStr",null);
+		  }
+		else{
+			if(sessionUser.isWorkUnitSuperAdmin()){//企业管理员
+				paramMap.put("fullId",fullId);
+				list = this.ibatisServices.queryForList(Map.class, "DeviceSetup.getAdminVehicleIdSQL_DGo",paramMap);
+				
+			}else{//普通用户
+				paramMap.put("userId", userId);
+				list=this.ibatisServices.queryForList(Map.class, "DeviceSetup.getVehicleIdstatSQL_D", paramMap);
+			}
+			 if(list!=null || "".equals(list)){
+				 if(list.size()!=0){
+					String vehiclestr="";
+					String vehicleID=null;
+					for(int i=0; i<list.size(); i++){
+						vehiclestr +=list.get(i).get("ID").toString()+",";
+					}
+					vehicleID=vehiclestr.substring(0, vehiclestr.length()-1);
+					setParamsMap.put("vehicleIDStr",String.valueOf(vehicleID));
+				 }
+			 }
+			 if(null==setParamsMap.get("vehicleIDStr")||setParamsMap.get("vehicleIDStr").equals("")){
+					setParamsMap.put("vehicleIDStr",0);
+				}
+		}
+		/**查询权限下的车辆end**/
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}

@@ -1,0 +1,146 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<html>
+	<head>
+		<base href="<%=basePath%>"></base>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>指令发送</title>
+			<link href="<%=basePath%>css/command.css" type="text/css" rel="stylesheet" />
+	        <script type="text/javascript" src="<%=basePath%>js/jq/jquery-1.7.1.min.js"></script>
+		<script type="text/javascript" src="<%=basePath%>js/jq/jquery.Query.js"></script>
+		<script src="<%=basePath%>js/command/special/506.js" type="text/javascript"></script>
+	</head>
+
+	<body>
+      <br/>
+	 <table width="100%" cellpadding="0" cellspacing="0" border="0">
+			<tr><td height="20">&nbsp;</td></tr>
+			<tr>
+			  <td width="100%" align="center">
+				   <fieldset style="border-Color:#80CAEA;width: 98%;"><legend>设置终端参数：指令参数</legend>
+				  		<table width="100%" cellpadding="0" cellspacing="1">
+				            
+				            <tr>
+				              <td width="3">&nbsp;</td>
+				              <td width="181"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+								<tr>
+				                  <td nowrap="nowrap"><div align="right">参数列表：</div></td>
+				                  <td>
+				                  		 <select id="terminalParams" onchange="changeTerminalParams()">
+                    	  <option value="1">终端心跳发送间隔</option>
+                    	  <option value="2">TCP消息应答超时时间</option>
+                    	  <option value="3">TCP消息重传次数</option>
+                    	  <option value="4">UDP消息应答超时时间</option>
+                    	  <option value="5">UDP消息重传次数</option>
+                    	  <option value="6">SMS消息应答超时时间</option>
+                    	  <option value="7">SMS消息重传次数</option>
+                    	  <option value="16">主服务器APN访问点</option>
+                    	  <option value="17">主服务器无线通信拨号密码</option>
+                    	  <option value="18">主服务器无线通信拨号密码</option>
+                    	  <option value="19">主服务器地址,IP或域名</option>
+                    	  <option value="20">备份服务器APN，无线通信拨号访问点</option>
+                    	  <option value="21">备份服务器无线通信拨号用户名</option> 
+                    	  <option value="22">备份服务器无线通信拨号密码</option>
+                    	  <option value="23">备份服务器地址,IP或域名</option>
+                    	  <option value="24">服务器TCP端口</option>
+                    	  <option value="25">服务器UDP端口</option>
+                    	  <option value="32">位置汇报策略</option>
+                    	  <option value="33">位置汇报方案</option>
+                    	  <option value="34">驾驶员未登录汇报时间间隔</option>
+                    	  <option value="39">休眠时汇报时间间隔</option>
+                    	  <option value="40">紧急报警时汇报时间间隔</option>
+                    	  <option value="41">省时间汇报间隔</option>
+                    	  <option value="44">缺省距离汇报间隔</option> 
+                    	  <option value="45">驾驶员未登录汇报距离间隔</option>
+                    	  <option value="46">休眠时汇报距离间隔</option>
+                    	  <option value="47">紧急报警时汇报距离间隔</option>
+                    	  <option value="48">拐点补传角度，小于180</option>
+                    	  <option value="64">监控平台电话号码</option>
+                    	  <option value="65">复位电话号码</option>
+                    	  <option value="66">恢复出厂设置电话号码</option>
+                    	  <option value="67">监控平台SMS电话号码</option>
+                    	  <option value="68">接收终端SMS文本报警号码</option>
+                    	  <option value="69">终端电话接听策略</option>
+                    	  <option value="70">每次最长通话时间</option>
+                    	  <option value="71">当月最长通话时间</option>
+                    	  <option value="72">监听电话号码</option>
+                    	  <option value="73">监管平台特权短信号码</option>
+                    	  <option value="80">报警屏蔽字</option>
+                    	  <option value="81">报警发送文本SMS开关</option>
+                    	  <option value="82">报警拍摄开关</option>
+                    	  <option value="83">报警拍摄存储标志</option>
+                    	  <option value="84">关键标志</option>
+                    	  <option value="85">最高速度</option>
+                    	  <option value="86">超速持续时间</option>
+                    	  <option value="87">连续驾驶时间门限</option>
+                    	  <option value="88">当天累计驾驶时间门限</option>
+                    	  <option value="89">最小休息时间</option>
+                    	  <option value="90">最长停车时间</option>
+                    	  <option value="112">图像/视频质量</option>
+                    	  <option value="113">亮度</option>
+                    	  <option value="114">对比度</option>
+                    	  <option value="115">饱和度</option>
+                    	  <option value="116">DWORD	色度</option>
+                    	  <option value="128">车辆里程表读数</option>
+                    	  <option value="129">车辆所在的省域ID</option>
+                    	  <option value="130">车辆所在的市域ID</option>
+                    	  <option value="131">公安交通同管理部门颁发的机动车号牌</option>
+                    	  <option value="132">车牌颜色</option>
+                    	 </select>							  
+                    	  </td></tr>
+                    	    <tr>
+                   <td width="150px"><span id="paramsName">终端心跳发送间隔</span></td>
+                   <td  width="30px"><input id="paramsValue"></input></td>
+                   <td  width="30px"><input type="button" value="确定" onclick="addParams()"/></td>
+                   <td>&nbsp;</td>
+                  </tr>
+				              </table></td>
+				              <td width="3" rowspan="2" background="imgs/commandbg.gif">.</td>
+				              <td width="15">&nbsp;</td>
+				              <td width="300"><div id="back" class="hiddiv" style="display: none;"><img alt="正在发送指令" src="imgs/load.gif">正在发送指令......</div></td>
+				              <td width="200"></td>
+				            </tr>
+							  <tr>
+				              <td>&nbsp;</td>
+				              <td>&nbsp;</td>
+				              <td>&nbsp;</td>
+				              <td>&nbsp;</td>
+				              <td colspan="2">&nbsp;</td>
+				            </tr>
+		          		</table>
+				  </fieldset>
+			  </td>
+			</tr>
+		
+		 <tr>
+		 <td valign="top"><a href="javascript:void(0)" onClick="sendMessage();"><img src="imgs/command.gif"  border="0"></a><a  href="javascript:void(0)" class="ser_btn" onClick="parent.hideSpecial();"><img src="imgs/cancel.gif"  border="0"></a>
+	   </td>
+		 </tr>
+		 	<tr>
+	<td>
+	<div id="result"></div>
+	</td>
+		</tr>
+		</table>
+		  <table width="100%" border="0" cellspacing="0" cellpadding="0" background="#EBF2FA">
+          <tr background="#EBF2FA">
+                    <td style="border-top:1px solid #1FFFF;">
+                     <table id="vechList"  class="form">
+			    <thead>
+				<tr>
+				    <th>参数id</th>
+					<th>参数名称	</th>
+					<th>参数值</th>
+				</tr>
+			</thead>
+			</table>
+                    </td>
+                  </tr>
+         </table>
+	</body>
+</html>

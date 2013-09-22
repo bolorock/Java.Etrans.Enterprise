@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+encoding//config/httpService_config.properties=UTF-8
+encoding//config/httpTAService_config.properties=UTF-8
+encoding//config/mobileAppVersion.properties=UTF-8
+encoding//config/msc_config.properties=UTF-8
+encoding/<project>=UTF-8

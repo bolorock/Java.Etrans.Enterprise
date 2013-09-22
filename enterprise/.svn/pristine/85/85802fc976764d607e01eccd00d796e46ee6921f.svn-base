@@ -1,0 +1,264 @@
+var AlarmOperationID ="-1";
+$(function() {
+		//报警类型
+	    initAlarmType("alarmTypeSel");
+		
+		var nowDate = dateutil.formatDate(new Date(dateutil.setDateBefore(new Date(),1)),dateutil.FORMAT_DATE_LONG);
+		$("#startDate").val(nowDate);
+		$("#endDate").val(nowDate);
+		var startDate = nowDate + " 00:00:00";
+		var endDate = nowDate + " 23:59:59";
+		
+		
+		var params = [{
+				name : 'startDate',
+				value : startDate
+			},{
+				name : 'endDate',
+				value : endDate
+			},{
+				name : 'AlarmOperationID',
+				value : AlarmOperationID
+			}];
+		
+		var colModel = initColModel();
+		initGrid(params,colModel);
+		
+		//按钮绑定点击事件
+		$('#searchBtn').bind('click', toSearch);
+		$('#exportBtn').bind('click', toExportExl);	
+		$('#adSearchBtn').bind('click', toOpenAds);
+		
+		$('#showBtn').bind('click', chartGraphic);
+});
+
+//条形图
+function chartGraphic() {
+	$("div").remove(".flexigrid");
+	//$("#VehicleAlarmList").hide();
+	var workUnitName = $("#workUnitNameParam").val();
+	var registrationNO = $("#registrationNO").val();
+	var startDate = $("#startDate").val()+" 00:00:00";
+	var endDate = $("#endDate").val()+" 23:59:59";
+	if($("#adSearch").css("display") != "none"){
+		AlarmOperationID = $("#alarmTypeSel").val();
+	 }
+	 
+
+	var chart = new FusionCharts("fusionCharts/Charts/Column3D.swf", "barsChart", "1500", "400"); 
+	chart.setJSONUrl("query/stat/getVehicleAlarmCharts.action?startDate="+startDate+"&endDate="+endDate+"&registrationNO="+registrationNO+"&AlarmOperationID="+AlarmOperationID+"&workUnitName="+workUnitName);
+	chart.render("VehicleAlarmChart");
+	$("#VehicleAlarmChart").show();
+}
+
+function initGrid(params,colModel){
+	
+	$("div").remove(".flexigrid");
+	$("#gridBox").append('<table id="VehicleAlarmList" style="display: none"></table>');
+	
+	$("#VehicleAlarmList").flexigrid( {
+		url : 'query/stat/findVehicleAlarmList.action',
+		dataType : 'json',
+		colModel : colModel,
+		sortname : "id",//第一次加载数据时排序列
+		sortorder : "asc",//第一次加载数据时排序类型
+		params : params,
+		usepager : true,//是否分页，默认为true。
+		showTableToggleBtn : true,//是否显示收起/打开按钮,默认不显示。
+		useRp : true,//是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,//每页记录数，默认为10
+		singleSelect:true,
+		width : 'auto',//表格宽度
+		height : getNormalHeight()//表格高度
+	});
+}
+
+function initColModel(){
+	
+	var colModel = [ 
+            		{
+            			display : '车牌号码',//表头
+            			name : 'registrationNO',//JSON数据中属性名
+            			width : 100,// 得加上 要不IE报错
+            			sortable : true,//此字段是否能排序
+            			align : 'left'//对齐方式
+            		},
+            		{
+            			display : '车牌颜色',//表头
+            			name : 'RegistrationNOColor',//JSON数据中属性名
+            			width : 100,// 得加上 要不IE报错
+            			sortable : true,//此字段是否能排序
+            			align : 'left'//对齐方式
+            		},{
+            			display : '业户名称',//表头
+            			name : 'workUnitName',//JSON数据中属性名
+            			width : 100,// 得加上 要不IE报错
+            			sortable : true,//此字段是否能排序
+            			align : 'left'//对齐方式
+            		}];
+	
+	var alarmTypeNo = $("#alarmTypeSel").val();
+	
+	//显示所有报警类型为表头
+	if(alarmTypeNo && alarmTypeNo != '-1'){
+		
+		var checkText = $("#alarmTypeSel").find("option:selected").text();
+		colModel.push({
+			display : checkText,
+			name : 'AlarmName' + alarmTypeNo,
+			width : 150,
+			sortable : false,
+			align : 'left'
+		});
+		
+	}else{//显示选择中的报警类型为表头
+		$("#alarmTypeSel option").each(function(i){
+			var optionText = $(this).text();
+			var optionVal = $(this).val();
+			
+			if(optionVal != '-1'){
+				colModel.push({
+					display : optionText,
+	    			name : 'AlarmName' + optionVal,
+	    			width : 150,
+	    			sortable : false,
+	    			align : 'center'
+				});
+			}
+		});
+	}
+	if(alarmTypeNo && alarmTypeNo == '-1'){
+		colModel.push({
+			display : '其他报警',
+			name : 'AlarmNameQT',
+			width : 150,
+			sortable : false,
+			align : 'left'
+		 });
+	}
+	
+	colModel.push({
+		display : '报警总数(次数)',
+		name : 'AlarmSum',
+		width : 150,
+		sortable : false,
+		align : 'left'
+	 });
+	colModel.push({
+		display : '报警处理数(次数)',
+		name : 'AlarmHandleSum',
+		width : 150,
+		sortable : false,
+		align : 'left'
+	 });
+	
+	return colModel;
+}
+
+/**
+ * 打开高级搜索框
+ */
+function toOpenAds(){
+	var adSearch=$("#adSearch");
+	adSearch.animate({height: 'toggle', opacity: 'toggle'}, 10);
+	var adSearchBtn=$("#adSearchBtn");
+	if(adSearchBtn.html()=='高级搜索'){
+		adSearchBtn.html("收起高级搜索");
+	}else{
+		adSearchBtn.html("高级搜索");
+	}
+}
+
+
+/**
+ * 获取昨天的
+ * js格式化当前时间为yyyy-mm-dd形式 如今天是2012-04-01 结果为：2012-03-31
+ * @return uom
+ */
+function getNowFormatDate() 
+{ 
+	//获取系统时间 
+	var LSTR_ndate=new Date(); 
+	var LSTR_Year=LSTR_ndate.getYear(); 
+	var LSTR_Month=LSTR_ndate.getMonth(); 
+	var LSTR_Date=LSTR_ndate.getDate(); 
+	//处理 
+	var uom = new Date(LSTR_Year,LSTR_Month,LSTR_Date); 
+	uom.setDate(uom.getDate()-1);//取得系统时间的前一天,重点在这里,负数是前几天,正数是后几天 
+	var LINT_MM=uom.getMonth(); 
+	LINT_MM++; 
+	var LSTR_MM=LINT_MM > 10?LINT_MM:("0"+LINT_MM);
+	var LINT_DD=uom.getDate(); 
+	var LSTR_DD=LINT_DD > 10?LINT_DD:("0"+LINT_DD);
+	//得到最终结果 
+	uom = uom.getFullYear() + "-" + LSTR_MM + "-" + LSTR_DD; 
+	return uom; 
+} 
+
+/**
+ * 查询参数
+ * @return
+ */
+function getparams(){
+	
+	var registrationNO = $("#registrationNO").val();
+	var workUnitName = $("#workUnitNameParam").val();
+	var startDate = $("#startDate").val()+" 00:00:00";
+	var endDate = $("#endDate").val()+" 23:59:59";
+	
+	if($("#adSearch").css("display") != "none"){
+		AlarmOperationID = $("#alarmTypeSel").val();
+	 }
+	 
+	
+	
+	//查询参数
+	var params = [{
+		name : 'registrationNO',
+		value : registrationNO
+	},{
+		name : 'workUnitName',
+		value : workUnitName
+	},{
+		name : 'startDate',
+		value : startDate
+	},{
+		name : 'endDate',
+		value : endDate
+	},{
+		name : 'AlarmOperationID',
+		value : AlarmOperationID
+	}];
+	
+	return params;
+}
+
+/**
+* 查询方法
+*/
+function toSearch(){
+	$("#VehicleAlarmChart").hide();
+	//查询参数
+	var params= getparams();
+	var colModel = initColModel();
+	initGrid(params,colModel);
+}
+
+
+/**
+ * 导出方法入口
+ */
+function toExportExl(){
+	exportExl('VehicleAlarmList','query/stat/vehicleAlarmExport.action');
+}
+
+
+
+function showTab1(){
+	
+	document.getElementById("tab2").style.display="block";
+}
+
+function showTab2(){
+	document.getElementById("tab2").style.display="none";
+}

@@ -1,0 +1,235 @@
+/**
+ * DriverAction.java
+ * Create on 2012-5-14 10:50:52
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.action.sys;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.services.sys.DriverServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class DriverAction extends BaseAction {
+
+	private static final long serialVersionUID = 1L;
+	
+	@Autowired
+	private DriverServices driverServices;
+
+	public DriverServices getDriverServices() {
+		return driverServices;
+	}
+
+	public void setDriverServices(DriverServices driverServices) {
+		this.driverServices = driverServices;
+	}
+
+	/**
+	 * 司机分页多条件查询
+	 */
+	@Action(value = "driverList")
+	public void driverList() {
+		
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(UserContext.isBsRootUser()){
+				params.put("isSuper", true);
+			}else if(user != null){
+				String fullId = user.getWorkUnitFullId();
+				params.put("fullId", fullId);
+			}
+			
+			this.renderJSON(JSONUtil.toJson(driverServices.getDrivers(params)));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "司机信息", "", "查询司机信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "司机信息", "", "查询司机信息");
+			e.printStackTrace();
+		}
+		
+	}
+	
+	/**
+	 * 导出司机列表到EXCEL
+	 */
+	@Action(value = "driverExport")
+	public void driverExport() {
+		
+		Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+		params = this.getExportParams(params);
+		SessionUser user = UserContext.getLoginUser();
+		if(UserContext.isBsRootUser()){
+			params.put("isSuper", true);
+		}else if(user != null){
+			String fullId = user.getWorkUnitFullId();
+			params.put("fullId", fullId);
+		}
+		try {
+			
+			String[] titleArray = {};
+			titleArray = new String[14];
+			titleArray[0]="企业名称";
+			titleArray[1]="司机名称";
+			titleArray[2]="联系电话";
+			titleArray[3]="驾驶证号";
+			titleArray[4]="IC卡号码";
+			titleArray[5]="身份证号";
+			titleArray[6]="驾驶员工号";
+			titleArray[7]="驾驶员代码";
+			titleArray[8]="驾驶证有效期";
+			titleArray[9]="驾驶证年审日期";
+			titleArray[10]="准入证号";
+			titleArray[11]="准入证有效期(月)";
+			titleArray[12]="准入证审验日期";
+			titleArray[13]="资格证到期日期";
+			
+			String[] columnArray = {};
+			columnArray = new String[14];
+			columnArray[0]="WorkUnitName";
+			columnArray[1]="Name";
+			columnArray[2]="PhoneNO";
+			columnArray[3]="DrivingLicence";
+			columnArray[4]="WorkLicenceNO";
+			columnArray[5]="IdentityCard";
+			columnArray[6]="DriverNO";
+			columnArray[7]="DriverCode";
+			columnArray[8]="LicenseNoEffective";
+			columnArray[9]="YearCheckTime";
+			columnArray[10]="AdmittanceCertificate";
+			columnArray[11]="AdmittanceEffective";
+			columnArray[12]="AdmittanceCheckDate";
+			columnArray[13]="WorkCertificateExpiryDate";
+			
+			List<Map<String,Object>> rows = driverServices.getDriversList(params);
+			exportExl("driverList", titleArray, columnArray, rows);
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "司机信息", "", "导出司机信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "司机信息", "", "导出司机信息");
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 司机新增
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "createDriver")
+	public void createDriver() {
+		
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+		Result result = new Result();
+		try {
+			driverServices.createDriver(params);
+			result.setCode(1);
+			this.renderJSON(JSONUtil.toJson(result));
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "司机管理", "", "新增司机信息");
+
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "司机管理", "", "新增司机信息");
+			e.printStackTrace();
+		}
+		result.setCode(0);
+		this.renderJSON(JSONUtil.toJson(result));
+		
+	}
+	
+	
+	/**
+	 * 查询司机详细信息
+	 */
+	@Action(value = "getDriverById")
+	public void getDriverById() {
+		
+		String id = getParameter("id"); 
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("driverId", id);
+		
+		Result result = new Result();
+		try {
+			Map<String,Object> driver = driverServices.getDriverById(params);
+			result.setCode(1);
+			result.setData(driver);
+			this.renderJSON(JSONUtil.toJson(result));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "司机管理", "", "查询司机详细信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "司机管理", "", "查询司机详细信息");
+			e.printStackTrace();
+		}
+		
+		result.setCode(0);
+		this.renderJSON(JSONUtil.toJson(result));
+	}
+	
+	
+	/**
+	 * 司机修改
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "updateDriver")
+	public void updateDriver() {
+		
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+		Result result = new Result();
+		try {
+			driverServices.updateDriver(params);
+			result.setCode(1);
+			this.renderJSON(JSONUtil.toJson(result));
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "司机管理", "", "编辑司机信息");
+
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "司机管理", "", "编辑司机信息");
+			e.printStackTrace();
+		}
+		result.setCode(0);
+		this.renderJSON(JSONUtil.toJson(result));
+	}
+	
+	
+	/**
+	 * 车辆删除
+	 */
+	@Action(value = "deleteDriver")
+	public void deleteDriver() {
+		
+		String id = getParameter("id"); 
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("driverId", id);
+		
+		Result result = new Result();
+		try {
+			driverServices.deleteDriver(params);
+			result.setCode(1);
+			this.renderJSON(JSONUtil.toJson(result));
+			LogUtil.insertLog(LogActionTypes.DELETE, "成功", "司机管理", "", "删除司机信息");
+
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.DELETE, "失败", "司机管理", "", "删除司机信息");
+			e.printStackTrace();
+		}
+		result.setCode(0);
+		this.renderJSON(JSONUtil.toJson(result));
+	}
+	
+}

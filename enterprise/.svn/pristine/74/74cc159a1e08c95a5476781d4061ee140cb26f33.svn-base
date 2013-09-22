@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig      
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+
+<sqlMapConfig>
+	<settings cacheModelsEnabled="true" enhancementEnabled="true" errorTracingEnabled="true" lazyLoadingEnabled="true"
+		maxRequests="32" maxSessions="10" maxTransactions="5"  useStatementNamespaces="true"/>
+	<!-- 用户菜单 -->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/userMenu.xml" />
+	
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/users.xml" />
+	
+	<!--企业用户信息管理-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/enterUsers.xml" />
+	
+	<!--车辆信息管理-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/vehicle.xml" />
+	<!-- 司机信息管理-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/driver.xml" />
+	<!-- 区域报警设置-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/monitorCenter/areaAlarmConfig.xml" />
+	<!-- 路线偏移设置-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/monitorCenter/lineAwayConfig.xml" />
+    <!--SIM卡信息管理-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/simManage.xml" />
+	<!--车队信息管理-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/vehicleTeam.xml" />
+    <!--终端信息管理	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/terminal.xml" />
+	
+	 <!--终端类型信息管理	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/terminalKind.xml" />
+	
+    <!--指令日志	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/logCommand.xml" />
+	<!--历史查岗记录	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/histroyCheckupRecord.xml" />
+	<!--历史报警督办	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/historyAlarmHandling.xml" />
+	<!--历史图片查询	-->
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/historyImageSelect.xml" />
+	<!-- 登录日志 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/loginLog.xml"/>
+    <!-- 操作日志 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/workLog.xml"/>
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/sysUserLog.xml" />
+    
+    <!-- 工作单位管理 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/workUnitManage.xml"/>
+	<sqlMap resource="com/etrans/bubiao/ibatis/sys/initSelect.xml" />
+    <!-- 功能菜单 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/functionMenu.xml" />
+  <!-- 历史报警-->
+  <sqlMap resource="com/etrans/bubiao/ibatis/query/nsAlarmMsgInfo.xml" />
+
+  <!-- 指令-->
+  <sqlMap resource="com/etrans/bubiao/ibatis/command/command.xml" />
+    <!-- 点线区域管理 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/CustomMap.xml" />
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/role.xml"/>
+    <sqlMap resource="com/etrans/bubiao/ibatis/sys/userVehicle.xml"/>
+    
+    <!-- 车辆上线率统计 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/vehicleOnlinePercert.xml"/>
+    <!-- 企业车辆上线率统计 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/uplinePercent.xml"/>
+     <!-- 车辆上线率1统计 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/vehicleUplinePercent.xml"/>
+    
+    <!-- 行驶里程统计 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/vehicleMileageStat.xml"/>
+    
+    <!-- 车辆报警统计 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/VehicleAlarmstat.xml" />
+    
+       <!-- 电子运单 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/query/Electronic.xml" />
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <!-- 路段限速设置 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/monitorCenter/lineQuotaConfig.xml" />
+    <!-- 关键点设置 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/monitorCenter/pointConfig.xml" />
+    
+    
+     <!-- Http -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/etGetVehicle.xml" />
+    <!-- Http End -->
+    
+    <!-- TA -->
+    <!-- 查询当前用户下的车辆公共文件 -->
+    <sqlMap resource="com/etrans/bubiao/ibatis/commonSql.xml" />
+	<!--疲劳驾驶报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/OverTime.xml" />
+	<!--轨迹分析组管理-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AddAnaryseGroup.xml" />
+
+    <!--超时停车报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseOverTimePark.xml" />
+	 <!--行车速度报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseSpeed.xml" />
+     <!--每日里程记录设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseMileagePerDay.xml" />
+     <!--每时里程记录设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseMileagePerHour.xml" />
+     <!--路段偏离报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseRoadExcursion.xml" />
+     <!--进出区域报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseInOutPoly.xml" />
+     <!--路段速度报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseRoadSpeed.xml" />
+    <!--道路超速报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/analyseOverSpeedRoad.xml" />
+     <!--道路超速条件设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/paramOverSpeedRoad.xml" />
+
+    <!--司机疲劳驾驶报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserDriverOverTime.xml" />
+     <!--司机超速行驶报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserDriverOverSpeed.xml" />
+     <!--行驶速度分析（交委）-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserSpeedGZSJW.xml" />
+     <!--疲劳驾驶报警（交委）-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserDOTGZSJW.xml" />
+     <!--车辆行车报警-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserRunAlarm.xml" />
+     <!--道路超速报警设置（长运）-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserOverSpeedRoadCY.xml" />
+    <!--道路超速条件（长运）-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/paramOverSpeedRoadCY.xml" />
+    <!--区域弯道超速-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserOverSpeedPoly.xml" />
+    <!--进出站点报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserInOutPlaceReport.xml" />
+	
+	
+	 <!--进出区域报表-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingInOutPoly.xml" />
+	 <!--进出站点报表-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingInOutPlaceReport.xml" />
+	 <!--司机休息区报警报表-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingLive.xml" />
+
+	<!--司机休息区报警设置-->
+    <sqlMap resource="com/etrans/bubiao/ibatis/AnalyserLive.xml" />
+    
+      <!--车辆行车报警-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingRunAlarm.xml" />
+     
+      <!--区域弯道超速报警-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingOverSpeedPoly.xml" />
+     
+      <!--疲劳驾驶报警(交委)-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingDOTGZSJW.xml" />
+     
+     <!--道路类型超速（长运）-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingOverSpeedRoadCY.xml" />
+     
+     <!--司机疲劳驾驶报警-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingDriverOvertime.xml" />
+     
+     <!--司机超速行驶报警-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingDriverOverSpeed.xml" />
+     
+     
+     <!--行驶速度分析（交委）-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/SpeedGZSJWResult.xml" />
+   
+    <!--每日里程记录报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/analyseMileagePerDay.xml" />
+    <!--每时里程记录报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/analyseMileagePerHour.xml" />
+    <!--路段偏离报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/drivingRoadExcursion.xml" />
+     
+    <!--路段速度报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/drivingRoadOverSpeed.xml" />
+     
+    <!--行车速度报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/drivingOverSpeed.xml" />
+     
+     <!--道路超速报表-->
+     <sqlMap resource="com/etrans/bubiao/ibatis/driving/drivingOverSpeedRoad.xml" />
+     
+   <!--疲劳驾驶报表结果-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingOvertime.xml" />
+   <!--超时停车报表结果-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/driving/DrivingOverTimePark.xml" />
+   
+    <!--车辆上线率统计（新）-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/VehicleUplinestat.xml" />
+    <!--车辆在线率统计（新）-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/VehicleOnlinestat.xml" />
+    <!--车辆上线有效统计-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/VehicleEffectiveUpload.xml" />
+   
+   <!--车辆上线有效统计(按部门)-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/workUnitEffectiveUpload.xml" />
+   <!--车辆速度统计-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/VehicleSpeedStat.xml" />
+   
+    <!--车辆油量统计-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/oilInfo.xml" />
+   
+    <!--车辆油量统计(按部门)-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/workUnitOilInfo.xml" />
+   
+     <!--车辆里程统计-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/mileageInfo.xml" />
+   
+     <!--车辆里程统计(按部门)-->
+   <sqlMap resource="com/etrans/bubiao/ibatis/query/stat/workUnitMileageInfo.xml" />
+   
+   
+   
+    <!-- TA END -->
+    
+    
+    <!--报表安全管理begin【ljy】-->
+		<!--疲劳驾驶-->
+		<sqlMap resource="com/etrans/bubiao/ibatis/query/stat/securityManager/vehicleDOTTimesStat.xml" />
+		<!--超速行驶-->
+		<sqlMap resource="com/etrans/bubiao/ibatis/query/stat/securityManager/vehicleOSTimesStat.xml" />
+		<!--超速行驶(按部门)-->
+		<sqlMap resource="com/etrans/bubiao/ibatis/query/stat/securityManager/workUnitOSTimesStat.xml" />
+    <!--报表安全管理end-->
+    
+	<!--  视频begin【车辆外设表管理】【ljy】  -->
+	<sqlMap resource="com/etrans/bubiao/ibatis/videoManage/vehicleDeviceSetup.xml"/>
+    
+    
+    <!-- 其他类型管理begin -->
+       <!-- 外设类型管理 -->
+         <sqlMap resource="com/etrans/bubiao/ibatis/videoManage/peripheralType.xml" />
+	         
+	      <!--外设型号-->
+	     <sqlMap resource="com/etrans/bubiao/ibatis/videoManage/vehicleDeviceModel.xml" />
+	   
+	     <!--设备厂商-->
+	     <sqlMap resource="com/etrans/bubiao/ibatis/videoManage/vehicleDeviceVendor.xml" />
+	     
+	    <!-- 其他类型管理end -->  
+       
+      
+    <!-- 系统公告设置信息 -->
+     <sqlMap resource="com/etrans/bubiao/ibatis/sys/SystemNoticeSet.xml" />
+     
+     
+     
+    <!-- 兴趣点信息 -->
+     <sqlMap resource="com/etrans/bubiao/ibatis/sys/entCustomMapPoint.xml" />
+     
+     
+     
+     
+     
+     
+     
+  <!-- 监控中心-->
+  <sqlMap resource="com/etrans/bubiao/ibatis/monitorCenter/monitorCenter.xml" />
+     
+     
+     
+     
+     
+     
+     
+</sqlMapConfig>

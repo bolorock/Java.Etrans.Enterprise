@@ -1,0 +1,498 @@
+/**
+ * LoginAction.java
+ * Create on 2012-1-9下午02:37:52
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.action;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.FunctionMenu;
+import com.etrans.bubiao.entities.LoginLog;
+import com.etrans.bubiao.entities.User;
+import com.etrans.bubiao.entities.WorkUnit;
+import com.etrans.bubiao.services.LoginServices;
+import com.etrans.bubiao.services.command.CommandServices;
+import com.etrans.bubiao.services.sys.FunctionMenuServices;
+import com.etrans.bubiao.services.sys.UserVehicleServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.encrypt.MD5Util;
+import com.etrans.common.util.web.IpUtils;
+import com.etrans.common.util.web.NetUtils;
+import com.etrans.common.util.web.Struts2Utils;
+
+/**
+ * @author Ivan
+ * @version 1.0
+ * @brief
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/pub")
+public class LoginAction extends BaseAction {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6443056887651354944L;
+	
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+	/**
+	 * 用户名
+	 */
+	private String username;
+	/**
+	 * 密码
+	 */
+	private String password;
+	/**
+	 * 验证码
+	 */
+	private String authCode;
+
+	@Autowired
+	private LoginServices loginServices;
+	
+	@Autowired
+	private FunctionMenuServices functionMenuServices;
+	
+	@Autowired
+	private UserVehicleServices userVehicleServices;
+	
+	@Autowired
+	private CommandServices commandServices;
+
+	@Action(value = "getMd5")
+	public void getMd5() {
+		  String md5str= MD5Util.getMD5String(this.getParameter("psw"));
+		  this.renderText(md5str);
+	}
+	
+	/**
+	 * 用户登录(报警设置分析)
+	 * 
+	 * @return
+	 */
+	@Action(value = "loginAnalyse", 
+			results = { 
+						@Result(name = SUCCESS, location = "/analyse/analyseMain.jsp", type = "redirect") ,
+						@Result(name=LOGIN,location = "/loginAnalyseError.html", type = "redirect")
+	})
+	public String loginAnalyse() {
+		try {
+			/**********验证***************/
+			User user = loginServices.queryUserTA(username, password);
+			if (null == user ){
+				//this.renderText("NO_EXIST");
+			    return LOGIN;
+			}
+		
+			//企业信息
+			WorkUnit workUnit = loginServices.queryUserWorkUnit(user.getWorkUnitId());
+			//登录后的用户实体
+			SessionUser sessionUser = new SessionUser();
+			sessionUser.setUserID(user.getId());//用户id
+			sessionUser.setUserName(username);//登录用户名
+			sessionUser.setCreateTime(user.getCreateTime());//用户创建时间
+			
+			sessionUser.setIsSuperUser(user.getIsSuperUser());//是否超级用户
+			sessionUser.setWorkUnitID(user.getWorkUnitId());//工作单位id
+			sessionUser.setPassword(user.getPassword().toUpperCase());//密码
+			
+			//如果是企业管理员
+			if(workUnit!=null && workUnit.getAdminUserId()!=null 
+					&& (String.valueOf(user.getId()).equals(workUnit.getAdminUserId()))){
+				sessionUser.setWorkUnitSuperAdmin(true);//设置为企业管理员标识
+			}
+			//设置单位名称
+			if(workUnit!=null){
+				sessionUser.setWorkUnitName(workUnit.getName());
+			}
+			//保存登录用户到session
+			UserContext.setLoginUser(sessionUser);
+			
+			// 用户权限列表【功能权限】
+			List<FunctionMenu> userThreeLevelList = null;
+			userThreeLevelList = functionMenuServices.getUserFourMenus(new Random().nextLong());
+
+			//用户权限字符串【功能权限】
+			String resources = "";
+			// 解析菜单列表，封装成字符串
+			if (null != userThreeLevelList) {
+				resources = this.buildResources(userThreeLevelList);
+			}
+			//权限列表字符串【功能权限】
+			sessionUser.setResources(resources);
+			//保存登录用户到session
+			UserContext.setLoginUser(sessionUser);
+
+			// 记录登录时间，并查询上次登录时间。
+			LoginLog loginLog=loginServices.loginLog(user.getId());
+			Struts2Utils.setSessionArrtibute("loginLog", loginLog);
+			
+			return SUCCESS;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			e.printStackTrace();
+		}
+		return LOGIN; 
+	}
+	
+	
+	
+	@Action(value = "loginAuthority", 
+			results = { 
+						@Result(name = SUCCESS, location = "/analyse/authorityMain.jsp", type = "redirect") ,
+						@Result(name=LOGIN,location = "/loginAnalyseError.html", type = "redirect")
+	})
+	public String loginAuthority() {
+		try {
+			/**********验证***************/
+			User user = loginServices.queryUserTA(username, password);
+			if (null == user ){
+				//this.renderText("NO_EXIST");
+			    return LOGIN;
+			}
+		
+			//企业信息
+			WorkUnit workUnit = loginServices.queryUserWorkUnit(user.getWorkUnitId());
+			//登录后的用户实体
+			SessionUser sessionUser = new SessionUser();
+			sessionUser.setUserID(user.getId());//用户id
+			sessionUser.setUserName(username);//登录用户名
+			sessionUser.setCreateTime(user.getCreateTime());//用户创建时间
+			System.out.println("bb:"+user.getIsSuperUser());
+			sessionUser.setIsSuperUser(user.getIsSuperUser());//是否超级用户
+			sessionUser.setWorkUnitID(user.getWorkUnitId());//工作单位id
+			sessionUser.setPassword(user.getPassword().toUpperCase());//密码
+			//如果是企业管理员
+			if(workUnit!=null && workUnit.getAdminUserId()!=null 
+					&& (String.valueOf(user.getId()).equals(workUnit.getAdminUserId()))){
+				sessionUser.setWorkUnitSuperAdmin(true);//设置为企业管理员标识
+			}
+			//设置单位名称
+			if(workUnit!=null){
+				sessionUser.setWorkUnitName(workUnit.getName());
+			}
+			//保存登录用户到session
+			UserContext.setLoginUser(sessionUser);
+			
+			// 用户权限列表【功能权限】
+			List<FunctionMenu> userThreeLevelList = null;
+			userThreeLevelList = functionMenuServices.getUserFourMenus(new Random().nextLong());
+
+			//用户权限字符串【功能权限】
+			String resources = "";
+			// 解析菜单列表，封装成字符串
+			if (null != userThreeLevelList) {
+				resources = this.buildResources(userThreeLevelList);
+			}
+			//权限列表字符串【功能权限】
+			sessionUser.setResources(resources);
+			//保存登录用户到session
+			UserContext.setLoginUser(sessionUser);
+			
+			// 记录登录时间，并查询上次登录时间。
+			LoginLog loginLog=loginServices.loginLog(user.getId());
+			Struts2Utils.setSessionArrtibute("loginLog", loginLog);
+			
+			return SUCCESS;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			e.printStackTrace();
+		}
+		return LOGIN;
+	}
+
+	/**
+	 * 用户登录【企业平台】
+	 * 
+	 * @return
+	 */
+	@Action(value = "login", 
+			results = { 
+						@Result(name = SUCCESS, location = "/common/index.jsp", type = "redirect") ,
+						@Result(name=LOGIN,location = "/login.html", type = "redirect")
+	})
+	public String login() {
+		try {
+			//验证用户
+			User user = loginServices.queryUser(username, password);
+			if (user == null)
+				return LOGIN;
+			//查询企业信息
+			WorkUnit workUnit = loginServices.queryUserWorkUnit(user.getWorkUnitId());
+			//查询系统公告
+			List<HashMap<String, String>> systemNoticeList=loginServices.getNoticeName();
+			String noticeName="";
+			if(systemNoticeList!=null && systemNoticeList.size()>0){
+				noticeName=systemNoticeList.get(0).get("name");
+			}
+			SessionUser sessionUser = new SessionUser();
+			sessionUser.setUserID(user.getId());
+			sessionUser.setUserName(username);
+			sessionUser.setCreateTime(user.getCreateTime());
+			sessionUser.setIsSuperUser(user.getIsSuperUser());
+			sessionUser.setWorkUnitID(user.getWorkUnitId());
+			sessionUser.setPassword(user.getPassword());
+			sessionUser.setSystemNotice(noticeName);
+			//是否是企业管理员
+			if(workUnit!=null && workUnit.getAdminUserId()!=null 
+					&& (String.valueOf(user.getId()).equals(workUnit.getAdminUserId()))){
+				sessionUser.setWorkUnitSuperAdmin(true);
+			}
+			//单位名称
+			if(workUnit!=null)sessionUser.setWorkUnitName(workUnit.getName());
+			Map<String, Object> whereMap = new HashMap<String, Object>();
+			whereMap.put("userId", String.valueOf(user.getId()));
+
+			// 用户权限列表
+			List<FunctionMenu> userThreeLevelList = null;
+
+			//保存用户信息到session
+			UserContext.setLoginUser(sessionUser);
+
+			String resources = "";
+			userThreeLevelList = functionMenuServices.getUserFourMenus(new Random().nextLong());
+
+			// 解析三级菜单
+			if (null != userThreeLevelList) {
+				resources = this.buildResources(userThreeLevelList);
+			}
+			
+			sessionUser.setResources(resources);
+
+			/**保存信息到session**/
+			UserContext.setLoginUser(sessionUser);
+			saveUserVehicle();
+			
+			/**判断ip类型并且保存到sessionbegin**/
+			String strIp = IpUtils.getRemortIP();
+			IpUtils.setLoginIpType(IpUtils.ipValidateInput(strIp));
+			System.out.println("ip------------------------："+strIp);
+			log.info(IpUtils.getTimes()+"---用户登陆的ip地址："+strIp);
+			/**判断ip类型并且保存到end**/
+			
+			// 记录登录时间，并查询上次登录时间。【记录登陆日志】
+			LoginLog loginLog=loginServices.loginLog(user.getId());
+			Struts2Utils.setSessionArrtibute("loginLog", loginLog);
+			
+			//获取交换链路连接状态请求
+			String sendMessage =Constants.COMMAND_7001;
+			int sendSequence = this.commandServices.getSendSequence();
+			sendMessage=sendMessage.replace("seq",String.valueOf(sendSequence));
+			this.commandServices.insertPlatFormCommandSendQueue(sendMessage);
+			
+			/**post.net报警设置系统begin**/
+//			String result = NetUtils.doPoseNet(username, password);
+//			if(result.equals("9999")){//异常
+//				log.error("---------------"+DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"登陆.net的报警设置系统【报错！】"+"---------------");
+//			}else if(result.equals("no200")){//返回编码不是200【200后台表示成功连接】
+//				log.error("---------------"+DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"登陆.net的报警设置系统【连接异常！】"+"---------------");
+//			}
+//			else{//有返回值
+//				if(result.equals("0"))//登陆成功
+//					log.error("---------------"+DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"登陆.net的报警设置系统【成功！】返回数据："+result+"---------------");
+//				if(result.equals("1"))//登陆失败【用户名或者密码错误】
+//					log.error("---------------"+DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"登陆.net的报警设置系统【失败！】【用户名或者密码错误】返回数据："+result+"---------------");
+//				if(result.equals("2"))//登陆失败【net后台程序异常】
+//					log.error("---------------"+DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"登陆.net的报警设置系统【失败！】【net后台程序异常】返回数据："+result+"---------------");
+//			}
+			/**post.net报警设置系统begin**/
+
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			e.printStackTrace();
+		}
+		return SUCCESS;
+	}
+
+	/**
+	 * 保存登录用户能看到的车辆信息
+	 */
+	private void saveUserVehicle(){
+		try {			
+			SessionUser user = UserContext.getLoginUser();
+			log.info("是否企业管理员:"+user.isWorkUnitSuperAdmin());
+			// 非企业管理员
+			if((!user.getIsSuperUser())&& (!user.isWorkUnitSuperAdmin())){
+				userVehicleServices.delUserVehicle(user.getUserID()); 
+				//根据用户id查询车组【基本组、、、】列表
+				List<Map> vehicleGroupId = userVehicleServices.getUserVehicle(user.getUserID(),new Random().nextLong());
+				//把普通用户权限下的车辆插入到数据库表中
+				userVehicleServices.insertUserVehicle(user.getUserID(), vehicleGroupId);
+			}
+			
+			/**查询用户权限车辆并保存到session**/
+			HashMap<String,Object> map = new HashMap<String,Object>();			
+			map.put("userId", user.getUserID());
+			map.put("workUnitId", user.getWorkUnitID());
+			List<HashMap<String,String>> vehicleList = userVehicleServices.getVehicleByLoginUser(map, new Random().nextLong());
+			Map<String,String> vehileMap = new HashMap<String,String>();
+			List<String> vehicleRegistrationNOList = new ArrayList<String>();//用作车牌自动补全ljy
+			if(vehicleList!=null && vehicleList.size()>0){
+				for(int i=0;i<vehicleList.size();i++){
+					vehileMap.put(String.valueOf(vehicleList.get(i).get("id")), vehicleList.get(i).get("NoColor"));
+					vehicleRegistrationNOList.add(vehicleList.get(i).get("NoColor").split("\\|")[0]);//用作车牌自动补全ljy
+					System.out.println("车牌："+vehicleList.get(i).get("NoColor").split("\\|")[0]);
+				}
+			}
+			Struts2Utils.setSessionArrtibute(Constants.USER_VEHICLE, vehileMap);
+			Struts2Utils.setSessionArrtibute(Constants.VEHICLEREGISTRATIONNO, vehicleRegistrationNOList);//用作车牌自动补全ljy
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+
+	}
+	/**
+	 * 用户退出登录
+	 * 
+	 * @return
+	 */
+	@Action(value = "logout", 
+			results = { @Result(name = SUCCESS, location = "/login.html", type = "redirect") 
+	})
+	public String logout() {
+		try {
+			LoginLog loginLog = (LoginLog) Struts2Utils.getSessionAttribute("loginLog");
+			Long logId = loginLog.getId();
+			loginServices.logoutLog(logId);
+			Struts2Utils.clearSessionArrtibute("loginLog");
+			Struts2Utils.clearSessionArrtibute(Constants.USER_VEHICLE);
+			UserContext.clearLoginUser();
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+
+		return SUCCESS;
+	}
+
+	public String buildResources(List<FunctionMenu> ls) {
+		StringBuffer resources = new StringBuffer("");
+		try {
+			for (FunctionMenu f : ls) {
+
+				String assemblyName = f.getAssemblyName();
+				String[] assemblyNames = assemblyName.split("\\|");
+
+				if (assemblyNames.length > 1) {
+					for (String str : assemblyNames) {
+						resources.append("|").append(str).append("|");
+					}
+				} else {
+					resources.append("|").append(assemblyName).append("|");
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.getMessage());
+			resources = new StringBuffer("");
+		}
+		return resources.toString();
+	}
+
+	/**
+	 * 登录验证，用于Ajax 验证用户
+	 * @author FengHai(冯海.)
+	 * description:增加校验规则
+	 */
+	@Action("loginValid")
+	public void loginValid() {
+		String responseCode = "SUCCESS";
+		try {			
+			User user = loginServices.queryUser(username, password);			
+			if(user==null){
+				responseCode = "FAIL_0";
+			}else{
+				String overTime = user.getOverTime();
+				int state  = user.getStatus();//0=正常，1=禁用，2=删除
+				if(state==1){
+					responseCode = "FAIL_1_1";//禁用 此用户已被禁用，请联系管理员！
+				}
+				if(state==2){
+					responseCode = "FAIL_1_2";//删除 此用户已被删除，请联系管理员！
+				}
+				if(DateUtil.compareNowDate(overTime, "yyyy-MM-dd")){
+					responseCode = "FAIL_2_0";//此用户已过期，请联系管理员！
+				}
+			}	
+		} catch (Exception e) {
+			responseCode="FAIL_3_0";
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}
+		this.renderText(responseCode);
+	}
+
+	/**
+	 * 验证码验证
+	 */
+	@Action("authCodeValid")
+	public void authCodeValid() {
+		if (StringUtils.isEmpty(authCode)) {
+			// 页面验证码空
+			this.renderText("EMTPTY");
+			return;
+		}
+
+		Object obj = this.getSessionObj(Constants.SESSION_VER_CODE);
+		if (obj == null) {
+			// 服务端验证码为空
+			this.renderText("ERROR");
+			return;
+		}
+
+		if (((String) obj).equalsIgnoreCase(authCode)) {
+			// 通过验证
+			this.renderText("SUCCESS");
+			return;
+		}
+		this.setSessionArrtibute(Constants.SESSION_VER_CODE, null);
+		// 验证失败
+		this.renderText("FAIL");
+
+	}
+
+	public void setLoginServices(LoginServices loginServices) {
+		this.loginServices = loginServices;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public void setAuthCode(String authCode) {
+		this.authCode = authCode;
+	}
+
+	public FunctionMenuServices getFunctionMenuServices() {
+		return functionMenuServices;
+	}
+
+	public void setFunctionMenuServices(
+			FunctionMenuServices functionMenuServices) {
+		this.functionMenuServices = functionMenuServices;
+	}
+
+}

@@ -1,0 +1,114 @@
+$(function() {
+
+	initGrid();
+
+	// 初始化验证插件
+	$("#editWindow").validation();
+	initSelects();
+	//按钮绑定点击事件
+	$('#searchBtn').bind('click', toSearch);
+    $('#exportBtn').bind('click', toExportExl);
+
+});
+
+function initGrid() {
+	$("#historyCheckupRecordList").flexigrid({
+		url : 'sys/historyCheckupRecordList.action',
+		dataType : 'json',
+		colModel : [ /*查岗时间、查岗内容、查岗回复时间、回复内容、标志、 */
+		          {
+			display : '查岗时间',// 表头
+			name : 'CheckTime',// JSON数据中属性名
+			width : 150,// 得加上 要不IE报错
+			sortable : true,// 此字段是否能排序
+			align : 'center'// 对齐方式
+		}, {
+			display : '查岗内容',
+			name : 'CheckContent',
+			width : 200,
+			sortable : true,
+			align : 'center'
+		},{
+			display : '查岗回复时间',
+			name : 'CheckReturnTime',
+			width : 150,
+			sortable : false,
+			align : 'center'
+		}, {
+			display : '回复内容',
+			name : 'CheckReturnContent',
+			width : 200,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '标志',
+			name : 'isResult',
+			width : 100,
+			sortable : false,
+			align : 'center'
+		}],
+		sortname : "ID",// 第一次加载数据时排序列
+		sortorder : "asc",// 第一次加载数据时排序类型
+		usepager : true,// 是否分页，默认为true。
+		useRp : true,// 是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,// 每页记录数，默认为10
+		//checkbox : true,// 是否要多选框,默认为false。
+		rowId : 'ID',// 多选框绑定行的id,只有checkbox : true时才有效。
+		singleSelect : false,
+		width : 'auto',// 表格宽度
+		height : getNormalHeight()-15// 表格高度
+	});
+	
+};
+
+/**
+ * 查询方法
+ */
+function toSearch() {
+
+	var CheckingNopram =null;//$("#CheckingNopram").val();//流水号
+	var IsResultpram = $("#IsResultpram").val();//标志
+	
+	// 查询参数
+	var params = [ {
+		name : 'CheckingNopram',
+		value : CheckingNopram
+	},{
+		name : 'IsResultpram',
+		value : IsResultpram
+	}];
+	// 重置表格的某些参数
+	$("#historyCheckupRecordList").flexOptions( {
+		newp : 1,// 设置起始页
+		params : params
+	// 设置查询参数
+			}).flexReload();// 重新加载
+}
+
+
+/**
+ *初始化下拉框
+ */
+function initSelects(){
+	initIsResult("IsResultpram");
+}
+
+/**
+ * 显示错误信息
+ */
+function showError() {
+	showWarning('服务器忙，请重试！');
+}
+
+/**
+ * 显示提示信息
+ */
+function showWarning(str) {
+	$.messager.alert('提示信息', str, 'info');
+}
+/**
+ * 导出方法入口
+ */
+function toExportExl() {
+	exportExl('historyCheckupRecordList', 'sys/exportHistoryCheckRecord.action');
+}

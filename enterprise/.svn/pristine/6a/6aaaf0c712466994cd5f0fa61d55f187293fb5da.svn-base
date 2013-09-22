@@ -1,0 +1,83 @@
+package com.etrans.bubiao.action.sys.proveInfoManage;
+
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.services.sys.proveInfoManage.ProveInfoManageServices;
+import com.etrans.common.util.FlexiGridUtil;
+
+/**
+ * 证件信息表管理Action
+ * @author lujunyong
+ * 2013-08-14
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/proveInfoManage")
+public class ProveInfoAction extends BaseAction{
+
+	private static final long serialVersionUID = 3595832987485843371L;
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+	
+	//证件信息表管理Services
+	private ProveInfoManageServices proveInfoManageServices;
+
+	public ProveInfoManageServices getProveInfoManageServices() {
+		return proveInfoManageServices;
+	}
+	public void setProveInfoManageServices(
+			ProveInfoManageServices proveInfoManageServices) {
+		this.proveInfoManageServices = proveInfoManageServices;
+	}
+	
+	
+/*******************数据列表*****************************/	
+	/**
+	 * 查询证件信息列表
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value="findProveInfoList")
+	public void findProveInfoList(){
+		try {
+			Map params = FlexiGridUtil.parseParam(this.getGridParams());
+			this.renderJSON(proveInfoManageServices.findProveInfoList(params,new Random().nextLong()));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "证件信息管理", "", "查询证件信息");
+		} catch (Exception e) {
+			e.printStackTrace();
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "证件信息管理", "", "查询证件信息");
+		}
+		
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}

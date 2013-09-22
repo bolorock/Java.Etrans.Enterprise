@@ -1,0 +1,67 @@
+$(function() {
+	initGrid();
+});
+
+function initGrid(){
+	
+	$.ajax({
+		url:"systemNotice/getSystemNoticeHistory.action",
+		type:"POST",
+		dataType:"json",
+		success:function(data){
+		$(data).each(function(i,n){
+			try{
+				var count=i+1;
+//				alert(count);
+				var title=n.title;
+				var contents=n.contents;
+				var releaseDate=n.releaseDate;
+				var id=n.id;
+				var  cons=contents.split("\n");
+//				var stringStr="<div style='background-color: green; width:520px; height:200px;'>";
+				var stringStr="<div style='width: 100px; height:200px; float:left; color: navy; text-align: center; color:#46a4d7;' >"+
+				releaseDate
+      	   +"</div><div style='width: 20px; height:200px; float:left; background-color: #acdbf6; text-align: center;'><img  src='Images/systemnotileHistory.jpg'></div>"
+      	   +"<div style='width:320px; float:right; height: 180px; background-color: #3394c9;  margin-right: 30px; margin-bottom: 20px;'>"+
+      	     "<div style='text-align: center; width: 300px; height: 20px;'>"+
+                "<label id='notileTitle' style='text-align: center; width: 200px; height: 20px;' class='titilefont'>"+title+"</label>"+
+            "</div>"+
+			    "<div style='text-align: left; width: 300px; height: 170px;'>"+
+			        "<textarea id='notileContents' class='box01' style='width: 300px; height: 150px;  border-style: hidden; position:absolute;"+
+			        "background:transparent;overflow-y:auto; padding-left: 20px;' readonly='readonly'>"+contents+"</textarea>"+
+			   " </div></div>"
+//      	  + "</br></br>"
+				
+//			    document.getElementById("notileTitle").innerText =title;
+//			    document.getElementById("notileContents").innerText =contents;
+			   document.getElementById("historyPage").innerHTML+=stringStr+"</br></br>";
+			}catch(e){
+				alert(e);
+			}
+		});	
+		
+	   }
+		
+	});
+    
+};
+
+/**
+ * 查询方法
+ */
+function toSearch(){
+	
+		var title = $("#sname").val();
+		//查询参数
+		var params = [{
+			name : 'title',
+			value : title
+		}];
+		// 重置表格的某些参数
+		$("#systemNoticeList").flexOptions({
+				newp : 1,// 设置起始页
+				params : params// 设置查询参数
+			}).flexReload();// 重新加载
+	
+	
+}

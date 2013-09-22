@@ -1,0 +1,79 @@
+var basePath="";
+$(function(){
+	$("#tabs").tabs();
+	getUplineAndDownLinVehicle();
+})
+
+
+function getUplineAndDownLinVehicle(){
+	var uplineCount=0;
+	var upLineVehicle='<table cellpadding="0" cellspacing="0" class="form"><tr><th  width="30%">车牌号</th><th  width="30%">车牌颜色</th><th  width="40%">所属企业</th></tr>';
+	var downLineVehicle='<table cellpadding="0" cellspacing="0" class="form"><tr><th  width="30%">车牌号</th><th  width="30%">车牌颜色</th><th  width="40%">所属企业</th></tr>';
+	$.ajax({
+		url:"monitorCenter/getUplineAndDownLinVehicle.action",
+		type:"POST",
+		dataType:"json",
+		success:function(data){
+		$(data).each(function(i,n){
+			try{
+				var registrationNo=n.registrationNo;
+				var isOnline=n.isOnline;
+				var noColor=n.noColor;
+				var workunitName=n.workunitName;
+				var vehicleId=n.vehicleId;
+				if(isOnline){
+					uplineCount++;
+					upLineVehicle+='<tr><td nowrap="nowrap"  align="center"><a  style="text-decoration:underline"  onmouseover="style.backgroundColor=\'red\'" onmouseout="style.backgroundColor=\'white\'" href=javascript:gotoVehicleInfo(\''+vehicleId+'\',\''+registrationNo+'\')>'+registrationNo+'</a></td><td nowrap="nowrap" align="center">'+noColor+'</td><td nowrap="nowrap"  align="center">'+workunitName+'</td></tr>';
+				}else{
+					downLineVehicle+='<tr><td nowrap="nowrap"  align="center"><a style="text-decoration:underline" onmouseover="style.backgroundColor=\'red\'" onmouseout="style.backgroundColor=\'white\'" href=javascript:gotoVehicleInfo(\''+vehicleId+'\',\''+registrationNo+'\')>'+registrationNo+'</td><td nowrap="nowrap" align="center">'+noColor+'</td><td nowrap="nowrap"  align="center">'+workunitName+'</td></tr>';
+				} 
+			 
+			}catch(e){
+				alert(e);
+			}
+		});	
+		upLineVehicle+='</table>';
+		downLineVehicle+='</table>';
+		 if(uplineCount==0){
+			 $('#tabs').tabs({ selected: 1 });
+		 }
+		 $("#cont_box").html(upLineVehicle);
+		 $("#cont_box2").html(downLineVehicle);
+		  playvoice('wav_upline'); // 播放声音
+}
+});
+}
+
+
+//播放声音
+function playvoice(p_id) {
+	var node = document.getElementById(p_id);
+	if (node != null) {
+		//wav_alarm.settings.playCount=10;
+		wav_upline.controls.play();
+	}
+}
+
+//停止播放声音
+function stopvoice(p_id) {
+	try {
+		var node = document.getElementById(p_id);
+		if (node != null) {
+			wav_upline.controls.stop();
+		}
+	} catch (e) {
+	}
+}
+
+/**车辆详细信息**/
+function gotoVehicleInfo(vehicleId,registrationNo){
+//		var  url='http://127.0.0.1:8080/enterprise/monitorCenter/vehicleInfo.jsp?vehicleId='+vehicleId;
+		
+		var  url=basePath+'monitorCenter/vehicleInfo.jsp?vehicleId='+vehicleId;
+		//parent.parent.parent.openDialog(url, 800, 320,"["+registrationNo+"]详细信息");
+		
+		/**弹出窗体**/
+		parent.bottomFrameHideshow("vehilceInfoIoc","none");//隐藏快捷按钮
+		/**openWindow方法在index.js[对应index2.jsp页面]**/
+		parent.openWindow(url, 800, 320,"["+registrationNo+"]详细信息","vehicleInfoDiv","dialogFrame2",'vehilceInfoIoc');
+}

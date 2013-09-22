@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+   <!-- 车辆在线率统计 -->
+<select id="vehicleOnlinePercentSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+SELECT * FROM(
+		 			SELECT ROW_NUMBER() OVER (
+						<dynamic prepend="order by">
+						  	<isNotNull property="VehicleIDOrder" prepend=",">
+								mv.VehicleID $VehicleIDOrder$
+							</isNotNull>
+						  	<isNotNull property="workUnitNameOrder" prepend=",">
+								pw.name $workUnitNameOrder$
+							</isNotNull>
+						  	<isNotNull property="registrationNoOrder" prepend=",">
+								mv.registrationNo $registrationNoOrder$
+							</isNotNull>
+						 
+						  	<isNotNull property="onLineRateOrder" prepend=",">
+								mv.onLineRate $onLineRateOrder$
+							</isNotNull>
+							<isNotNull property="offLineRateOrder" prepend=",">
+								mv.offLineRate $offLineRateOrder$
+							</isNotNull>
+				   </dynamic>
+		 			) RowNo,
+				     mv.registrationNo, pw.name as workUnitName,mv.vehiclecount,mv.VehicleID,
+				    mv.onLineRate, (100-onLineRate) as offLineRate 
+				    from(
+				    select  vehiclecount, VehicleID,workUnitID,registrationNo,
+				    convert(decimal(10,2),100*(cast(vehiclecount as decimal(18,2)))/cast((#timeDay#*24*60)/10 as decimal(18,2))) as onLineRate
+				    from(
+				    select  ta.vehiclecount as vehiclecount,mv.id as VehicleID,mv.workUnitID,mv.registrationNo 
+					from Pub_Vehicle mv WITH(nolock) 	        
+		        <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  mv.id=ev.vehicleID
+		        </isEqual>
+		        
+		        INNER   JOIN (select count(VehicleID) as vehiclecount, VehicleID from TAnalyseRecord   
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				RecTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=RecTime
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ta on ta.VehicleID=mv.id
+		            
+		        <dynamic prepend="where"> 
+			         <![CDATA[mv.workStatus&2<>2]]> 
+			             and mv.workUnitId>1
+		             <isEqual property="isSuper" compareValue="0">
+		             	AND ev.UserId=#userId#
+		             </isEqual>
+	             
+	                <isEqual property="isSuper" compareValue="1">
+			        	and mv.workUnitId=#workUnitId#
+			      	</isEqual>
+	             </dynamic>
+          
+          )mv GROUP BY vehiclecount,VehicleID,workUnitID,registrationNo)mv
+         left outer join  pub_workUnit AS pw ON mv.workUnitID=pw.id 
+		 	<dynamic prepend="where">
+				<isNotNull property="workUnitNameWhere">
+					 pw.name LIKE '%$workUnitNameWhere$%' 
+				</isNotNull>
+				<isNotNull property="registrationNo">
+					and mv.registrationNo LIKE '%$registrationNo$%' 
+				</isNotNull>
+			</dynamic>
+		)A  
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				A.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+	</select>	
+
+
+  <select id="vehicleOnlinePercentCountSQL" parameterClass="java.util.HashMap" resultClass="Long">
+
+		SELECT count(*)
+      FROM(
+				    select  vehiclecount, VehicleID,workUnitID,registrationNo,
+				    convert(decimal(10,2),100*(cast(vehiclecount as decimal(18,2)))/cast((#timeDay#*24*60)/10 as decimal(18,2))) as onLineRate
+				    from(
+				    select  ta.vehiclecount as vehiclecount,mv.id as VehicleID,mv.workUnitID,mv.registrationNo 
+					from Pub_Vehicle mv WITH(nolock) 
+					
+		        <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  mv.id=ev.vehicleID
+		        </isEqual>
+		        
+		        INNER   JOIN (select count(VehicleID) as vehiclecount, VehicleID from TAnalyseRecord  
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				RecTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=RecTime
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ta on ta.VehicleID=mv.id  
+		            
+		        <dynamic prepend="where"> 
+			         <![CDATA[mv.workStatus&2<>2]]> 
+			             and mv.workUnitId>1
+		             <isEqual property="isSuper" compareValue="0">
+		             	AND ev.UserId=#userId#
+		             </isEqual>
+	             
+	                <isEqual property="isSuper" compareValue="1">
+			        	and mv.workUnitId=#workUnitId#
+			      	</isEqual>
+	             </dynamic>
+          
+            )mv GROUP BY vehiclecount,VehicleID,workUnitID,registrationNo)mv
+            left outer join  pub_workUnit AS pw ON mv.workUnitID=pw.id
+		 	<dynamic prepend="where">
+				<isNotNull property="workUnitNameWhere">
+					pw.name LIKE '%$workUnitNameWhere$%' 
+				</isNotNull>
+				<isNotNull property="registrationNo">
+					and mv.registrationNo LIKE '%$registrationNo$%' 
+				</isNotNull>
+				
+			</dynamic>
+	</select>
+	
+</sqlMap>

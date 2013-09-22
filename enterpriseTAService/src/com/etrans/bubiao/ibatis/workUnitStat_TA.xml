@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 企业车辆在线率统计(管理员) -->
+<select id="workUnitPercentTASQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+    SELECT  pw.UnitName as UnitName,pv.total ,pv.vehicleUplinetotal,pv.upLineRate,pw.id as id,          
+    pv.onLineRate, (100-upLineRate) as contactLossRate,(100-onLineRate) as offLineRate from(  
+
+    select (case when IFNULL(total,0)>0 then total else 1 end)total,OnLineCount,
+    vehicleUplinetotal ,UnitID,
+    convert(100*(cast(vehicleUplinetotal as DECIMAL(18,2)))/cast(total as DECIMAL(18,2)),decimal(10,2)) as upLineRate,
+    convert(100*(cast((sumTime/10) as decimal(18,2)))/cast(#timeDay#*144*total as decimal(18,2)),decimal(10,2)) as onLineRate
+	from( 
+	select  UnitID,IFNULL(vehicletotal,0) as total,IFNULL(OnLineCount,0)as OnLineCount,IFNULL(sumTime,0)as sumTime,  
+	IFNULL(vehicleUplinetotal,0)as vehicleUplinetotal       
+	from( 
+	select UnitID,count(pv.id)as vehicletotal,sum(ta.vehiclecount) as OnLineCount,count(ta.VehicleID)as vehicleUplinetotal, sum(ta.sumRealOnlineTime) as sumTime
+	from  etta_basedata.bi_vehicle_info pv 
+   LEFT OUTER JOIN(
+   select count(VehicleID) as vehiclecount, VehicleID,sum(RealOnlineTime) as sumRealOnlineTime from  etta_report.bi_hta_vehicle_online_rate 
+    <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				CreateTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=CreateTime
+	              </isNotEmpty>
+	              
+	 </dynamic>
+	  GROUP BY VehicleID  )ta on ta.VehicleID=pv.id
+	    <dynamic prepend="where">
+  			<isNotNull property="vehicle_list">
+				<isNotEmpty property="vehicle_list">
+					  pv.id in ($vehicle_list$)
+				</isNotEmpty>
+			</isNotNull>
+	    </dynamic>
+	
+	group by  UnitID)pv
+	group by pv.OnLineCount,pv.vehicletotal,pv.vehicleUplinetotal,pv.UnitID,pv.sumTime)pv
+	group by pv.OnLineCount,pv.vehicleUplinetotal,pv.total,pv.UnitID)pv
+	left outer join  etta_basedata.bi_unit_info AS pw ON pv.UnitID=pw.id  where 1=1
+	<dynamic>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pw.fullid like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+			   <isNotEmpty property="workUnitNameWhere" >
+			      AND pw.UnitName like '%$workUnitNameWhere$%'
+			   </isNotEmpty>
+		</dynamic>
+       
+      <dynamic prepend="order by">
+                            <isNotNull property="idOrder">
+								pw.id $idOrder$
+							</isNotNull>
+						  	<isNotNull property="UnitNameOrder">
+								pw.UnitName $UnitNameOrder$
+							</isNotNull>
+						  	<isNotNull property="totalOrder">
+								pv.total $totalOrder$
+							</isNotNull>
+						  	<isNotNull property="vehicleUplinetotalOrder">
+								pv.vehicleUplinetotal $vehicleUplinetotalOrder$
+							</isNotNull>
+						  	<isNotNull property="upLineRateOrder">
+								pv.upLineRate $upLineRateOrder$
+							</isNotNull>
+						  	<isNotNull property="onLineRateOrder">
+								pv.onLineRate $onLineRateOrder$
+							</isNotNull>
+				   </dynamic>
+                    limit $fromRow$,$toRow$ 
+</select>
+  
+ <!-- 企业车辆在线率统计(管理员) -->
+<select id="workUnitPercentCountTASQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long"> 
+        SELECT count(*) from(  
+
+    select (case when IFNULL(total,0)>0 then total else 1 end)total,OnLineCount,
+    vehicleUplinetotal ,UnitID,
+    convert(100*(cast(vehicleUplinetotal as DECIMAL(18,2)))/cast(total as DECIMAL(18,2)),decimal(10,2)) as upLineRate,
+    convert(100*(cast((sumTime/10) as decimal(18,2)))/cast(#timeDay#*144*total as decimal(18,2)),decimal(10,2)) as onLineRate
+	from( 
+	select  UnitID,IFNULL(vehicletotal,0) as total,IFNULL(OnLineCount,0)as OnLineCount,IFNULL(sumTime,0)as sumTime,  
+	IFNULL(vehicleUplinetotal,0)as vehicleUplinetotal       
+	from( 
+	select UnitID,count(pv.id)as vehicletotal,sum(ta.vehiclecount) as OnLineCount,count(ta.VehicleID)as vehicleUplinetotal, sum(ta.sumRealOnlineTime) as sumTime
+	from  etta_basedata.bi_vehicle_info pv 
+   LEFT OUTER JOIN(
+   select count(VehicleID) as vehiclecount, VehicleID,sum(RealOnlineTime) as sumRealOnlineTime from  etta_report.bi_hta_vehicle_online_rate 
+    <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				CreateTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=CreateTime
+	              </isNotEmpty>
+	              
+	 </dynamic>
+	GROUP BY VehicleID  )ta on ta.VehicleID=pv.id
+	<dynamic prepend="where">
+  			<isNotNull property="vehicle_list">
+				<isNotEmpty property="vehicle_list">
+					  pv.id in ($vehicle_list$)
+				</isNotEmpty>
+			</isNotNull>
+	 </dynamic>
+	group by  UnitID)pv
+	group by pv.OnLineCount,pv.vehicletotal,pv.vehicleUplinetotal,pv.UnitID,pv.sumTime)pv
+	group by pv.OnLineCount,pv.vehicleUplinetotal,pv.total,pv.UnitID)pv
+	left outer join  etta_basedata.bi_unit_info AS pw ON pv.UnitID=pw.id   where 1=1
+	  <dynamic>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pw.fullid like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+		
+			   <isNotEmpty property="workUnitNameWhere" prepend="AND">
+			       pw.UnitName like '%$workUnitNameWhere$%'
+			   </isNotEmpty>
+			
+           
+		</dynamic>
+    
+</select>  
+  
+</sqlMap>

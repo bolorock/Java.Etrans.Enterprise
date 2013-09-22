@@ -1,0 +1,349 @@
+package com.etrans.bubiao.action.sys;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.activemq.kaha.impl.data.Item;
+import org.apache.jasper.tagplugins.jstl.core.ForEach;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.aspectj.weaver.ast.Var;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.services.TaService;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.PropertyReader;
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
+
+/**
+ * @author hgq
+ * @version 1.0
+ * @brief 用户菜单Action
+ */
+
+@Controller
+@Namespace("/sys/userMenu")
+@Scope("prototype")
+public class UserMenu extends BaseAction {
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+
+	/**
+	 * IbatisServices
+	 */
+	@Autowired
+	private IbatisServices ibatisServices;
+	
+	@Autowired
+	private TaService taService;
+
+	/**
+	 * 新增用户菜单
+	 */
+	@Action("addUserMenu")
+	public void addUserMenu() {
+		try {
+			Map<String, Object> insertParamMap = getParameterMap();
+
+			insertParamMap.put("userId", UserContext.getLoginUser().getUserID());
+
+			Object obj = ibatisServices.insertIbatisObject("addAndUpdateUserMenuSQL",insertParamMap);
+
+			if (obj != null){
+				this.renderText("true");
+			}
+			else {
+				this.renderText("false");
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+
+	/**
+	 * 获取用户菜单的图标及简称
+	 */
+	@Action("getMenuInfoByMenuId")
+	public void getMenuInfoByMenuId() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+
+			HashMap<String, String> map = new HashMap<String, String>();
+			map = (HashMap) ibatisServices.queryForObject(HashMap.class,"getMenuInfoByMenuIdSQL", selectParamMap);
+			if (null!=map){
+				this.renderJSON(map);
+			}
+			else {
+				this.renderText("false");
+			}
+			
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取还没有使用的菜单图标
+	 */
+	@Action("getMenuImage")
+	public void getMenuImage() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getMenuImageSQL",selectParamMap);
+			this.renderJSON(lists);
+
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取用户所有菜单设置
+	 */
+	@Action("getUserMenu")
+	public void getUserMenu() {
+		try {
+			String config="/msc_config.properties";
+			Map<String, Object> selectParamMap = getParameterMap();
+			SessionUser user= UserContext.getLoginUser();
+			String pwd= user.getPassword();
+			Long userId=user.getUserID();
+			String userName=user.getUserName();
+			String isAdmin="0";
+			
+			//超级管理员
+			if(UserContext.isBsRootUser()){
+				isAdmin="2";		
+			} 
+			//企业管理员
+			else if(user != null&&user.isWorkUnitSuperAdmin()){
+				isAdmin="1";	
+			}//普通用户
+			else{
+				isAdmin="0";
+			}
+			
+			String taHost= PropertyReader.getValue(config, "ta_host");
+			String taPort=PropertyReader.getValue(config, "ta_port");
+			String taPage=PropertyReader.getValue(config, "ta_page");
+					
+			selectParamMap.put("userId", userId);
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getUserMenuSQL",selectParamMap);
+			for (HashMap<String, String> item : lists) {
+				String url=item.get("url");
+				
+				if (url.indexOf(".aspx")>0){
+					url="http://"+taHost+":"+taPort+"/"+taPage+"?user="+userName+"&pwd="+pwd+"&isAdmin="+isAdmin
+							+"&userId="+userId+"&parentId=393&menuId="+String.valueOf(item.get("MenuId"));
+					item.put("url", url);
+				}
+			}
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取用户所有菜单Id
+	 */
+	@Action("getUserMenuId")
+	public void getUserMenuId() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getUserMenuIdSQL",selectParamMap);
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 删除用户菜单
+	 */
+	@Action("delUserMenu")
+	public void delUserMenu() {
+		try {
+			Map<String, Object> delParamMap = getParameterMap();
+
+			delParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			Integer rtnVal= this.ibatisServices.deleteIbatisObject("delUserMenuSQL",delParamMap);
+			if (rtnVal>0){
+				this.renderText("true");
+			}
+			else {
+				
+				this.renderText("false");
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取TA的报警统计
+	 */
+	@Action("getTaCountList")
+	public void getTaCountList() {
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date dateStart = null;
+		Date dateEnd = null;
+		try {
+			 Date date=new Date();//取时间
+			 Calendar calendar = new GregorianCalendar();
+			 calendar.setTime(date);
+			 calendar.add(calendar.DATE,-1);//前一天
+			 date=calendar.getTime();
+			 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+			 String dateString = formatter.format(date);
+			
+			 dateStart=format.parse(dateString+" 00:00:00");
+			dateEnd = format.parse(dateString+" 23:59:59");
+			Map<String, Object> map = getParameterMap();
+
+			map.put("startDate", dateStart);
+			map.put("endDate", dateEnd);
+					
+			List<HashMap<String, String>> resultls = this.taService.getDataFromMysql(map, "getTaCountSQL");
+			this.renderJSON(resultls);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取报警统计
+	 */
+	@Action("getAlarmCount")
+	public void getAlarmCount() {
+		try {
+			Map<String, Object> params = getParameterMap();
+			SessionUser user=UserContext.getLoginUser();
+			
+			//超级管理员
+			if(UserContext.isBsRootUser()){
+				params.put("isSuperUser","1");		
+			} 
+			//企业管理员
+			else if(user != null&&user.isWorkUnitSuperAdmin()){
+				String fullId = user.getWorkUnitFullId();
+				params.put("fullId", fullId);
+				params.put("isSuperUser","2");	
+			}//普通用户
+			else{
+				params.put("isSuperUser","3");
+			}
+
+			params.put("userId", user.getUserID());
+			
+			 Date date=new Date();//取时间
+			 Calendar calendar = new GregorianCalendar();
+			 calendar.setTime(date);
+			 calendar.add(calendar.DATE,-1);//前一天
+			 date=calendar.getTime();
+			 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+			 String dateString = formatter.format(date);
+
+			 params.put("statDate",formatter.parse(dateString+" 00:00:00"));
+			 //报警类型
+			 String alarmIdS=(String) params.get("alarmIdList");
+			 List<String> alarmIdList =Arrays.asList(alarmIdS.split(","));
+			 params.put("alarmIdList", alarmIdList);
+			 
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getAlarmCountSQL",params);
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	
+	/**
+	 * 新增对应类型的用户设置数据
+	 */
+	@Action("saveUserSet")
+	public void saveUserSet() {
+		try {
+			Map<String, Object> params = getParameterMap();
+			Long userId=UserContext.getLoginUser().getUserID();
+			String typeCode=(String) params.get("type");
+			String[] ids= params.get("selectIds").toString().split(",");
+			
+			//删除条件
+			HashMap<String,Object> whereMap = new HashMap<String,Object>();
+			whereMap.put("userId",userId);
+			whereMap.put("typeCode",typeCode);
+			
+			//添加数据
+			List<Map<String,Object>> listMap = new ArrayList<Map<String,Object>>();
+			for(String item:ids){
+				if (item=="") continue;
+				 Map<String,Object> valueMap = new HashMap<String,Object>();
+				 valueMap.put("userId",userId);
+				 valueMap.put("statisticsTypeId", item);
+				 valueMap.put("typeCode",typeCode);
+				 listMap.add(valueMap);
+			}
+
+			ibatisServices.deleteIbatisObject("delUserSetSQL", whereMap);
+			if (listMap.size()>0){
+				ibatisServices.batchInsertIbatisObject("addUserSetSQL", listMap);
+			}
+
+			this.renderText("true");
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+	/**
+	 * 获取用户设置
+	 */
+	@Action("getUserSet")
+	public void getUserSet() {
+		try {
+			Map<String, Object> selectParamMap = getParameterMap();
+
+			selectParamMap.put("userId", UserContext.getLoginUser().getUserID());
+					
+			List<HashMap<String, String>> lists = this.ibatisServices.findIbatisList("getUserSetSQL",selectParamMap);
+			this.renderJSON(lists);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			this.renderText("false");
+		}
+	}
+	
+}

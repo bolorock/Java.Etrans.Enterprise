@@ -1,0 +1,238 @@
+package com.etrans.bubiao.action.query.stat.securityManager;
+
+import java.io.UnsupportedEncodingException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.ParentPackage;
+import org.apache.struts2.convention.annotation.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.services.query.stat.securityManager.VehicleDOTTimesStatService;
+import com.etrans.bubiao.util.JSONUtil;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.ParamKey;
+import com.etrans.common.util.excel.ExcelUtil;
+
+
+/**
+ * 安全管理--》疲劳驾驶Action
+ * @author lujunyong
+ *
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/query/stat")
+@ParentPackage("sessionPkg")
+public class VehicleDOTTimesStatAction extends BaseAction {  
+	
+
+	/**
+	 * 构造方法
+	 * @param vehicleDOTTimesStatService
+	 */
+	public VehicleDOTTimesStatAction() {
+//		super();
+		super.excelTplFile="疲劳驾驶管理";//导出文件名称
+	}
+
+	private static final long serialVersionUID = 1L;
+	
+	@Autowired
+	private VehicleDOTTimesStatService  vehicleDOTTimesStatService;
+	private Map<String, Object>paramMap=null;
+	
+	/**
+	 * 查询数据列表
+	 */
+	@Action(value = "findvehicleDOTTimesStatList")
+	public void findvehicleDOTTimesStatList(){
+		try {
+			paramMap=this.MapParam();
+			String workUnitName = getParameter("workUnitName");//企业名称
+			String registrationNo = getParameter("registrationNo");//车牌号码
+			paramMap.put("@workUnitName", workUnitName);
+			paramMap.put("@registrationNo", registrationNo);
+			log.error(DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"-----------安全管理--》【疲劳驾驶】Action--》【查询数据列表】【开始】【统计类型："+paramMap.get("functionType")+"】【1表示按企业统计，2表示按车辆统计】----------------");
+			this.renderJSON(JSONUtil.toJson(vehicleDOTTimesStatService.getVehicleDOTTimesStatList(paramMap)));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "疲劳驾驶管理", "", "查询疲劳驾驶管理");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "疲劳驾驶管理", "", "查询疲劳驾驶管理");
+			log.error("安全管理--》疲劳驾驶Action--》查询数据列表报错！报错信息如下："+e.getMessage());
+			e.printStackTrace();
+		}finally{
+			log.error("-----------安全管理--》疲劳驾驶Action--》【查询数据列表】【结束】【统计类型："+paramMap.get("functionType")+"】【1表示按企业统计，2表示按车辆统计】----------------");
+        }
+		
+	}
+	
+
+	/**
+	 * 查询所需参数
+	 * @return
+	 */
+	public  Map<String, Object> MapParam(){
+		Map<String, Object> whereMap =new HashMap<String, Object>();
+		String functionType = getParameter("functionType");//统计类型【1表示按企业统计，2表示按车辆统计】
+		String year =getParameter("year"); //年
+		String month = getParameter("month");//月
+		String day = getParameter("day");//天
+		String week = getParameter("week");//周
+		String page=getParameter("page");//当前页数
+		String pageSize=getParameter("rows");//每页显示多少条数据
+		
+		whereMap.put("functionType",functionType);
+		whereMap.put("@year", year);
+		whereMap.put("@month", month);
+		whereMap.put("@day", day);
+		whereMap.put("@week", week);
+		if(getParameter("functionType").equals("2")){//按车辆统计
+			whereMap.put("@SortName", "id");
+    	}else if(getParameter("functionType").equals("1")){//按企业统计
+    		whereMap.put("@SortName", "Unitname");
+    	}
+		
+		whereMap.put("@SortOrder", "desc");
+		whereMap.put(ParamKey.PAGE,page);
+		whereMap.put(ParamKey.PAGE_SIZE,pageSize);
+		
+		return whereMap;
+	}
+	
+	
+	/**
+	 * 导出Excel子类实现方法
+	 */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+    protected void doFillWorkbook(Workbook wb) {
+    try {
+       paramMap=this.MapParam();
+       String registrationNo = new String(this.getParameter("registrationNo").getBytes("ISO-8859-1"),"UTF-8"); //企业名称
+       String workUnitName = new String(this.getParameter("workUnitName").getBytes("ISO-8859-1"),"UTF-8"); //车牌号码
+       paramMap.put("@workUnitName", workUnitName);
+       paramMap.put("@registrationNo", registrationNo);
+    	System.out.println("文件名称="+excelTplFile);
+		// 导出数据时的开始页数
+		String fromPage = getParameter("frompage");
+		// 导出数据时的结束页数
+		String toPage = getParameter("topage");
+		
+		//查询导出数据列表
+		List<Map<String, Object>> vehicleModels = vehicleDOTTimesStatService.getVehicleDOTTimesStatListExportExl(paramMap, fromPage, toPage);
+		
+		//按车辆统计【导出】
+		if(paramMap.get("functionType").equals("2")){
+		
+			//列名数组，对应对象的字段
+			String [] titleArray={"RegistrationNo","WeekDOTTimes","MonthDOTTimes","YearDOTTimes","WeekDOTTimes_oWeek","WeekNumber","DayDOTTimes_oMonth",
+					 "MonthNumber","DayDOTTimes_oYear","YearNumber"};
+			//写入的数据list	
+			List<Object> list = new ArrayList<Object>();
+				if (vehicleModels != null)
+				{
+					for (Map<String,Object> a : vehicleModels)
+					{
+						HashMap tempList =new HashMap();
+						tempList.put("RegistrationNo",a.get("RegistrationNo")); //车牌
+						tempList.put("WeekDOTTimes",a.get("WeekDOTTimes"));//本周
+						tempList.put("MonthDOTTimes",a.get("MonthDOTTimes"));//本月止累计
+						tempList.put("YearDOTTimes",a.get("YearDOTTimes"));//本年止累计
+						tempList.put("WeekDOTTimes_oWeek",a.get("WeekDOTTimes_oWeek"));//上周-数量
+						tempList.put("WeekNumber",a.get("WeekNumber"));//上周-本周比上周%
+						tempList.put("DayDOTTimes_oMonth",a.get("DayDOTTimes_oMonth"));//上月-数量
+						tempList.put("MonthNumber",a.get("MonthNumber"));//上月-本月比上月%
+						tempList.put("DayDOTTimes_oYear",a.get("DayDOTTimes_oYear"));//上年-数量
+						tempList.put("YearNumber",a.get("YearNumber"));//上年-本能比上年
+						list.add(tempList);
+					}
+				}
+				ExcelUtil.writeHashMapToExcel(wb.getSheetAt(0), list, titleArray, 4, 0);
+		}
+		//按企业统计【导出】
+		else if(paramMap.get("functionType").equals("1")){
+			//列名数组，对应对象的字段
+			String [] titleArray={"Unitname","VehicleCount","WeekDOTTimes","MonthDOTTimes","YearDOTTimes","WeekDOTTimes_oWeek","WeekNumber","DayDOTTimes_oMonth",
+					 "MonthNumber","DayDOTTimes_oYear","YearNumber"};
+			//写入的数据list	
+			List<Object> list = new ArrayList<Object>();
+				if (vehicleModels != null)
+				{
+					for (Map<String,Object> a : vehicleModels)
+					{
+						HashMap tempList =new HashMap();
+						tempList.put("Unitname",a.get("Unitname")); //企业名称
+						tempList.put("VehicleCount",a.get("VehicleCount")); //车辆总数
+						tempList.put("WeekDOTTimes",a.get("WeekDOTTimes"));//本周
+						tempList.put("MonthDOTTimes",a.get("MonthDOTTimes"));//本月止累计
+						tempList.put("YearDOTTimes",a.get("YearDOTTimes"));//本年止累计
+						tempList.put("WeekDOTTimes_oWeek",a.get("WeekDOTTimes_oWeek"));//上周-数量
+						tempList.put("WeekNumber",a.get("WeekNumber"));//上周-本周比上周%
+						tempList.put("DayDOTTimes_oMonth",a.get("DayDOTTimes_oMonth"));//上月-数量
+						tempList.put("MonthNumber",a.get("MonthNumber"));//上月-本月比上月%
+						tempList.put("DayDOTTimes_oYear",a.get("DayDOTTimes_oYear"));//上年-数量
+						tempList.put("YearNumber",a.get("YearNumber"));//上年-本能比上年
+						list.add(tempList);
+					}
+				}
+				ExcelUtil.writeHashMapToExcel(wb.getSheetAt(0), list, titleArray, 4, 0);
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "疲劳驾驶管理", "", "导出疲劳驾驶管理");
+			
+		}
+		
+    	} catch (Exception e) {
+    		LogUtil.insertLog(LogActionTypes.READ, "失败", "疲劳驾驶管理", "", "导出疲劳驾驶管理");
+    		log.error(DateUtil.getDatePattern()+"安全管理--》疲劳驾驶Action--》导出数据报错！【统计类型："+paramMap.get("functionType")+"】【1表示按企业统计，2表示按车辆统计】报错信息如下："+e.getMessage());
+			e.printStackTrace();
+		}
+    }
+	
+    
+    
+    /**
+     * 导出Excel
+     * @return
+     */
+    @Action(value = "doVehicleDOTTimesStatListExportExl", results = @Result(type = "stream", params = { "contentType", "application/vnd.ms-excel",
+            "bufferSize", "1024", "contentDisposition", "attachment;filename=${excelTplFile}.xls" }))
+	public String doVehicleDOTTimesStatListExportExl(){
+    	 try {
+    		 	log.error(DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss")+"-----------安全管理--》【疲劳驾驶】Action--》【导出】【开始】【统计类型："+getParameter("functionType")+"】【1表示按企业统计，2表示按车辆统计】--------------");
+    		 	/**统计类型判断**/
+    		 	if(getParameter("functionType").equals("1")){//按企业统计
+	        		this.excelTplFile=this.excelTplFile+"(按企业统计)";
+	        	}else if(getParameter("functionType").equals("2")){//按车辆统计
+	        		this.excelTplFile=this.excelTplFile+"(按车辆统计)";
+	        	}
+    		 	Workbook wb = this.getWorkbook();
+				this.doFillWorkbook(wb);
+				this.setInputStreamFromWorkbook(wb);
+	        	this.excelTplFile = new String(this.excelTplFile.getBytes(), "ISO-8859-1");
+	        	
+	        } catch (UnsupportedEncodingException e) {
+	            log.error("安全管理--》疲劳驾驶Action--》导出数据报错！报错信息如下："+e.getMessage());
+	        }finally{
+				log.error("-----------安全管理--》疲劳驾驶Action--》【导出】【结束】【统计类型："+getParameter("functionType")+"】【1表示按企业统计，2表示按车辆统计】----------------");
+	        }
+	        return SUCCESS;
+    }
+    
+    
+    
+    
+    
+    
+    
+	
+}

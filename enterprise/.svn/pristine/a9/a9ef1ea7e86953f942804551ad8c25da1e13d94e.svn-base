@@ -1,0 +1,62 @@
+<xml xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:p="urn:schemas-microsoft-com:office:powerpoint"
+ xmlns:oa="urn:schemas-microsoft-com:office:activation">
+ <p:presentation sizeof="screen" gridspacingx="46448" gridspacingy="46448"
+  subsetembed="1">
+  <p:master id="3" slidesn="0,0" type="main" href="master03.htm"
+   xmlhref="master03.xml" template="Office 主题" layout="title_body"
+   slots="title,body,dateTime,footer,slideNumber">
+   <p:schemes>
+   </p:schemes>
+  </p:master>
+  <p:master id="1" slidesn="1CD4CF6,8D392250" type="notes" href="master01.htm"
+   layout="notes" slots="header,dateTime,slideImage,body,footer,slideNumber"/>
+  <p:slide id="1" slidesn="0,0" href="slide0001.htm"/>
+  <p:slide id="8" slidesn="0,0" href="slide0008.htm"/>
+  <p:slide id="10" slidesn="0,0" href="slide0010.htm"/>
+  <p:slide id="11" slidesn="0,0" href="slide0011.htm"/>
+  <p:slide id="12" slidesn="0,0" href="slide0012.htm"/>
+  <p:slide id="13" slidesn="0,0" href="slide0013.htm"/>
+  <p:slide id="14" slidesn="0,0" href="slide0014.htm"/>
+  <p:slide id="15" slidesn="0,0" href="slide0015.htm"/>
+  <p:slide id="16" slidesn="0,0" href="slide0016.htm"/>
+  <p:slide id="18" slidesn="0,0" href="slide0018.htm"/>
+  <p:slide id="20" slidesn="0,0" href="slide0020.htm"/>
+  <p:slide id="22" slidesn="0,0" href="slide0022.htm"/>
+  <p:slide id="23" slidesn="0,0" href="slide0023.htm"/>
+  <p:slide id="24" slidesn="0,0" href="slide0024.htm"/>
+  <p:slide id="25" slidesn="0,0" href="slide0025.htm"/>
+  <p:slide id="26" slidesn="0,0" href="slide0026.htm"/>
+  <p:slide id="27" slidesn="0,0" href="slide0027.htm"/>
+  <p:slide id="28" slidesn="0,0" href="slide0028.htm"/>
+  <p:slide id="29" slidesn="0,0" href="slide0029.htm"/>
+  <p:slide id="30" slidesn="0,0" href="slide0030.htm"/>
+  <p:slide id="31" slidesn="0,0" href="slide0031.htm"/>
+  <p:slide id="32" slidesn="0,0" href="slide0032.htm"/>
+  <p:slide id="34" slidesn="0,0" href="slide0034.htm"/>
+  <p:slide id="35" slidesn="0,0" href="slide0035.htm"/>
+  <p:slide id="36" slidesn="0,0" href="slide0036.htm"/>
+  <p:slide id="37" slidesn="0,0" href="slide0037.htm"/>
+  <p:slide id="38" slidesn="0,0" href="slide0038.htm"/>
+  <p:slide id="39" slidesn="0,0" href="slide0039.htm"/>
+  <p:slide id="40" slidesn="0,0" href="slide0040.htm"/>
+  <p:slide id="41" slidesn="0,0" href="slide0041.htm"/>
+  <p:slide id="42" slidesn="0,0" href="slide0042.htm"/>
+  <p:slide id="43" slidesn="0,0" href="slide0043.htm"/>
+  <p:slide id="44" slidesn="0,0" href="slide0044.htm"/>
+  <p:slide id="45" slidesn="0,0" href="slide0045.htm"/>
+  <p:slide id="46" slidesn="0,0" href="slide0046.htm"/>
+  <p:slide id="47" slidesn="0,0" href="slide0047.htm"/>
+  <p:slide id="48" slidesn="0,0" href="slide0048.htm"/>
+  <p:slide id="49" slidesn="0,0" href="slide0049.htm"/>
+  <p:viewstate type="slideView" scale="80" restoredleft="196" restoredtop="925"
+   manualadjustleft="t" manualadjusttop="t" hideoutlineicons="t"/>
+  <p:pptdocumentsettings framecolors="BlackTextOnWhite" hideslideanimation="t"
+   browsersupport="v4"/>
+  <p:htmlpublishsettings browsersupport="v4"
+   href="C:\Documents and Settings\Administrator\桌面\新部标政府平台培训\新部标发布文档.htm"
+   hidespeakernote="t" noloadinbrowser="t"/>
+ </p:presentation>
+ <o:shapedefaults v:ext="edit" spidmax="59397"/>
+</xml>

@@ -1,0 +1,119 @@
+/**    
+ * ReceivedMessage.java
+ * Create on 2010-8-16
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository.parent;
+
+import java.io.BufferedReader;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * 
+ * 上级平台信息指令返回结果处理
+ * @author lihaiyan 
+ * @version 1.0
+ */
+
+public class ReceivedMessage implements Runnable {
+	private BusinessQueue businessQueue;// 业务数据接收队列
+	private CommandResultQueue commandResultQueue;// 指令回复数据接收队列
+	private SocketTemplate socketTemplate; // socket连接模板
+	private int receivedNullCount = 0; // 接收NULL消息次数
+	private final Log logger = LogFactory.getLog(ReceivedMessage.class.getName());
+	private BufferedReader br = null; // 读
+//	private CommandSendQueue commandSendQueue; // 指令发送队列
+
+	public ReceivedMessage(
+			SocketTemplate socketTemplate,
+			BusinessQueue businessQueue,
+			CommandResultQueue commandResultQueue,
+			CommandSendQueue commandSendQueue) {
+		this.socketTemplate = socketTemplate;
+		this.commandResultQueue = commandResultQueue;
+		this.businessQueue = businessQueue;
+//		this.commandSendQueue = commandSendQueue;
+	}
+	
+	public void run() {
+		logger.error("---------(上级信息通道)接收线程启动!---------");
+		br = this.socketTemplate.getReader();
+		String receivedMessage = null;
+		while (true) {
+			try {
+				if ((receivedMessage = br.readLine()) != null) {
+					System.out.println("--------(上级信息通道)接收线程启成功------"+receivedMessage+"---------------");
+					MessageHandle(receivedMessage); // 消息处理
+				}else{
+					++receivedNullCount;
+					if (receivedNullCount > 60000) { // 60s内未收到就重新连接
+						System.out.println("--------(上级信息通道)连接上级平台失败重连---------");
+//						System.out.println("++++++是否连上++++++++++"+this.socketTemplate.isConnect()+"++++++++++++++++++++");
+//						if(!this.socketTemplate.isConnect()){
+							br = this.reloadSocket();
+//						}
+						
+						receivedNullCount = 0; // 重新记数
+					}
+					Thread.sleep(1);
+				}
+			} catch (Exception e) {
+				logger.error("(上级信息通道)连接出错，错误信息:" + e.getMessage());
+				br = this.reloadSocket(); // 重连MSC
+			}
+		}
+	}
+
+	/**
+	 * 接收指令结果的消息处理
+	 * */
+	public void MessageHandle(String receivedMessage) {
+		
+		try {
+			if(receivedMessage.contains(",7101,")
+					|| receivedMessage.contains(",7900,")){//7101:交换链路连接状态
+				commandResultQueue.produce(receivedMessage);
+			}else if(receivedMessage.contains(",7104,") 
+					|| receivedMessage.contains(",7105,")
+					|| receivedMessage.contains(",7106,")
+					|| receivedMessage.contains(",7107,")
+					|| receivedMessage.contains(",7108,")
+					|| receivedMessage.contains(",7109,")
+					|| receivedMessage.contains(",7110,")
+					|| receivedMessage.contains(",7111,")
+					|| receivedMessage.contains(",7112,")
+					|| receivedMessage.contains(",7113,")
+					
+					){//7104:平台查岗请求  7105:下发平台报文请求  7106:报警督办请求
+				businessQueue.produce(receivedMessage);
+			}else{
+				Thread.sleep(1);
+			}
+
+		} catch (Exception e) {
+			logger.error("(上级信息通道)接收指令返回结果失败，错误信息:" + e);
+			// e.printStackTrace();
+			br = this.reloadSocket(); // 重连
+		}
+	}
+
+	/**
+	 * 重连MSC
+	 * */
+	public BufferedReader reloadSocket() {
+		BufferedReader br = null;
+		 logger.error("------(上级信息通道)连接异常,10秒钟后重连------");
+		try {
+			this.socketTemplate.reloadSocket();
+			br = this.socketTemplate.getReader();
+		} catch (Exception e) {
+		    logger.error("-----------------(上级信息通道)重连失败----------------------" + e);
+			this.reloadSocket();
+			br = null;
+		}
+		return br;
+	}
+
+}

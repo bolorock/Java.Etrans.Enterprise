@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+<!--分页查询登录日志-->
+  <select id="getLoginSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+select * from 
+	(
+	select  ROW_NUMBER() OVER (
+		<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		) RowNo,
+	convert(varchar, b.LogonTime,120) as LogonTime,
+	b.name,b.id,b.UserID,b.IsLogin,b.IsSucessful,
+	b.LogonHost,b.LogonIP
+	from (
+	select a.* from (select u.name,u.workUnitId,l.* from Sys_LogonInfo as l left join Pub_User as u
+	on l.userId=u.id ) as a left join Pub_WorkUnit as wu on a.workUnitId=wu.id where 1=1
+	<!-- 动态时间查询条件 -->
+	<dynamic>
+		<!-- 完整企业id -->
+		<isNotEmpty property="fullId">
+	    	and wu.fullid like '%$fullId$%'
+	    </isNotEmpty>
+	    <isNotEmpty property="userId">
+	    	and a.userId = #userId#
+	    </isNotEmpty>
+  		<isNotEmpty property="startDate">
+	    	and	a.LogonTime>=#startDate#
+	    </isNotEmpty>
+		<!-- 时间操作 substring(convert(varchar(8),createTime,112),1,6)-->
+	    <isNotEmpty property="endDate">
+	    	<![CDATA[ and  a.LogonTime<=#endDate# ]]>
+	    </isNotEmpty>
+	    <isNotEmpty property="loginName">
+	    	and a.name like '%$loginName$%'
+	    </isNotEmpty>
+  	</dynamic>
+		) b
+	)r
+	<!-- 分页查询动态条件-->
+	<dynamic prepend="where">
+  	  		<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+  	</dynamic>
+  </select>
+  
+  
+<!--查询登录日志总条数-->
+  <select id="getLoginCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	select count(*) from (select u.name,u.workUnitId,l.* from Sys_LogonInfo as l left join Pub_User as u
+	on l.userId=u.id ) as a left join Pub_WorkUnit as wu on a.workUnitId=wu.id
+	where  1=1
+	<dynamic>
+			<!-- 完整企业id -->
+			<isNotEmpty property="fullId">
+	    	and wu.fullid like '%$fullId$%'
+	    	</isNotEmpty>
+	    	<isNotEmpty property="userId">
+	    	and a.userId = #userId#
+	    	</isNotEmpty>
+			<isNotNull property="startDate">
+				and a.LogonTime>=#startDate#
+            </isNotNull>
+            <isNotEmpty property="endDate">
+	    	<![CDATA[ and  a.LogonTime<=#endDate# ]]>
+	    	</isNotEmpty>
+	    	<isNotEmpty property="loginName">
+	    		and a.name like '%$loginName$%'
+	    	</isNotEmpty>
+	</dynamic>
+  </select>
+  <insert id="addLoginInfo" parameterClass="java.util.HashMap">
+  	INSERT INTO Sys_LogonInfo(
+  			userID,
+  			logonTime,
+  			islogin,
+  			issucessful,
+  			logonHost,
+  			logonIP)
+  		VALUES(
+  			#userID#,
+  			#logonTime#,
+  			#islogin#,
+  			#issucessful#,
+  			#logonHost#,
+  			#logonIP#
+  		)
+  </insert>
+  
+  <select id="getLogonInfoById" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+     SELECT TOP 1 * FROM Sys_LogonInfo 
+     WHERE 1=1
+     <isNotEmpty property="userId">
+	     and userId = #userId#
+	 </isNotEmpty> 
+	 ORDER BY LogonTime DESC
+  </select>
+  
+  <select id="getLastLogOnTimeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+      SELECT id,userId,logonTime,(SELECT TOP 1 logonTime FROM Sys_LogonInfo
+	  WHERE  1=1  
+	  <isNotEmpty property="userId">
+	     and userId = #userId#
+	 </isNotEmpty> 
+	 <isNotEmpty property="id">
+	     and id != #id#
+	 </isNotEmpty> 
+	  ORDER BY logonTime desc)AS lastLogOnTime
+	  FROM Sys_LogonInfo 
+	  WHERE 1=1
+	  <isNotEmpty property="id">
+	     and id = #id#
+	 </isNotEmpty> 
+  </select>
+  
+  
+  <!--系统公告 -->
+   <select id="getSystemNoticeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+      SELECT title FROM Ent_SysSet
+	  WHERE  1=1  
+	  and isdefault=1 
+  </select>
+  
+</sqlMap>

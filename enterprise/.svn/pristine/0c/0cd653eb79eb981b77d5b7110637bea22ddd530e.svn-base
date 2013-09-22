@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+<!--分页查询路段信息-->
+  <select id="getLineQuotaConfigSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+select * from 
+(
+	select  ROW_NUMBER() OVER (
+	<!-- 动态排序查询条件 -->
+	<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+	) RowNo,
+	b.maxSpeed,b.workUnitID,b.name,b.id,
+	b.description,b.mark
+	from
+	(
+		select RL.*,AC.maxSpeed from TRoadList as RL left join 
+		TAnalyseCondition as AC on 
+		 RL.id = AC.GeographyID
+		where AC.AnalyseTypeID=2
+		and allowMaxAway is null
+		and RL.mark != -1
+		<!-- 动态查询条件 -->
+		<dynamic>
+			<isNotEmpty property="workUnitID">
+				and RL.WorkUnitID=#workUnitID#
+			</isNotEmpty>
+			<isNotEmpty property="lineName">
+				and RL.name like '%$lineName$%'
+			</isNotEmpty>
+		</dynamic>
+	)b
+)r 
+<!-- 动态查询条件 -->
+	<dynamic prepend="where">
+  	  		<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+  	</dynamic>
+  </select>
+  
+<!--查询路段信息总条数-->
+  <select id="getLineQuotaConfigCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	select count(*) from TRoadList as RL left join 
+		TAnalyseCondition as AC on 
+		 RL.id = AC.GeographyID
+		where AC.AnalyseTypeID=2
+		and allowMaxAway is null
+		and RL.mark != -1
+		<!-- 动态查询条件 -->
+		<dynamic>
+			<isNotEmpty property="workUnitID">
+				and RL.WorkUnitID=#workUnitID#
+			</isNotEmpty>
+			<isNotEmpty property="lineName">
+				and RL.name like '%$lineName$%'
+			</isNotEmpty>
+		</dynamic>
+  </select>
+  
+  <!-- 验证线路名称是否重复 -->
+   <select id="getLineQuotaByNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+   	select * from TRoadList where 1=1 and mark!=-1 and  allowMaxAway is null
+   	<!-- 动态查询条件 -->
+	<dynamic>
+		<isNotEmpty property="id">
+			and <![CDATA[id<>#id#]]>
+		</isNotEmpty>
+		<isNotEmpty property="name">
+			and name like '$name$'
+		</isNotEmpty>
+	</dynamic>
+   </select>
+  
+  				<!-- 新增线路限速报警设置 begin -->
+  <insert id="insertTRoadListSQL_Quota" parameterClass="java.util.HashMap">
+  	    	INSERT INTO [TRoadList]
+           ([WorkUnitID]
+           ,[Name]
+           ,[Mark])
+     	VALUES (
+           #workUnitId#
+           ,#lineName#
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+  </insert>
+  
+  <!-- 新增线路详细信息 -->
+  <insert id="insertTRoadDetailSQL_Quota" parameterClass="java.util.HashMap">
+		INSERT INTO TRoadDetail
+           (RoadID
+           ,IndexNO
+           ,Longitude
+           ,Latitude)
+     	SELECT #roadID#,Sequence as IndexNO,Longitude,Latitude from Pub_CustomMapLinePoint where MapLineID=#lineId#
+	</insert>
+  
+  <!-- 新增分析组-->
+  <insert id="insertTAnalyseGroupSQL_Quota" parameterClass="java.util.HashMap">
+    	INSERT INTO [TAnalyseGroup]
+           ([Name]
+           ,[WorkUnitID]
+           ,[Mark])
+     	VALUES
+           (#groupName#
+           ,#workUnitId#
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<!-- 新增分析条件数据 -->
+	<insert id="insertTAnalyseConditionSQL_Quota" parameterClass="java.util.HashMap">
+    	INSERT INTO TAnalyseCondition
+           ([AnalyseGroupID]
+           <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,[DateTypeID]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,[BeginDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,[EndDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,[WorkingDays]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,[BeginTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,[EndTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="maxSpeed">
+           		<isNotEmpty property="maxSpeed">,[MaxSpeed]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,[IsAlarm]</isNotEmpty>
+           </isNotNull>
+           ,[AnalyseTypeID]
+           ,[GeographyID]
+           ,[Mark])
+     	VALUES
+     		(#quotaGroupId#
+     	   <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,#dateTypeId#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,#beginDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,#endDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,#workingDays#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,#beginTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,#endTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="maxSpeed">
+           		<isNotEmpty property="maxSpeed">,#maxSpeed#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,#isAlarm#</isNotEmpty>
+           </isNotNull>
+     		,#analyseTypeId#
+     		,#geographyId#
+     		,#mark#
+     		)
+	</insert>
+	
+	<!-- 新增分析组和车辆关系 -->
+	<insert id="insertTANAGroupAndVehicleSQL_Quota" parameterClass="java.util.HashMap">
+		INSERT INTO [TANAGroupAndVehicleRelationship]
+	           ([AnalyseGroupID]
+	           ,[VehicleID]
+	           ,[Mark])
+	     VALUES
+	           (#analyseGroupId#
+	           ,#vehicleId#
+	           ,#mark#)
+	</insert>
+		<!-- 新增线路限速报警设置end -->
+		
+		<!-- 修改begin -->
+	<select id="getQaoutConfigByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT tr.[ID]
+		      ,tr.[WorkUnitID]
+		      ,tr.[Name]
+		      ,tr.[AllowMaxAway]
+		      ,tr.[Description]
+			  ,tr.[Mark]
+		      ,tc.[ID] as ConditionID
+		      ,tc.[AnalyseGroupID]
+		      ,tc.[DateTypeID]
+		      ,CONVERT(varchar(10), tc.[BeginDate], 120) as BeginDate
+		      ,CONVERT(varchar(10), tc.[EndDate], 120) as EndDate
+		      ,tc.[WorkingDays]
+		      ,CONVERT(varchar, tc.[BeginTime], 108) as BeginTime
+		      ,CONVERT(varchar, tc.[EndTime], 108) as  EndTime
+			  ,tc.[MaxSpeed]
+		      ,tc.[IsAlarm]
+		      ,tc.[AnalyseTypeID]
+		      ,tc.[GeographyID]
+		  FROM [TRoadList] tr
+			LEFT JOIN [TAnalyseCondition] tc on tc.[GeographyID]=tr.[ID] 
+			and tc.[AnalyseTypeID]=2
+		WHERE tr.[ID]=#id#
+	</select>
+	
+		<!-- 删除线路限速报警设置  （更新标志）-->
+	<update id="updateQaoutConfigSQL" parameterClass="java.util.HashMap">
+		UPDATE [TRoadList]
+           SET [Mark]=#mark#
+        WHERE [ID]=#id#
+	</update>
+	
+		<!-- 删除线路限速报警设置明细 （更新标志）-->
+	<update id="deleteTRoadDetailSQL_Qaout" parameterClass="java.util.HashMap">
+		delete [TRoadDetail]
+        WHERE [RoadID]=#id#
+	</update>
+	
+		<!-- 删除 分析组与车辆关系表（更新标志）-->
+	<update id="updateTANAGroupAndVehicleSQL_Qaout" parameterClass="java.util.HashMap">
+		UPDATE [TANAGroupAndVehicleRelationship]
+			SET [Mark]=#mark#
+        WHERE [AnalyseGroupID]=#analyseGroupId#
+	</update>
+	
+	
+	<!-- 删除分析条件表数据（更新标志） -->
+	<update id="updateTAnalyseConditionSQL_Qaout" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseCondition]
+			SET [Mark]=#mark#
+        WHERE [GeographyID]=#id# and [AnalyseTypeID]=#analyseTypeId#
+	</update>
+	
+		<!-- 删除分析组表数据（更新标志） -->
+	<update id="updateTAnalyseGroupSQL_Qaout" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseGroup]
+			SET [Mark]=#mark#
+        WHERE [ID]=#analyseGroupId#
+	</update>
+		
+		<!-- 修改end -->
+		
+		
+		<!-- 查看详情begin -->
+		<!-- 查询车牌 -->
+	<select id="getVehiclesByGroupIdSQL_Qaout" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT pv.ID,pv.registrationNo from pub_vehicle pv,
+		(
+		SELECT gvr.[ID]
+		      ,gvr.[AnalyseGroupID]
+		      ,gvr.[VehicleID]
+		      ,tg.[Name] as AnalyseGroupName
+		  FROM [TANAGroupAndVehicleRelationship] gvr,[TAnalyseGroup] tg
+		WHERE gvr.[AnalyseGroupID]=tg.[ID] and tg.[ID]=#analyseGroupId# 
+			<![CDATA[and gvr.[Mark]<>-1 and tg.[Mark]<>-1]]>
+		) gv WHERE pv.ID=gv.[VehicleID]
+	</select>
+	
+	<!-- 查询经纬度 -->
+	<select id="getAreaPointByIdSQL_Qaout" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select Longitude,Latitude from TRoadDetail where RoadID=#id#
+	</select>
+		<!-- 查看详情end -->
+</sqlMap>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<taglib xmlns="http://java.sun.com/xml/ns/j2ee" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	version="2.0" 
+	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-jsptaglibrary_2_0.xsd">
+	
+	
+	<tlib-version>1.0</tlib-version>
+    <short-name>auth</short-name>
+    <uri>/auth-tags</uri>
+    
+	<tag>
+	  <name>authorize</name>
+	  <tag-class>com.etrans.bubiao.auth.AuthTag</tag-class>
+	  <attribute>
+	     <description>权限Action</description>
+	  	 <name>operation</name>	
+	  	 <required>true</required>
+	  	 <rtexprvalue>false</rtexprvalue>
+	  </attribute>
+	</tag>
+</taglib>

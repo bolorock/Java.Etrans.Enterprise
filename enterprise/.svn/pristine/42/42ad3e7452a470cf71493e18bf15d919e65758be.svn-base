@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+	<!--查询证件信息列表sql-->
+	<select id="findProveInfoListSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ( 
+		select ROW_NUMBER() OVER ( order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+		) RowNo,
+		b.*
+		from (
+			select  proveName.proveName,vehicle.registrationNO,proveInfo.* from Ent_ProveInfo proveInfo
+			left join Ent_ProveName proveName on proveInfo.proveNameID=proveName.id
+			left join pub_vehicle vehicle on proveInfo.vehicleID = vehicle.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND proveInfo.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND vehicle.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            <!--证件名称-->
+		 	<isNotEmpty property="proveName">
+      			AND proveInfo.proveNameID = #proveName#
+            </isNotEmpty>
+            <!--办证开始时间-->
+		 	<isNotEmpty property="startTime">
+      			AND proveInfo.StartTime >=#startTime#
+            </isNotEmpty>
+            <!--办证结束时间-->
+		 	<isNotEmpty property="endTime">
+      			<![CDATA[ AND proveInfo.StartTime <=#endTime# ]]>
+            </isNotEmpty>
+		)b
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	</select>
+	
+	<!--查询数据总条数-->
+	<select id="findProveInfoListSqlCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select COUNT(*)
+			from Ent_ProveInfo proveInfo
+			left join Ent_ProveName proveName on proveInfo.proveNameID=proveName.id
+			left join pub_vehicle vehicle on proveInfo.vehicleID = vehicle.id
+			where 1=1
+			<!--权限控制-->
+			<isNotEmpty property="vehicleIDStr">
+      			AND proveInfo.vehicleid in($vehicleIDStr$)
+            </isNotEmpty>
+			<!--车牌号码-->
+		 	<isNotEmpty property="registrationNo">
+      			AND vehicle.registrationNo like '%$registrationNo$%'
+            </isNotEmpty>
+            <!--证件名称-->
+		 	<isNotEmpty property="proveName">
+      			AND proveInfo.proveNameID = #proveName#
+            </isNotEmpty>
+             <!--办证开始时间-->
+		 	<isNotEmpty property="startTime">
+      			AND proveInfo.StartTime >=#startTime#
+            </isNotEmpty>
+            <!--办证结束时间-->
+		 	<isNotEmpty property="endTime">
+      			<![CDATA[ AND proveInfo.StartTime <=#endTime# ]]>
+            </isNotEmpty>
+	</select>
+	
+	
+	
+	
+<!--///////////////////////////////////////////////////新增begin/////////////////////////////////////////////////-->		
+	<!--验证唯一-->
+	<select id="validateByVhicleIDSQL_Prove" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+		select * from Ent_ProveInfo p where p.vehicleid = #vehicleID#
+	</select>
+	<!--删除-->
+	<delete id="delProveInfoByVehicleSQL" parameterClass="java.util.HashMap">
+		delete Ent_ProveInfo 
+	       WHERE vehicleid=#vehicleID#
+	</delete>
+	<!-- 新增 -->
+	<insert id="addProveInfoSQL" parameterClass="java.util.HashMap">
+	     INSERT INTO Ent_ProveInfo
+           ([VehicleID]
+           ,[ProveNameID]
+           ,StartTime
+           ,EndTime
+           ,ProveRate
+           ,ProveAddress
+           ,ManageArea
+           ,Principal
+           ,ProveHuman
+           ,Remark
+           ,EntryTime
+           )
+	     VALUES
+	           (#vehicleID#
+	           ,#proveNameID#
+	           ,#startTime_value#
+	           ,#endTime_value#
+	           ,#proveRateValue#
+	           ,#proveAddressValue#
+	           ,#manageAreaValue#
+	           ,#principalValue#
+	           ,#proveHumanValue#
+	           ,#remark#
+	           ,#entryTime#
+	           )
+	</insert>
+<!--///////////////////////////////////////////////////新增end///////////////////////////////////////////////////-->	
+	
+	
+	
+<!--///////////////////////////////////////////////////修改begin/////////////////////////////////////////////////-->	 
+	<!--根据id查询信息-->
+	<select id="getVehicleProveInfosByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,VehicleID vehicleID,
+		ProveNameID proveNameID,
+		StartTime startTime_value,
+		EndTime endTime_value,
+		ProveRate proveRateValue,
+		ProveAddress proveAddressValue,
+		ManageArea manageAreaValue,
+		Principal principalValue,
+		ProveHuman proveHumanValue,
+		Remark remark,
+		EntryTime entryTime
+		from Ent_ProveInfo 
+		where id=#id#
+	</select>
+	<select id="getVehicleNoByIdSQL_Prove" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from pub_vehicle where id=#vehicleID#
+	</select>
+	<!--验证唯一[除修改的此条信息之外还有没有设置了这辆车的其它证件信息]-->
+	<select id="validateByVhicleIDSQL_Prove2" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+		select * from Ent_ProveInfo p where p.vehicleid = #vehicleID# and id!=#id#
+	</select>
+	<!--删除-->
+	<delete id="delProveInfoByVehicleSQL2" parameterClass="java.util.HashMap">
+		delete Ent_ProveInfo 
+	       WHERE vehicleid = (select top 1 vehicleid from Ent_ProveInfo p where p.vehicleid = #vehicleID# and id!=#id#)
+	</delete>
+	<!--修改-->
+	<update id="updProveInfoByIDSQL" parameterClass="java.util.HashMap">
+		UPDATE [Ent_ProveInfo]
+           SET
+           [VehicleID] = #vehicleID#
+           ,[ProveNameID]= #proveNameID#
+           ,StartTime= #startTime_value#
+           ,EndTime= #endTime_value#
+           ,ProveRate= #proveRateValue#
+           ,ProveAddress= #proveAddressValue#
+           ,ManageArea= #manageAreaValue#
+           ,Principal= #principalValue#
+           ,ProveHuman= #proveHumanValue#
+        WHERE [ID]=#id#
+	</update>
+<!--///////////////////////////////////////////////////修改end///////////////////////////////////////////////////-->
+
+
+
+<!--///////////////////////////////////////////////////删除begin/////////////////////////////////////////////////-->	
+  	<!--删除-->
+	<delete id="delProveInfoByIDSQL" parameterClass="java.util.HashMap">
+		delete Ent_ProveInfo 
+	       WHERE id=#id#
+	</delete>
+<!--///////////////////////////////////////////////////删除end///////////////////////////////////////////////////-->	
+	
+	
+	
+<!--///////////////////////////////////////////////初始化下拉框begin////////////////////////////////////////////-->	
+ 	<!-- 初始化证件名称下拉框-->	
+	<select id="getProveNameListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.proveName name from ent_ProveName as a order by a.id desc
+	</select>	
+<!--///////////////////////////////////////////////初始化下拉框end//////////////////////////////////////////////-->
+
+
+<!--///////////////////////////////////////////////证件过期提醒信息begin////////////////////////////////////////////-->	
+	<!--查询证件过期信息列表-->	
+	<select id="getProveNameListBackSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select v.registrationNO,pn.proveName,p.endTime,p.id
+		from bi_hta_expiration_notice e 
+			left join Ent_ProveInfo p
+			on e.vehicleid = p.vehicleid
+			left join pub_vehicle v 
+			on p.vehicleid=v.id
+			left join ent_ProveName  pn
+			on p.proveNameID = pn.id 
+		where 1=1 <![CDATA[ and e.validDay<=30 ]]>
+		<!--权限控制【车辆id】-->
+		<isNotEmpty property="vehicleIDStr">
+     		AND e.vehicleid in($vehicleIDStr$)
+        </isNotEmpty>
+		
+	</select>
+<!--///////////////////////////////////////////////证件过期提醒信息end///////////////////////////////////////////////-->	
+
+
+
+
+
+</sqlMap>

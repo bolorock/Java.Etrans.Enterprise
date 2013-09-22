@@ -1,0 +1,137 @@
+/**    
+ * SocketTemplate.java
+ * Create on 2010-8-16
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository.parent;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * @author dasuan
+ * @version 1.0
+ * @brief
+ */
+
+public class SocketTemplate {
+	private Socket socket = null; // socket通道
+	private String host; // 服务器IP
+	private int port; // 服务器端口
+	private String loginCommand; // MSC登陆指令
+	private PrintWriter printWriter; // 输出
+	private BufferedReader bufferedReader; // 输入
+
+	private final Log logger = LogFactory.getLog(SocketChannel.class.getName());
+
+	public SocketTemplate(String host, int port	, String loginCommand) {
+		this.host = host;
+		this.port = port;
+		this.loginCommand = loginCommand;
+		sokectInit();
+	}
+
+	/**
+	 * 初始化连接
+	 * */
+	public void sokectInit() {
+		try {
+			closeSocket();// 关闭连接
+			socket = new Socket(host, port);
+			
+			
+			logger.info("------------------(上级信息通道)新建socket连接------------------");
+		     printWriter = getWriter();
+			 printWriter.println(loginCommand);// 登录MSC
+
+		} catch (Exception e) {
+			closeSocket();// 关闭连接
+			socket = null;
+			logger.info("------------------(上级信息通道)新建上级信息通道的socket连接失败 -----------------" + e);
+		}
+	}
+
+	/**
+	 * 取socket连接
+	 * */
+	public Socket getSocket() {
+		if (socket != null) {
+			return socket;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * 输出流
+	 * */
+	public PrintWriter getWriter() throws IOException {
+		try {
+			OutputStream socketOut = socket.getOutputStream();
+			printWriter = new PrintWriter(socketOut, true);
+		} catch (Exception e) {
+			printWriter = null;
+		}
+		return printWriter;
+	}
+
+	/**
+	 * 输入流
+	 * */
+	public BufferedReader getReader() {
+		try {
+			InputStream socketIn = socket.getInputStream();
+			bufferedReader = new BufferedReader(new InputStreamReader(socketIn));
+		} catch (Exception e) {
+			bufferedReader = null;
+		}
+		return bufferedReader;
+	}
+
+	/**
+	 * MSC重连
+	 * */
+	public void reloadSocket() {
+		try {
+//			Thread.sleep(10 * 1000);
+			sokectInit();// 重新初始化
+		} catch (Exception e) {
+			logger.error("-----------------(上级信息通道)上级信息通道--[重连]--失败" + e);
+		}
+	}
+	
+	/**
+	 * 判断是否连接
+	 */
+	public boolean isConnect(){
+		try {
+			return this.socket.isConnected();
+		} catch (Exception e) {
+			logger.error("------------(上级信息通道)判断通道连接失败-------------" + e);
+			return false;
+		}
+	}
+
+	/**
+	 * 关闭连接
+	 * */
+	public void closeSocket() {
+		if (socket != null) {
+			try {
+				socket.close();
+				socket = null;
+			} catch (Exception s) {
+				logger.error("------------(上级信息通道)关闭连接失败------------");
+			}
+		}
+	}
+}

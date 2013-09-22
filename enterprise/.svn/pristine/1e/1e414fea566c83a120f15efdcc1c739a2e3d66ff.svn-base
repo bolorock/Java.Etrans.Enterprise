@@ -1,0 +1,126 @@
+package com.etrans.bubiao.action.sys;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.sys.HistoryAlarmHandlingServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.AlarmTypeUtil;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class HistoryAlarmHandlingAction extends BaseAction {
+	
+private static final long serialVersionUID = 1L;
+	
+	@Autowired
+	private HistoryAlarmHandlingServices historyAlarmHandlingServices;
+
+	public HistoryAlarmHandlingServices getHistoryAlarmHandlingServices() {
+		return historyAlarmHandlingServices;
+	}
+
+	public void setHistoryAlarmHandlingServices(
+			HistoryAlarmHandlingServices historyAlarmHandlingServices) {
+		this.historyAlarmHandlingServices = historyAlarmHandlingServices;
+	}
+	/**
+	 * 历史报警督办分页查询
+	 */
+	@Action(value = "historyAlarmHandlingList")
+	public void historyAlarmHandlingList() {
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(user != null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", true);
+				}else if(user.isWorkUnitSuperAdmin()){
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+					params.put("isWorkUnitSuperAdmin", true);
+				}else{
+					params.put("userId", user.getUserID());
+				}
+			 }
+			this.renderJSON(JSONUtil.toJson(historyAlarmHandlingServices.getHistoryAlarmHandlings(params)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("查询出错！");
+		}
+	}
+	
+	/**
+	 * 历史报警督办导出
+	 */
+	@Action(value="exporthistoryAlarmHandling")
+	public void exporthistoryAlarmHandling(){
+		
+		
+		try {
+			
+			String[] titleArray = {};
+			titleArray = new String[6];
+			titleArray[0]="车牌号码";
+			titleArray[1]="报警类型";
+			titleArray[2]="报警时间";
+			titleArray[3]="督办时间";
+			titleArray[4]="督办回复时间";
+			titleArray[5]="督办回复内容";
+	
+			
+			
+			
+			String[] columnArray = {};
+			columnArray = new String[6];
+			columnArray[0]="registrationno";
+			columnArray[1]="alarmtype";
+			columnArray[2]="alarmDate";
+			columnArray[3]="OverSeeingDate";
+			columnArray[4]="OverSeeingBackDate";
+			columnArray[5]="OverSeeingBackContent";
+		
+			
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			params = this.getExportParams(params);
+			SessionUser user = UserContext.getLoginUser();
+			if(user != null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", true);
+				}else if(user.isWorkUnitSuperAdmin()){
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+					params.put("isWorkUnitSuperAdmin", true);
+				}else{
+					params.put("userId", user.getUserID());
+				}
+			 }
+			
+			List<Map<String,Object>> rows = historyAlarmHandlingServices.getHistoryAlarmHandlingList(params);
+			 if(rows!=null && rows.size()>0){
+				 for(Map<String,Object> map:rows){
+					 Integer id=Integer.parseInt(String.valueOf(map.get("alarmtype")));
+					 String alarmtype=AlarmTypeUtil.getHAlarmName(id);
+					 map.put("alarmtype",alarmtype);
+				 }
+			 }
+			exportExl("historyAlarmHandlingList", titleArray, columnArray, rows);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+
+}

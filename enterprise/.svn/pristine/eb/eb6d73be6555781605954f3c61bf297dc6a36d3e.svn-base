@@ -1,0 +1,144 @@
+package com.etrans.bubiao.action.monitorCenter;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.repository.parent.ParentCommandRepository;
+import com.etrans.common.util.CommandCode;
+import com.etrans.common.util.CommandTools;
+
+/**
+ * @author lihaiyan
+ * @version 1.0
+ * @brief
+ */
+
+@Controller
+@Scope("prototype")
+@Namespace("/monitorCenter")
+public class HighLevelPlatFormInfoAction extends BaseAction
+{
+
+	@Autowired
+	private ParentCommandRepository parentCommandRepository;
+
+	/**
+	 * 描述：判断是否有上级信息
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-7
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "isPlatFormInfo")
+	public void isPlatFormInfo()
+	{
+		Queue<String> queue = parentCommandRepository.getFlatQueue();
+		if (queue == null || queue.size() <= 0)
+		{
+			this.renderText("false");
+		} else
+		{
+			this.renderText("true");
+		}
+	}
+
+	
+	/**
+	 * 描述：获取上级信息
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-7
+	 * @version Copyright (c) 2012 by e_trans.
+	 * @throws Exception 
+	 */
+	@Action(value = "getPlatFormInfo")
+	public void getPlatFormInfo() throws Exception
+	{
+		
+		List<String> lst = null;
+		try{
+			Queue<String> queue = parentCommandRepository.getFlatQueue();
+			if (queue == null)
+			{
+				this.renderJSON("");
+			} else
+			{
+				String[] strings = queue.toArray(new String[]{});
+				if (null != strings)
+				{
+					lst = new ArrayList<String>();
+	
+					for (String str : strings)
+					{
+						String[] msg = str.split("\\|");
+						int commandCode = Integer.parseInt(msg[0]);
+						
+						switch(commandCode){
+						case CommandCode.COMMAND_7106://报警督办请求
+							lst.add(msg[0]+"|"+CommandTools.convertOverseeing(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						case CommandCode.COMMAND_7107://报警预警
+							lst.add(msg[0]+"|"+CommandTools.convertAlarmAdvance(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						case CommandCode.COMMAND_7108://实时交换报警
+							lst.add(msg[0]+"|"+CommandTools.convertRealSwapAlarm(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						case CommandCode.COMMAND_7109://交换车辆静态信息
+							lst.add(msg[0]+"|"+CommandTools.convertSwapVehicleInfo(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						case CommandCode.COMMAND_7113://车辆定位信息交换补发
+							lst.add(msg[0]+"|"+CommandTools.convertVehicleGpsSwapSend(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						case CommandCode.COMMAND_7112://交换车辆实时定位信息
+							lst.add(msg[0]+"|"+CommandTools.convertSwapVehicleGps(msg[1],this.parentCommandRepository)+"|"+msg[2]);
+							break;
+						default:
+							lst.add(str);
+						
+						}
+					}
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		this.renderJSON(lst);
+	}
+
+	/**
+	 * 描述：获取上级信息总条数
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-7
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getPlatFormInfoCount")
+	public void getPlatFormInfoCount()
+	{
+		int count=0;
+		Queue<String> queue = parentCommandRepository.getFlatQueue();
+	    if(queue!=null){
+	    	count=queue.size();
+	    }
+	    this.renderJSON("{\"count\":"+count+"}");
+	}
+
+	public ParentCommandRepository getParentCommandRepository()
+	{
+		return parentCommandRepository;
+	}
+
+	public void setParentCommandRepository(ParentCommandRepository parentCommandRepository)
+	{
+		this.parentCommandRepository = parentCommandRepository;
+	}
+
+}

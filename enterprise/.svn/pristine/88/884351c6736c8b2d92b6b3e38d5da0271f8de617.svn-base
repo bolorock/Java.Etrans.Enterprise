@@ -1,0 +1,121 @@
+
+
+
+
+////////////////////////////////【车辆新增各表的必填字段，必要操作】begin///////////////////////////////////////////////////
+一、【车辆表：Pub_Vehicle】[insertVehicleSQL]
+1:车牌号码 -- RegistrationNO
+2:车辆颜色id--ColorID 
+3:车牌类型id--registrationNoKindId
+4:车牌颜色id--registrationNoColorId
+5:通信号id--terminalId  【注意：在插入的通信号id的同时，终端表【Pub_Terminal】的SimID字段不能为空】
+【通信号、SIM卡都要属于同一企业下】
+6:企业id--workUnitId
+7:车辆类型id--kindId
+8:平台名称id--platformId
+9:行业类型id--tradeKindId
+10:车辆分类id--customTradeKindId
+11:所属区域id--areaId 【区域要属于同一企业下】
+12:道路运输证号--transportPermits
+13:经营许可证号--LicenseNo
+14:使用状态--WorkStatus 【”0“表示使用，”1“标示停止使用】
+
+
+二、【车辆司机表：Pub_VehicleDriver】[insertVehicleDriverSQL]
+1:车辆id--VehicleID
+2:司机id--DriverID
+3:顺序--Sequence 第一司机用1，第二司机用2
+
+三、【车辆附属表——运输行业表：Pub_Vehicle_Transport】[insertVehicleTransportSQL]
+1:车辆id--vehicleId
+2:是否处理盲区数据--IsBlind
+
+四、【车辆服务信息表：Pub_VehicleService】[insertVehicleServiceSQL]
+1:车辆id--VehicleID
+2:安装日期--SetupDateTime
+3:终端安装人员--SetupWorker
+
+五、开户【默认插入1】【根据通信号id修改】
+【修改终端表】【终端表：Pub_Terminal】[updateTerminalStatusSQL]
+1:使用状态--useFlag {0表示销户，1表示开户}
+
+////////////////////////////////【车辆新增各表的必填字段，必要操作】END///////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////登陆查询车辆权限必有字段//////////////////////////////////////////////////////////////////
+
+---------------------------------------【超级管理员】
+一、【车辆表，Pub_Vehicle】
+1：RegistrationNOColorID--车牌颜色id
+2：WorkUnitID--企业id
+3：TradeKindID -- 车辆类型id
+4：TerminalID--终端id
+5：isDeleted--是否删除
+
+二、【终端表，Pub_Terminal】
+1：simID -- sim卡id
+
+
+
+----------------------------------------【企业管理员】【不包括授权组的数据】
+
+一、【车辆表，Pub_Vehicle】
+1：RegistrationNOColorID--车牌颜色id
+2：WorkUnitID--企业id
+3：TradeKindID -- 车辆类型id
+4：TerminalID--终端id
+5：isDeleted--是否删除
+
+二、【终端表，Pub_Terminal】
+1：simID -- sim卡id
+
+三、【企业表，pub_workUnit】
+1：fullId--完整id
+
+-----------------------------------------【普通用户】【不包括授权组的数据】
+一、【角色表，Pub_UserGroup】
+1：id标识--id
+
+二、【用户和角色关联表，Pub_UserAndGroup】
+1：用户id--userId
+2：角色id--usergroupid
+
+三、【角色和车辆组关联表，Pub_VehicleGroupPurview】
+1：角色id--UserGroupID
+2：车辆组id--VehicleGroupID
+
+四、【车辆组和车辆的关联表 ，Pub_GroupVehicle】
+1：车辆组id--VehicleGroupID
+2：车辆id--VehicleID
+
+五、【车辆表 pub_vehicle】
+1：RegistrationNOColorID--车牌颜色id
+2：WorkUnitID--企业id
+3：TradeKindID -- 车辆类型id
+4：TerminalID--终端id
+5：isDeleted--是否删除
+
+六、【终端表，Pub_Terminal】
+1：simID -- sim卡id
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

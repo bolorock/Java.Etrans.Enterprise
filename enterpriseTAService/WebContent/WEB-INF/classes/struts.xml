@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 2.1//EN"
+        "http://struts.apache.org/dtds/struts-2.1.dtd">
+<struts>
+	<!-- 使用Convention插件，实现零配置风格。特殊的Result路径在Action类中使用@Result来定义。 -->
+
+	<!-- 开发模式 -->
+	<constant name="struts.devMode" value="true" />
+	
+	<constant name="struts.ui.theme" value="simple" />
+	<constant name="struts.i18n.encoding" value="UTF-8" />
+	
+	<!--确定搜索包的路径。只要是结尾为web的包都要搜索。basePackage按照默认不用配置，如果配置，只会找以此配置开头的包。
+		locators及locators.basePackage都是一组以逗号分割的字符串。 --> 
+	<constant name="struts.convention.package.locators" value="action" />
+	<constant name="struts.convention.package.locators.basePackage" value="com.etrans.bubiao.action" />
+	
+	 <!-- 默认包 -->
+	<package name="default" extends="struts-default">
+		<interceptors>
+			<interceptor name="exceptionInterceptor" class="com.etrans.bubiao.interceptor.ExceptionInterceptor" />
+			
+			<!-- 异常拦截器 -->
+			<interceptor-stack name="exceptionStack">
+				<interceptor-ref name="exceptionInterceptor" />
+				<interceptor-ref name="defaultStack" />
+			</interceptor-stack>
+
+		</interceptors>
+		
+		<!-- 默认拦截器 -->
+		<default-interceptor-ref name="exceptionStack" />
+		
+	</package>
+	
+</struts>

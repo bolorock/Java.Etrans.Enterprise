@@ -1,0 +1,42 @@
+package com.etrans.bubiao.sys;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Random;
+
+import javax.servlet.http.HttpServletResponse;
+
+public class RandomThread  implements Runnable {
+	private final static Random ran = new Random();
+    private boolean running = true;
+    private HttpServletResponse connect;
+  
+    public RandomThread(HttpServletResponse connect) {
+    this.connect = connect;
+    }
+      
+    @Override
+    public void run() {
+    	while(running) {
+    	    try {
+    	            Thread.sleep(5000);
+    	        PrintWriter out = connect.getWriter();
+    	        int num = ran.nextInt(100);
+    	        System.out.println("send:"+num);
+    	        out.println(num+"");
+    	        //必须刷新
+    	        out.flush();
+    	        /**
+    	         * 基于长轮询的方式，每一次发送完信息，都会建立一个新的请求
+    	             * 当建立了新请求之后，原有repsonse就没有意义了，必须关闭
+    	         */
+    	        out.close();
+    	        connect = null;
+    	        } catch (InterruptedException e) {
+    	        e.printStackTrace();
+    	    } catch (IOException e) {
+    	        e.printStackTrace();
+    	    }
+    	    }
+    }
+}

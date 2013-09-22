@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+<!--分页查询关键点信息-->
+  <select id="getPointConfigSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+select * from 
+(
+	select  ROW_NUMBER() OVER (
+	<!-- 动态排序查询条件 -->
+	<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+	) RowNo,
+	b.id,b.name,b.workUnitID,b.longitude,b.latitude,b.range,
+	b.description,b.mark
+	from
+	(
+		select * from TPointsInfo as TI where 1=1 
+		and TI.mark != -1
+		<!-- 动态查询条件 -->
+		<dynamic>
+			<isNotEmpty property="workUnitID">
+				and TI.WorkUnitID=#workUnitID#
+			</isNotEmpty>
+			<isNotEmpty property="pointName">
+				and TI.name like '%$pointName$%'
+			</isNotEmpty>
+		</dynamic>
+	)b
+)r 
+<!-- 动态查询条件 -->
+	<dynamic prepend="where">
+  	  		<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+  	</dynamic>
+  </select>
+  
+    <!-- 验证工关键点名称是否重复 -->
+   <select id="getPoint_ByNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+   	select * from TPointsInfo where 1=1 and mark!=-1
+   	<!-- 动态查询条件 -->
+	<dynamic>
+		<isNotEmpty property="id">
+			and <![CDATA[id<>#id#]]>
+		</isNotEmpty>
+		<isNotEmpty property="name">
+			and name like '$name$'
+		</isNotEmpty>
+	</dynamic>
+   </select>
+  
+<!--查询关键点信息总条数-->
+  <select id="getPointCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	select count(*) from TPointsInfo as TI where 1=1 
+		and TI.mark != -1
+		<!-- 动态查询条件 -->
+		<dynamic>
+			<isNotEmpty property="workUnitID">
+				and TI.WorkUnitID=#workUnitID#
+			</isNotEmpty>
+			<isNotEmpty property="pointName">
+				and TI.name like '%$pointName$%'
+			</isNotEmpty>
+		</dynamic>
+  </select>
+ 
+ 				<!-- 新增关键点报警设置 begin -->
+  <insert id="insertTPointsInfoSQL" parameterClass="java.util.HashMap">
+  	    	insert into TPointsInfo(name,WorkUnitID,Longitude,Latitude,range,Mark)
+           SELECT #pointName#,#workUnitId#,Longitude,Latitude,#range#,#mark# from Pub_CustomMapPoint where id=#pointId#
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+  </insert>
+    
+  <!-- 新增分析组-->
+  <insert id="insertTAnalyseGroupSQL_Point" parameterClass="java.util.HashMap">
+    	INSERT INTO [TAnalyseGroup]
+           ([Name]
+           ,[WorkUnitID]
+           ,[Mark])
+     	VALUES
+           (#groupName#
+           ,#workUnitId#
+           ,#mark#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<!-- 新增分析条件数据 -->
+	<insert id="insertTAnalyseConditionSQL_Point" parameterClass="java.util.HashMap">
+    	INSERT INTO TAnalyseCondition
+           ([AnalyseGroupID]
+           <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,[DateTypeID]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,[BeginDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,[EndDate]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,[WorkingDays]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,[BeginTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,[EndTime]</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,[IsAlarm]</isNotEmpty>
+           </isNotNull>
+           ,[AnalyseTypeID]
+           ,[GeographyID]
+           ,[Mark])
+     	VALUES
+     		(#quotaGroupId#
+     	   <isNotNull property="dateTypeId">
+           		<isNotEmpty property="dateTypeId">,#dateTypeId#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginDate">
+           		<isNotEmpty property="beginDate">,#beginDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endDate">
+           		<isNotEmpty property="endDate">,#endDate#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="workingDays">
+           		<isNotEmpty property="workingDays">,#workingDays#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="beginTime">
+           		<isNotEmpty property="beginTime">,#beginTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="endTime">
+           		<isNotEmpty property="endTime">,#endTime#</isNotEmpty>
+           </isNotNull>
+           <isNotNull property="isAlarm">
+           		<isNotEmpty property="isAlarm">,#isAlarm#</isNotEmpty>
+           </isNotNull>
+     		,#analyseTypeId#
+     		,#geographyId#
+     		,#mark#
+     		)
+	</insert>
+	
+	<!-- 新增分析组和车辆关系 -->
+	<insert id="insertTANAGroupAndVehicleSQL_Point" parameterClass="java.util.HashMap">
+		INSERT INTO [TANAGroupAndVehicleRelationship]
+	           ([AnalyseGroupID]
+	           ,[VehicleID]
+	           ,[Mark])
+	     VALUES
+	           (#analyseGroupId#
+	           ,#vehicleId#
+	           ,#mark#)
+	</insert>
+		<!-- 新增关键点报警设置end -->
+ 
+ 		<!-- 修改begin -->
+	<select id="getPointConfigByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ti.[ID]
+		      ,ti.[WorkUnitID]
+		      ,ti.[Name]
+			  ,ti.Longitude
+			  ,ti.Latitude
+			  ,ti.Range
+		      ,ti.Description
+			  ,ti.[Mark]
+		      ,tc.[ID] as ConditionID
+		      ,tc.[AnalyseGroupID]
+		      ,tc.[DateTypeID]
+		      ,CONVERT(varchar(10), tc.[BeginDate], 120) as BeginDate
+		      ,CONVERT(varchar(10), tc.[EndDate], 120) as EndDate
+		      ,tc.[WorkingDays]
+		      ,CONVERT(varchar, tc.[BeginTime], 108) as BeginTime
+		      ,CONVERT(varchar, tc.[EndTime], 108) as  EndTime
+			  ,tc.[MaxSpeed]
+		      ,tc.[IsAlarm]
+		      ,tc.[AnalyseTypeID]
+		      ,tc.[GeographyID]
+		  FROM TPointsInfo ti
+			LEFT JOIN [TAnalyseCondition] tc on tc.[GeographyID]=ti.[ID] 
+				and tc.[AnalyseTypeID]=1
+		WHERE ti.[ID]=#id#
+	</select>
+	
+		<!-- 删除关键点报警设置  （更新标志）-->
+	<update id="updatePointConfigSQL" parameterClass="java.util.HashMap">
+		UPDATE [TPointsInfo]
+           SET [Mark]=#mark#
+        WHERE [ID]=#id#
+	</update>
+	
+		<!-- 删除 分析组与车辆关系表（更新标志）-->
+	<update id="updateTANAGroupAndVehicleSQL_Point" parameterClass="java.util.HashMap">
+		UPDATE [TANAGroupAndVehicleRelationship]
+			SET [Mark]=#mark#
+        WHERE [AnalyseGroupID]=#analyseGroupId#
+	</update>
+	
+	
+	<!-- 删除分析条件表数据（更新标志） -->
+	<update id="updateTAnalyseConditionSQL_Point" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseCondition]
+			SET [Mark]=#mark#
+        WHERE [GeographyID]=#id# and [AnalyseTypeID]=#analyseTypeId#
+	</update>
+	
+		<!-- 删除分析组表数据（更新标志） -->
+	<update id="updateTAnalyseGroupSQL_Point" parameterClass="java.util.HashMap">
+		UPDATE [TAnalyseGroup]
+			SET [Mark]=#mark#
+        WHERE [ID]=#analyseGroupId#
+	</update>
+		
+		<!-- 修改end -->
+		
+		<!-- 查看详情begin -->
+		<!-- 查询车牌 -->
+	<select id="getVehiclesByGroupIdSQL_Point" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT pv.ID,pv.registrationNo from pub_vehicle pv,
+		(
+		SELECT gvr.[ID]
+		      ,gvr.[AnalyseGroupID]
+		      ,gvr.[VehicleID]
+		      ,tg.[Name] as AnalyseGroupName
+		  FROM [TANAGroupAndVehicleRelationship] gvr,[TAnalyseGroup] tg
+		WHERE gvr.[AnalyseGroupID]=tg.[ID] and tg.[ID]=#analyseGroupId# 
+			<![CDATA[and gvr.[Mark]<>-1 and tg.[Mark]<>-1]]>
+		) gv WHERE pv.ID=gv.[VehicleID]
+	</select>
+	
+	<!-- 查询经纬度 -->
+	<select id="getAreaPointByIdSQL_Point" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,Longitude,Latitude from TPointsInfo where id=#id#
+	</select>
+		<!-- 查看详情end -->
+ 
+</sqlMap>

@@ -1,0 +1,697 @@
+package com.etrans.bubiao.action.monitorCenter;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+
+import net.sf.json.JSONArray;
+
+import org.apache.commons.collections.map.ListOrderedMap;
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.ParentPackage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.GpsInfo;
+import com.etrans.bubiao.entities.GpsVehicle;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.http.HttpClient;
+import com.etrans.bubiao.http.Response;
+import com.etrans.bubiao.repository.CommandRepository;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.services.monitorCenter.MonitorCenterServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.web.IpUtils;
+import com.etrans.common.util.web.SocketUtils;
+import com.etrans.common.util.web.Struts2Utils;
+/**
+ * @author lihaiyan
+ * @version 1.0
+ * @brief
+ */
+
+@Controller
+@Scope("prototype")
+@Namespace("/monitorCenter")
+@ParentPackage("sessionPkg")
+public class GpsInfoAction extends BaseAction
+{
+	@Autowired
+	private CommandRepository  commandRepository;
+	
+	@Autowired
+	private MonitorCenterServices monitorCenterServices;
+	
+	@Autowired
+	private IbatisServices ibatisServices;
+	/**
+	 * 生成树形的车辆列表，按组织机构排列
+	 * @author Pomelo(柚子.)
+	 * @since Create on 2013-3-7
+	 * @version Copyright (c) 2013 by e_trans.
+	 */
+	@Action(value="getTreeVehicleOne")
+	public void getVehicleMenu(){
+		try {
+			String registrationNo = getParameter("registrationNo");
+			String workUnitName = getParameter("workUnitName");
+			String simNo = getParameter("simNo");
+			String vehicleTeam = getParameter("vehicleTeam");
+			String driverName = getParameter("driverName");
+			String tradeKind = getParameter("tradeKind");
+			if(registrationNo!=null){
+				registrationNo = new String(registrationNo.getBytes("iso-8859-1"),"utf-8");
+				registrationNo = java.net.URLDecoder.decode(registrationNo,"UTF-8");
+			}
+			if(workUnitName!=null){
+				workUnitName = new String(workUnitName.getBytes("iso-8859-1"),"utf-8");
+				workUnitName = java.net.URLDecoder.decode(workUnitName,"UTF-8");
+			}
+			if(simNo!=null){
+				simNo = new String(simNo.getBytes("iso-8859-1"),"utf-8");
+				simNo = java.net.URLDecoder.decode(simNo,"UTF-8");
+			}
+			if(vehicleTeam!=null){
+				vehicleTeam = new String(vehicleTeam.getBytes("iso-8859-1"),"utf-8");
+				vehicleTeam = java.net.URLDecoder.decode(vehicleTeam,"UTF-8");
+			}
+			if(driverName!=null){
+				driverName = new String(driverName.getBytes("iso-8859-1"),"utf-8");
+				driverName = java.net.URLDecoder.decode(driverName,"UTF-8");
+			}
+			SessionUser user = UserContext.getLoginUser();
+			Map<String, Object> whereMap=new HashMap<String, Object>();
+			whereMap.put("@RegistrationNo", registrationNo);
+			whereMap.put("@WorkUnitName", workUnitName);
+			whereMap.put("@SimNo", simNo);
+			whereMap.put("@VehicleTeam", vehicleTeam);
+			whereMap.put("@DriverName", driverName);
+			whereMap.put("@TradeKind", tradeKind);
+			String userId = String.valueOf(user.getUserID());
+			if(UserContext.isBsRootUser()){//超级管理员
+				userId="-1";
+			}
+			else{
+				if(user.isWorkUnitSuperAdmin()){//企业管理员
+					userId="0";
+				}
+			}
+			whereMap.put("@WorkUnitId", String.valueOf(user.getWorkUnitID()));
+			whereMap.put("@FullID",user.getWorkUnitFullId());
+			whereMap.put("@UserId",userId);
+			renderJSON(monitorCenterServices.getGpsVehicleTree(whereMap,getParameter("id")));
+		} catch (Exception e) {
+			log.error("生成根节点异常！"+e.getMessage());
+		}
+	}
+	
+	/**
+	 * 描述：获取GPSP定位信息
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-8
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getGpsInfos")
+	public String getGpsInfos() throws Exception {
+		Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+		String jsonString = "false";
+		String vehicleIdStr=getParameter("vehicleIdStr");
+		String mapType = getParameter("mapType");
+		try {
+			if (StringUtils.isNotEmpty(vehicleIdStr)) {
+				List<GpsInfo> backList = this.commandRepository.getGpsInfos(vehicleIdStr, vehicleMap,mapType);
+				if (backList != null && backList.size() > 0) {
+					jsonString =JSONUtil.toJson(backList);
+				}
+				backList = null;
+			}
+		} catch (Exception e) {
+			jsonString = "false";
+		}
+		//jsonString="[{\"lat:'38.034202',lon:'114.557241',hd:'33',sd:'0',sd2:'18',sim:'013180000853',no:'粤A88888',gs:',海拔:0,,里程:2220 公里 ,车辆电路正常,车辆油路正常,东经,北纬,定位,ACC开,',gt:'2011-11-02 15:47:12',gv:'1',sh:'2220',oi:'0',gd:',司机姓名:吴凡,驾驶员身份证号:412000198309251112,,从业资格证编号:1234567890123456789012345678901234567890,,发证机构名称:广州亿程交通信息有限公司,'\"}]";
+		//Tools.writeToOutputStream(jsonString, "查询GPS定位信息结果json字符串写到输出流", ServletActionContext.getResponse());
+		this.renderJSON(jsonString);
+		return NONE;
+	}
+	/**
+	 * 描述：获取车辆
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getGpsVehicleList")
+	public void getGpsVehicleList(){
+		try{
+			String registrationNo=getParameter("registrationNo");
+			String workUnitName=getParameter("workUnitName");
+			String simNo=getParameter("simNo");
+			String vehicleTeam=getParameter("vehicleTeam");
+			String driverName=getParameter("driverName");//司机
+			String tradeKind = getParameter("tradeKind");
+			int currentPage = Integer.parseInt(getParameter("currentPage"));
+			SessionUser user = UserContext.getLoginUser();
+			Map<String, Object> whereMap=new HashMap<String, Object>();
+			whereMap.put("@RegistrationNo", registrationNo);
+			whereMap.put("@WorkUnitName", workUnitName);
+			whereMap.put("@SimNo", simNo);
+			whereMap.put("@VehicleTeam", vehicleTeam);
+			whereMap.put("@DriverName", driverName);
+			whereMap.put("@TradeKind", tradeKind);
+			whereMap.put("@IsSplitPage", "0");
+			whereMap.put("@StarRow", String.valueOf((currentPage-1)*100+1));
+			whereMap.put("@EndRow", String.valueOf(currentPage*100));
+			String userId = String.valueOf(user.getUserID());
+			if(UserContext.isBsRootUser()){//超级管理员
+				userId="-1";
+			}
+			else{
+				if(user.isWorkUnitSuperAdmin()){//企业管理员
+					userId="0";
+					
+				}
+			}
+			whereMap.put("@WorkUnitId", String.valueOf(user.getWorkUnitID()).trim());
+			whereMap.put("@FullID",user.getWorkUnitFullId()!=null?user.getWorkUnitFullId().trim():null);
+			whereMap.put("@UserId",userId);
+			List<Map<String, Object>> resultList=monitorCenterServices.getGpsVehicle(whereMap);
+			List<GpsVehicle> gpsVehicles=new ArrayList<GpsVehicle>();
+			List<GpsVehicle> gpsOnlineVehicles=new ArrayList<GpsVehicle>();//上线车辆
+			List<GpsVehicle> gpsdownlineVehicles=new ArrayList<GpsVehicle>();//下线车辆
+			if(resultList!=null){
+				for (Map<String, Object> vehicle:resultList)
+				{
+					GpsVehicle gpsVehicle=new GpsVehicle();
+					String vehicleId=String.valueOf(vehicle.get("ID"));
+					String terminalKindID=String.valueOf(vehicle.get("terminalKindID"));
+					String RegistrationNO=String.valueOf(vehicle.get("RegistrationNO")).trim();
+					String kind=String.valueOf(vehicle.get("kind")).trim();
+					String code=String.valueOf(vehicle.get("code")).trim();
+					String commandKindId=String.valueOf(vehicle.get("commandKindId")).trim();
+					int totalCount = Integer.valueOf(vehicle.get("totalcount").toString());
+					boolean isOnline=commandRepository.getVehicleIsOnline(vehicleId);
+					gpsVehicle.setVehicleId(vehicleId);
+					gpsVehicle.setRegistrationNo(RegistrationNO);
+					gpsVehicle.setTerminalKindID(terminalKindID);
+					gpsVehicle.setOnline(isOnline);//在线，上，下线
+					gpsVehicle.setKind(kind);
+					gpsVehicle.setCode(code);
+			        gpsVehicle.setCommandKindId(commandKindId);
+			        gpsVehicle.setTotalCount(totalCount);
+			        gpsVehicle.setVideo(vehicle.get("video")==null?null:vehicle.get("video").toString());
+			        gpsVehicle.setTxtCommand(vehicle.get("txtCommand")==null?null:vehicle.get("txtCommand").toString());
+					if(isOnline){//上线
+						gpsOnlineVehicles.add(gpsVehicle);
+					}else{
+						gpsdownlineVehicles.add(gpsVehicle);
+					}
+				}
+			}
+			gpsVehicles.addAll(gpsOnlineVehicles);
+			gpsVehicles.addAll(gpsdownlineVehicles);
+			this.renderJSON(gpsVehicles);
+		}catch (Exception e) {
+		e.printStackTrace();
+		this.renderJSON("");
+		}
+	
+	}
+	
+	/**
+	 * 描述：获取车辆详细信息
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-17
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getGpsVehicleInfo")
+	public void getGpsVehicleInfo(){
+		String vehicleId=getParameter("vehicleId");
+		Map<String, Object> whereParamMap = new HashMap<String, Object>();
+		whereParamMap.put("vehicleId", vehicleId);
+		List<Map<String, Object>> vehicleInfos=this.monitorCenterServices.getGpsVehicleInfo(whereParamMap);
+		if(vehicleInfos!=null &&vehicleInfos.size()>0){
+			this.renderJSON(vehicleInfos.get(0));
+		}else {
+			this.renderJSON("");
+		}
+	}
+	
+	
+	/**
+	 * 车辆监控--编辑车辆信息
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "updateVehicleinfo")
+	public void updateVehicleinfo() {
+		
+		Map<String,Object> vParams = new HashMap<String,Object>();
+		vParams.put("vehicleId", getParameter("vehicleId"));
+		vParams.put("registrationNo", getParameter("registrationNo"));
+		vParams.put("workUnitId", getParameter("workUnitId"));
+		vParams.put("registrationNoColorId", getParameter("registrationNOColorId"));
+		vParams.put("transportPermits", getParameter("transportPermits"));
+		vParams.put("tradeKindId", getParameter("tradeKindId"));
+		vParams.put("terminalId", getParameter("terminalId"));
+		vParams.put("areaId", getParameter("areaId"));
+//		vParams.put("modifyDateTime",getParameter("modifyDateTime"));
+//		vParams.put("modifyUserId",getParameter("modifyUserId"));
+		
+		//终端信息
+		Map<String,Object> TParams = new HashMap<String,Object>();
+		TParams.put("terminalId",getParameter("terminalId"));
+		TParams.put("commNO",getParameter("commNO"));
+		
+		//SIM卡号
+		Map<String,Object> SParams = new HashMap<String,Object>();
+		SParams.put("simId",getParameter("simId"));
+		SParams.put("phoneNo",getParameter("phoneNo"));
+		
+		//String jsonParams = getParameter("params"); 
+	//	Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+		vParams = putUserParams(vParams);
+		
+		Result result = new Result();
+		try {
+			monitorCenterServices.updateVehicle(vParams,TParams,SParams);
+			result.setCode(1);
+			this.renderJSON(JSONUtil.toJson(result));
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "车辆监控", "", "编辑车辆信息");
+
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "车辆监控", "", "编辑车辆信息");
+			e.printStackTrace();
+		}
+		result.setCode(0);
+		this.renderJSON(JSONUtil.toJson(result));
+	}
+	
+	/**
+	 * 获取用户信息
+	 * @param params
+	 * @return
+	 */
+	public Map<String,Object> putUserParams(Map<String,Object> params) {
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+08:00"));
+		
+		Date date = calendar.getTime();
+		Long userId = UserContext.isSuperUser() ? 0 : UserContext.getLoginUserID();
+		
+		params.put("modifyUserId", userId);
+		params.put("modifyDateTime", format.format(date));
+		
+		return params;
+	}
+	
+	
+	/**
+	 *区域查车
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-17
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "findRectangleAreaCar")
+	public String findRectangleAreaCar() {
+
+		Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+		String jsonString = "false";
+		String leftLatLon=getParameter("leftLatLon");
+		String rightLatLon=getParameter("rightLatLon");
+		String mapType=getParameter("mapType");
+		try {
+			if (StringUtils.isNotEmpty(leftLatLon) && StringUtils.isNotEmpty(rightLatLon)) {
+				List<String> backList = this.commandRepository.findRectangleAreaCar(leftLatLon, rightLatLon, vehicleMap,mapType);
+				if (backList != null && backList.size() > 0) {
+					JSONArray jsonList = JSONArray.fromObject(backList);
+					jsonString = jsonList.toString();
+				}
+				System.out.println("jsonString==="+jsonString);
+				backList = null;
+			}
+		} catch (Exception e) {
+		    e.printStackTrace();
+			jsonString = "false";
+		}
+
+		this.renderJSON(jsonString);
+		return NONE;
+	}
+
+
+	
+	
+	/**
+	 * 描述：取中文地址,经纬度没有经过偏移
+	 * （实时报警，历史报警中使用）
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getAddressRepeat")
+	public void getAddressRepeat(){
+		 String lnglat=getParameter("lnglat");
+		 String[] SHlngArray = Tools.getRealLngLat(lnglat);//偏移后的经纬度
+		 String SHlngLat=SHlngArray[0]+","+SHlngArray[1];
+		  try {
+		 StringBuffer urlBuffer=new StringBuffer();
+			urlBuffer.append(Constants.MAP_BASE_URL+"/SE_RGC2")
+			         .append("?")
+			         .append("st=Rgc2&output=json&point=")
+			         .append(SHlngLat)
+			         .append("&uid=")
+			         .append(Constants.MAP_UID);
+		   Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+		   System.out.println(urlBuffer.toString());
+		 this.renderJSON(resulResponse.asString());
+		
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			 this.renderXML("");
+		}
+	}
+	
+	/////////////////////////////////ljybegin///////////////////////////////////////
+	
+	/**
+	 * 取中文地址【用作Pgis】
+	 */
+	@Action(value = "getAddressRepeat_P")
+	public void getAddressRepeat_P(){
+		String lnglat=getParameter("lnglat");
+//		String[] lngArray=new String[2];
+		 try {
+			 log.error("PGIS 经纬度:"+lnglat);
+			 if(lnglat==null||lnglat.equals("")){
+				 Object obj = "no";
+				 this.renderJSON(obj);
+			 }
+//			 lngArray=lnglat.split(",");
+			 
+//			 this.renderJSON(SocketUtils.getAddress(lngArray[0],lngArray[1]));
+			 this.renderJSON(SocketUtils.getAddress(lnglat));
+		 } catch (Exception e) {
+			 log.error(IpUtils.getTimes()+"------------------------Pgis获取中文地址报错------------------");
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				this.renderXML("");
+			}
+	}
+	
+	
+	/////////////////////////////////ljyend//////////////////////////////////////
+	
+	
+	
+	
+	/**
+	 * 描述：取中文地址,经纬度经过偏移
+	 * (订阅，轨迹回放中使用)
+	 * @author lihaiyan
+	 * @since Create on 2012-10-23
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getAddressRepeatSH")
+	public void getAddressRepeatSH(){
+		 String lnglat=getParameter("lnglat");
+		  try {
+				 StringBuffer urlBuffer=new StringBuffer();
+					urlBuffer.append(Constants.MAP_BASE_URL+"/SE_RGC2")
+					         .append("?")
+					         .append("st=Rgc2&output=json&point=")
+					         .append(lnglat)
+					         .append("&uid=")
+					         .append(Constants.MAP_UID);
+				   Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+				 this.renderJSON(resulResponse.asString());
+				
+				}  catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			 this.renderXML("");
+		}
+	}
+	
+	
+	/**
+	 * 描述：取车辆的反经纬度
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getRealLngLat")
+	public String getRealLngLat(){
+		 //取车辆的经纬度
+		 String lnglat=getParameter("lnglat");
+		  try {
+			  StringBuffer urlBuffer=new StringBuffer();
+				urlBuffer.append(Constants.MAP_BASE_URL+"/SE_SH")
+				         .append("?")
+				         .append("st=SE_SH&points=")
+				         .append(lnglat)
+				         .append("&uid=")
+				         .append(Constants.MAP_UID);
+				Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+				 this.renderXML(resulResponse.asString());
+				
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return NONE;
+	}
+	
+	
+	/**
+	 * 获取反偏移经纬度
+	 * @return
+	 */
+	@Action(value = "getRSHLngLat")
+	public String getRSHLngLat(){
+		 String lnglat=getParameter("lnglat");
+		  try {
+			  StringBuffer urlBuffer=new StringBuffer();
+			  urlBuffer.append(Constants.MAP_BASE_URL+"/SE_SH")
+		         .append("?")
+		         .append("st=SE_RSH&points=")
+		         .append(lnglat)
+		         .append("&uid=")
+				 .append(Constants.MAP_UID);
+			     Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+				 this.renderXML(resulResponse.asString());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					//e.printStackTrace();
+				}
+				return NONE;
+	}
+	
+	
+	
+	
+	/***********************************************根据地图类型获取反偏移经纬度begin【用作实时报警页面的显示车辆功能】【ljy】***********************************************/
+	/**
+	 * 获取反偏移经纬度
+	 * @return
+	 */
+	@Action(value = "getRSHLngLatRealTimeAlarm")
+	public void getRSHLngLatRealTimeAlarm(){
+		
+		String lnglat=getParameter("lnglat");
+		String mapType=getParameter("mapType");
+		String[] lngArray = Tools.getRealLngLat(lnglat,mapType);
+		
+		Object result ="";
+		result=lngArray[0]+","+lngArray[1];
+		
+		this.renderJSON(result);
+		
+	}
+	/************************************************根据地图类型获取反偏移经纬度end【用作实时报警页面的显示车辆功能】**********************************************/
+	
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 描述： 获取所有车辆的上下线状态
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getGpsVehicleStatus")
+	public String getGpsVehicleStatus() throws Exception {
+		String jsonString = "false";
+		String vehicleIdStr=getParameter("vehicleIdStr");
+		Map<String, Boolean> vehicleStatus=new HashMap<String, Boolean>();
+		try {
+			if (StringUtils.isNotEmpty(vehicleIdStr)) {
+			    String[] vehicleIdArray=vehicleIdStr.split(",");
+			    for(String vehicleId:vehicleIdArray){
+			    	vehicleStatus.put(vehicleId, this.commandRepository.getVehicleIsOnline(vehicleId));	
+			    }
+			    jsonString=JSONUtil.toJson(vehicleStatus);
+			    LogUtil.insertLog(LogActionTypes.READ, "成功", "所有车辆的上下线状态", "", "所有车辆的上下线状态");
+			}
+	   
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "所有车辆的上下线状态", "", "所有车辆的上下线状态");
+			jsonString = "false";
+		}
+		//jsonString="[{\"lat:'38.034202',lon:'114.557241',hd:'33',sd:'0',sd2:'18',sim:'013180000853',no:'粤A88888',gs:',海拔:0,,里程:2220 公里 ,车辆电路正常,车辆油路正常,东经,北纬,定位,ACC开,',gt:'2011-11-02 15:47:12',gv:'1',sh:'2220',oi:'0',gd:',司机姓名:吴凡,驾驶员身份证号:412000198309251112,,从业资格证编号:1234567890123456789012345678901234567890,,发证机构名称:广州亿程交通信息有限公司,'\"}]";
+		//Tools.writeToOutputStream(jsonString, "查询GPS定位信息结果json字符串写到输出流", ServletActionContext.getResponse());
+		this.renderJSON(jsonString);
+		return NONE;
+	}
+	
+	/**
+	 * 描述： 获取车辆最新驾驶员信息
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-31
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getNewestDriverMessage")
+	public void getNewestDriverMessage()
+	{
+		String jsonString = "";
+		String vehicleId=getParameter("vehicleId");
+		try
+		{
+			Map<String,Object> params=new HashMap<String,Object>();
+			params.put("vehicleId", vehicleId);
+			Map<String,Object> message=this.monitorCenterServices.getNewestDriverMessage(params);
+			if(message!=null){
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "车辆最新驾驶员", "", "车辆最新驾驶员");
+				 jsonString=JSONUtil.toJson(message);
+			}
+		} catch (Exception e)
+		{
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "车辆最新驾驶员", "", "车辆最新驾驶员");
+			e.printStackTrace();
+		}
+		this.renderJSON(jsonString);
+	}
+	
+	/**
+	 * 描述： 获取上线下线车辆
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-11-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getUplineAndDownLinVehicle")
+	public void getUplineAndDownLinVehicle(){
+		try{
+			List<GpsVehicle> gpsVehicles=new ArrayList<GpsVehicle>();
+			Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+			for(Map.Entry<String, String> vehicle:vehicleMap.entrySet()){
+				String vehicleInfo =vehicle.getValue();//车牌号|车牌颜色|所属行业|所属业户|sim卡号
+				String vehicleId=vehicle.getKey();
+				GpsVehicle gpsVehicle=new GpsVehicle();
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				gpsVehicle.setRegistrationNo(vehicleInfoArr[0]);
+				gpsVehicle.setNoColor(vehicleInfoArr[1]);
+				gpsVehicle.setWorkunitName(vehicleInfoArr[3]);
+				gpsVehicle.setVehicleId(vehicleId);
+				boolean isOnline=commandRepository.getVehicleIsOnline(vehicleId);
+				gpsVehicle.setOnline(isOnline);
+				gpsVehicles.add(gpsVehicle);
+			}
+			this.renderJSON(gpsVehicles);
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "上线下线车辆", "", "上线下线车辆");
+		}catch(Exception e){
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "上线下线车辆", "", "上线下线车辆");
+			e.printStackTrace();
+			this.renderJSON("");
+		}
+	}
+	
+	
+	/**
+	 * 得到视频监控参数信息
+	 */
+	@Action(value = "getVideoInfo")
+	public void getVideoInfo(){
+		//车辆id
+		String vehicleId=getParameter("vehicleId");
+		String jsonString = "";
+		try
+		{
+			Map<String,Object> params=new HashMap<String,Object>();
+			params.put("vehicleId", vehicleId);
+			
+			Map<String,Object> message=this.monitorCenterServices.getVideoInfo(params);
+			if(message!=null){
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "视频监控", "", "视频监控");
+				 jsonString=JSONUtil.toJson(message);
+			}
+		} catch (Exception e)
+		{
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "视频监控", "", "视频监控");
+			e.printStackTrace();
+		}
+		this.renderJSON(jsonString);
+		
+	}
+	
+	/**
+	 * 获取行业类型
+	 */
+	@SuppressWarnings("rawtypes")
+	@Action(value="getTradeKind")
+	public void getTradeKind(){
+		String jsonString="";
+		List<Map> listTradeKindList = ibatisServices.queryForList(Map.class, "getTradeKindAll");
+		if(listTradeKindList==null || (listTradeKindList!=null && listTradeKindList.size()==0)){
+			jsonString="false";
+		}else{
+			jsonString=JSONUtil.toJson(listTradeKindList);
+		}
+		this.renderJSON(jsonString);
+	}
+
+	
+	public CommandRepository getCommandRepository()
+	{
+		return commandRepository;
+	}
+	public void setCommandRepository(CommandRepository commandRepository)
+	{
+		this.commandRepository = commandRepository;
+	}
+	public MonitorCenterServices getMonitorCenterServices()
+	{
+		return monitorCenterServices;
+	}
+	public void setMonitorCenterServices(MonitorCenterServices monitorCenterServices)
+	{
+		this.monitorCenterServices = monitorCenterServices;
+	}
+
+	
+	
+}

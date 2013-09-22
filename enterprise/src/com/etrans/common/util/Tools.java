@@ -1,0 +1,1513 @@
+package com.etrans.common.util;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.TimeZone;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.poi.hssf.usermodel.HSSFRichTextString;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.springframework.util.ClassUtils;
+
+import com.etrans.bubiao.entities.AlarmModel;
+import com.etrans.bubiao.entities.GpsInfo;
+import com.etrans.bubiao.entities.User;
+import com.etrans.bubiao.http.HttpClient;
+import com.etrans.bubiao.http.Response;
+import com.etrans.bubiao.repository.CommandRepository;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.bubiao.util.JSONUtil;
+
+
+
+/**
+ * 常用工具类
+ * 
+ * @author dasuan 2010-7
+ * 
+ */
+public class Tools{
+
+	private static final Log log = LogFactory.getLog(Tools.class);
+
+	private static int num=0;
+	
+	
+	
+	/**
+	 * 每台车报警保留最近10条
+	 */
+	public static final int maxMessageNum = 5;
+	
+	/**
+	 * 实时报警页面显示最大记录数
+	 */
+	public static final int realAlarmMaxCount = 50;
+
+//查岗对象类型附件2
+	public static Map<String,String> flatMap = new HashMap<String,String>(3);
+//下发报文对象类型 附件3
+	public static Map<String,String> flatPlatMap = new HashMap<String,String>(10);
+//报警来源	
+	public static Map<String,String> alarmSourceStrMap = new HashMap<String,String>(3);
+///报警类型 附件1
+	public static Map<String,String> alarmTypeMap = new HashMap<String,String>(14);
+//督办级别	
+	public static Map<String,String> overseeingMap = new HashMap<String,String>(2);
+//链路状态
+	public static Map<String,String> linkStatusMap = new HashMap<String,String>(3);
+//上级下发应答信息类型附件4	
+	public static Map<String,String> upAnswerMap = new HashMap<String,String>(3);
+	
+	static{
+		//查岗对象类型附件2
+		flatMap.put("1","当前连接的下级平台");
+		flatMap.put("2","下级平台所属单一业户");
+		flatMap.put("3","下级平台所属所有业户");
+		
+		//下发报文对象类型 附件3
+		flatPlatMap.put("0","下级平台所属单一平台");
+		flatPlatMap.put("1","当前连接的下级平台");
+		flatPlatMap.put("2","下级平台所属单一业户");
+		flatPlatMap.put("3","下级平台所属所有业户");
+		flatPlatMap.put("4","下级平台所属所有平台");
+		flatPlatMap.put("5","下级平台所属所有平台和业户");
+		flatPlatMap.put("6","下级平台所属所有政府监管平台（含监控端）");
+		flatPlatMap.put("7","下级平台所属所有企业监控平台");
+		flatPlatMap.put("8","下级平台所属所有经营性企业监控平台");
+		flatPlatMap.put("9","下级平台所属所有非经营性企业监控平台");
+
+		alarmSourceStrMap.put("1","车载终端");
+		alarmSourceStrMap.put("2","企业监控平台");
+		alarmSourceStrMap.put("3","政府监管平台");
+		alarmSourceStrMap.put("9","其它");
+		
+		//报警类型 附件1
+		alarmTypeMap.put("1","超速报警");
+		alarmTypeMap.put("2","疲劳驾驶报警");
+		alarmTypeMap.put("3","紧急报警");
+		alarmTypeMap.put("4","进入指定区域报警");
+		alarmTypeMap.put("5","离开指定区域报警");
+		alarmTypeMap.put("6","路段堵塞报警");
+		alarmTypeMap.put("7","危险路段报警");
+		alarmTypeMap.put("8","越界报警");
+		alarmTypeMap.put("9","盗警");
+		alarmTypeMap.put("10","劫警");
+		alarmTypeMap.put("11","偏离路线报警");
+		alarmTypeMap.put("12","车辆移动报警");
+		alarmTypeMap.put("13","超时驾驶报警");
+		alarmTypeMap.put("255","其他报警");
+		
+		//督办紧急级别
+		overseeingMap.put("0","紧急");
+		overseeingMap.put("1","一般");
+		
+		//链路状态
+		linkStatusMap.put("0","连接断开");
+		linkStatusMap.put("1","登录成功");
+		linkStatusMap.put("2","链路连接未登录");
+		
+		//上级下发应答信息类型附件4
+		upAnswerMap.put("37385","补发车辆定位信息应答");
+		upAnswerMap.put("37383","申请交换指定车辆定位信息应答");
+		upAnswerMap.put("37384","取消交换指定车辆定位信息应答");
+
+		
+		
+
+
+
+	}
+	
+	public static String getTermianlState(String gpsInfoMessageState, String userTerminalState) {
+		Map<Integer, String> terminalStateMap = new HashMap<Integer, String>();
+		// 初始化终端状态
+		terminalStateMap.put(0, "GPS定位|GPS未定位");
+		terminalStateMap.put(1, "北纬|南纬");
+		terminalStateMap.put(2, "东经|西经");
+		terminalStateMap.put(3, "运营状态|停运状态");
+		terminalStateMap.put(4, "未预约|预约");
+		terminalStateMap.put(8, "ACC关|ACC开");
+		terminalStateMap.put(9, "空车|重车");
+		terminalStateMap.put(10, "油路正常|油路断开");
+		terminalStateMap.put(11, "电路正常|电路断开");
+		terminalStateMap.put(12, "车门解锁|车门加锁");
+
+		String stateStr = "";
+		// 解释终端状态
+		String termainlStateStr = Long.toBinaryString(Long.parseLong(Long.valueOf(gpsInfoMessageState, 16).toString()));
+		char[] terminalStateArray = ("00000000000000000000000000000000".substring(0, (32 - termainlStateStr.length())) + termainlStateStr).substring(19, 32).toCharArray();
+
+		for (int s = 0; s < terminalStateArray.length; s++) {
+			if (null != terminalStateMap.get(12 - s)) {
+				if (userTerminalState.contains("|" + (12 - s) + "=" + String.valueOf(terminalStateArray[s]) + "|")) { // 判断用户是否有此终端状态
+					stateStr += (String.valueOf(terminalStateMap.get(12 - s)).split("\\|")[Integer.parseInt(String.valueOf(terminalStateArray[s]))]) + (s == 12 ? "" : ",");
+				}
+			}
+		}
+		return stateStr;
+	}
+
+	/**
+	 * 获取项目绝对根路径
+	 * @return String 项目绝对路径
+	 */
+	public static String getProjectPath() {
+		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+		if (classLoader == null) {
+			classLoader = ClassUtils.class.getClassLoader();
+		}
+		URL url = classLoader.getResource("/");
+		String path = url.getPath();
+		return path.substring(0, path.indexOf("WEB-INF"));
+	}
+	
+	/**
+	 * 生成随即密码
+	 * 
+	 * @param pwd_len 生成的密码的总长度
+	 * @return 密码的字符串
+	 */
+	public static String genRandomNum(int pwd_len) {
+		// 35是因为数组是从0开始的，26个字母+10个数字
+		final int maxNum = 10;
+		int i; // 生成的随机数
+		int count = 0; // 生成的密码的长度
+		/*
+		 * char[] str = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y',
+		 * 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+		 */
+
+		char[] str = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
+		StringBuffer pwd = new StringBuffer("");
+		Random r = new Random();
+		while (count < pwd_len) {
+			// 生成随机数，取绝对值，防止生成负数，
+
+			i = Math.abs(r.nextInt(maxNum)); // 生成的数最大为36-1
+
+			if (i >= 0 && i < str.length) {
+				pwd.append(str[i]);
+				count++;
+			}
+		}
+
+		return pwd.toString();
+	}
+
+	
+	public static long genRandomLongNum()
+	{
+	 Random r = new Random(999999);
+	 
+	 return r.nextLong();
+	}
+	
+	/**
+	 * 生成EXCEL文件
+	 * 
+	 * @param titleArray 标题
+	 * @param dataList 内容
+	 * @return
+	 * @throws IOException
+	 */
+	public static InputStream createExcelFile(String[] titleArray, List dataList) throws IOException {
+		HSSFWorkbook wb = new HSSFWorkbook();
+		HSSFSheet sheet = wb.createSheet("Sheet1");
+		HSSFRow row = null;
+		if (titleArray != null) {
+			row = sheet.createRow((short) 0);
+			for (int i = 0; i < titleArray.length; i++) {
+				row.createCell((short) i).setCellValue(new HSSFRichTextString(titleArray[i]));
+			}
+		}
+		if (dataList != null) {
+			List list = null;
+			for (int m = 0; m < dataList.size(); m++) {
+				row = sheet.createRow((short) (m + 1));
+				list = (ArrayList) dataList.get(m);
+				for (int n = 0; n < list.size(); n++) {
+					row.createCell((short) n).setCellValue(new HSSFRichTextString(list.get(n) == null ? "" : list.get(n).toString()));
+				}
+			}
+		}
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		wb.write(outputStream);
+		InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+		return inputStream;
+	}
+
+	/**
+	 * 生成EXCEL文件
+	 * 
+	 * @param titleArray 标题
+	 * @param dataList 内容
+	 * @return
+	 * @throws IOException
+	 */
+	public static void createExcel(OutputStream outputStream, String[] titleArray, List dataList) throws IOException {
+		HSSFWorkbook wb = new HSSFWorkbook();
+		int page = (int) Math.ceil((double) dataList.size() / Constants.EXCEL_MAX_ROW);
+		for (int k = 0; k < page; k++) {
+			HSSFSheet sheet = wb.createSheet("Sheet" + k + 1);
+			HSSFRow row = null;
+			if (titleArray != null) {
+				row = sheet.createRow((short) 0);
+				for (int i = 0; i < titleArray.length; i++) {
+					row.createCell((short) i).setCellValue(new HSSFRichTextString(titleArray[i]));
+				}
+			}
+			if (dataList != null) {
+				List list = null;
+				for (int m = Constants.EXCEL_MAX_ROW * k; m < dataList.size(); m++) {
+					row = sheet.createRow(m - Constants.EXCEL_MAX_ROW * k + 1);
+					list = (List) dataList.get(m);
+					for (int n = 0; n < list.size(); n++) {
+						row.createCell((short) n).setCellValue(new HSSFRichTextString(list.get(n) == null ? "" : list.get(n).toString()));
+					}
+					if (m == Constants.EXCEL_MAX_ROW * (k + 1)) {
+						break;
+					}
+				}
+			}
+		}
+		wb.write(outputStream);
+	}
+
+	/**
+	 * 取得文件后缀
+	 * 
+	 * @param fileName
+	 * @return
+	 */
+	public static String getSuffix(String fileName) {
+		int pos = fileName.lastIndexOf(".");
+		return fileName.substring(pos + 1, fileName.length());
+	}
+
+	/**
+	 * 取得文件前缀
+	 * 
+	 * @param fileName
+	 * @return
+	 */
+	public static String getPrefix(String fileName) {
+		int pos = fileName.lastIndexOf(".");
+		return fileName.substring(0, pos == -1 ? fileName.length() : pos);
+	}
+
+	/**
+	 * 获取文件内容
+	 * 
+	 * @param filePath
+	 * @return
+	 * @throws IOException
+	 */
+	public static String getFileContext(String filePath) throws IOException {
+		StringBuffer stringBuffer = new StringBuffer();
+		File file = null;
+		InputStreamReader inputStreamReader = null;
+		BufferedReader reader = null;
+		try {
+			String line;// 用来保存每行读取的内容
+			file = new File(filePath);
+			if (!file.exists()) {
+				return null;
+			}
+			inputStreamReader = new InputStreamReader(new FileInputStream(file), "UTF-8");
+			reader = new BufferedReader(inputStreamReader);
+			line = reader.readLine();// 读取第一行
+			while (line != null) {// 如果 line 为空说明读完了
+				stringBuffer.append(line);// 将读到的内容添加到 buffer中
+				stringBuffer.append("<br>");// 添加换行符
+				line = reader.readLine();// 读取下一行
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (reader != null) {
+				reader.close();
+			}
+			if (inputStreamReader != null) {
+				inputStreamReader.close();
+			}
+		}
+		return stringBuffer.toString();
+	}
+
+	/**
+	 * 文件重命名
+	 * 
+	 * @param srcPath
+	 * @param diskPath
+	 * @throws IOException
+	 */
+	public static void rename(String srcPath, String diskPath) throws IOException {
+		File file = new File(srcPath);
+		if (file.exists()) {
+			file.renameTo(new File(diskPath));// 改名
+		}
+	}
+
+	/**
+	 * 删除文件
+	 * 
+	 * @param filePath
+	 * @throws IOException
+	 */
+	public static void deleteFile(String filePath) throws IOException {
+		File file = new File(filePath);
+		if (file.exists()) {
+			file.delete();// 删除文件
+		}
+	}
+
+	/**
+	 * 创建文件
+	 * 
+	 * @param filePath
+	 * @param fileName
+	 * @throws IOException
+	 */
+	public static void createFile(String filePath, String fileName) throws IOException {
+		File file = new File(filePath + "/" + fileName);
+		if (!file.exists()) {
+			file.createNewFile();
+		} else {
+			log.info("要创建的文件" + filePath + "/" + fileName + "已经存在!");
+		}
+	}
+
+	/**
+	 * 设置文件内容
+	 * 
+	 * @param filePath
+	 * @param fileName
+	 * @param list
+	 * @param flag ---true 代表initKey要生成,false代表initKey不用生成
+	 * @throws IOException
+	 */
+	public static void setBossFileContext(String filePath, String fileName, String context) throws IOException {
+		File file = new File(filePath + "/" + fileName);
+		// 判断文件是否存在
+		if (!file.exists()) {
+			throw new IOException("file is not exists!");
+		} else {
+			// 声明一个缓冲输出流
+			BufferedWriter bufferedWriter = null;
+			try {
+				// 构造文件输出字符流,第二参数为true是向文件追加信息的意思
+				bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true)));
+				bufferedWriter.write(context);
+				// 新行
+				bufferedWriter.newLine();
+				bufferedWriter.flush();
+			} catch (IOException e) {
+				throw e;
+			} finally {
+				try {
+					if (bufferedWriter != null) {
+						bufferedWriter.close();
+					}
+				} catch (IOException e) {
+					throw e;
+				}
+			}
+		}
+	}
+
+	/**
+	 * 获取文件内容
+	 * 
+	 * @param filePath
+	 * @return
+	 * @throws IOException
+	 */
+	public static List<String> getBossFileContext(String filePath) throws IOException {
+		List<String> list = new ArrayList<String>();
+		File file = null;
+		InputStreamReader inputStreamReader = null;
+		BufferedReader reader = null;
+		try {
+			String line;// 用来保存每行读取的内容
+			file = new File(filePath);
+			if (!file.exists()) {
+				return null;
+			}
+			inputStreamReader = new InputStreamReader(new FileInputStream(file));
+			reader = new BufferedReader(inputStreamReader);
+			line = reader.readLine();// 读取第一行
+			while (line != null) {// 如果 line 为空说明读完了
+				list.add(line);// 将读到的内容添加到 buffer中
+				line = reader.readLine();// 读取下一行
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (reader != null) {
+				reader.close();
+			}
+			if (inputStreamReader != null) {
+				inputStreamReader.close();
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * 描述： 取字符的字节的16进制ASICC
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-05-02
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+  public  static String getByteHex(String str) {
+		
+		String result = "";
+		String toASICCString=str;
+		try {
+			byte[] array = toASICCString.getBytes("GBK");
+
+			for (byte y : array) {
+				 String hex = Integer.toHexString(y & 0xFF);
+				  if (hex.length() == 1) {
+				        hex = '0' + hex;
+				      }
+				  result+=hex;
+			}
+		} catch (Exception e) {
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * 字符串转换成十六进制字符串
+	 */
+	public static String String2hex(String str) {
+		byte[] b = null;
+		if (str != null && !str.equals(""))
+			b = str.getBytes();
+		else
+			return null;
+		String hs = "";
+		String stmp = "";
+		for (int n = 0; n < b.length; n++) {
+			stmp = (java.lang.Integer.toHexString(b[n] & 0XFF));
+			if (stmp.length() == 1)
+				hs = hs + "0" + stmp;
+			else
+				hs = hs + stmp;
+			if (n < b.length - 1)
+				hs = hs + ":";
+		}
+		return hs.toUpperCase();
+	}
+
+	/**
+	 * 将字符串转换成二进制字符串，以空格相隔
+	 * 
+	 * @param str 待转换的字符
+	 * @return String 以空格隔开的二进制串
+	 * */
+	public static String stringToBinary(String str) {
+		char[] strChar = str.toCharArray();
+		String result = "";
+		for (int i = 0; i < strChar.length; i++) {
+
+			result += Integer.toBinaryString(strChar[i]) + (i == strChar.length - 1 ? "" : " ");
+		}
+		return result;
+	}
+
+	/**
+	 * 将二进制转换为字符串
+	 * 
+	 * @param binary 待转换的二进制串
+	 * @return String
+	 * */
+	public static String binaryToString(String binary) {
+		StringBuffer suf = new StringBuffer();
+		for (int b = 0; b < binary.split(" ").length; b++) {
+			int[] temp = binaryToIntArray(binary.split(" ")[b]);
+			int sum = 0;
+			for (int i = 0; i < temp.length; i++) {
+				sum += temp[temp.length - 1 - i] << i;
+			}
+			suf.append((char) sum);
+		}
+		return suf.toString();
+	}
+
+	/**
+	 * 将二进制字符串转换为char
+	 * @param binary 待转换的二进制字符
+	 * @return char
+	 * */
+	public static char binaryToChar(String binary) {
+		int[] temp = binaryToIntArray(binary);
+		int sum = 0;
+		for (int i = 0; i < temp.length; i++) {
+			sum += temp[temp.length - 1 - i] << i;
+		}
+		return (char) sum;
+	}
+
+	/**
+	 * 将二进制字符串转换成int数组
+	 * 
+	 * @param binary 待转换的二进制字符
+	 * @return int[]
+	 * */
+	public static int[] binaryToIntArray(String binary) {
+		char[] temp = binary.toCharArray();
+		int[] result = new int[temp.length];
+		for (int i = 0; i < temp.length; i++) {
+			result[i] = temp[i] - 48;
+		}
+		return result;
+	}
+
+	/**
+	 * 字节数组转换成图片并输出
+	 * @param bytes 待转换的字节数组
+	 * @param fileName 图片输出时的图片名称
+	 * @param imageType 图片后缀名
+	 * @param filePath 图片输出路径
+	 * */
+	public static void byteArrayToImage(byte[] bytes, String fileName, String imageType, String filePath) throws Exception {
+		String file = filePath + fileName + "." + imageType;
+		File f = new File(file);
+		if(f.exists())f.delete();
+		byte[] buf = bytes;
+		FileOutputStream out = new FileOutputStream(f);
+		out.write(buf);
+		out.close();
+	}
+
+	/**
+	 * 十六进字符串转换成字节数组
+	 * @param hexString 待转换的十六进字符串
+	 * @return byte数组
+	 * */
+	public static byte[] hexStringToBytes(String hexString) {
+		if (hexString == null || hexString.equals("")) {
+			return null;
+		}
+		hexString = hexString.toUpperCase();
+		int length = hexString.length() / 2;
+		char[] hexChars = hexString.toCharArray();
+		byte[] d = new byte[length];
+		for (int i = 0; i < length; i++) {
+			int pos = i * 2;
+			d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+		}
+		return d;
+	}
+
+	/**
+	 * 字符转字节byte
+	 * @param c 待转换的字符
+	 * @return byte
+	 * */
+	public static byte charToByte(char c) {
+		return (byte) "0123456789ABCDEF".indexOf(c);
+	}
+
+	/**
+	 * 将字符串写到输出流
+	 * 
+	 * @param str 要输出的字符串
+	 * @param msg 操作信息字符串, 用于出错时写日志
+	 * @param response输出流
+	 * @return boolean 成功时为true, 否则为false
+	 */
+	public static boolean writeToOutputStream(String str, String msg, HttpServletResponse response) {
+		response.setCharacterEncoding("UTF-8");
+		PrintWriter writer = null;
+		try {
+			writer = response.getWriter();
+			writer.write(str);
+			writer.flush();
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		} finally {
+			writer.close();
+		}
+	}
+	
+	
+	/**
+	 * 字符串转ASICC
+	 * @param str
+	 * @return
+	 */
+	public static String getASCII(String str)
+	{
+	 
+	 if(StringUtils.isEmpty(str))
+		 new RuntimeException("字符串不能为空");
+	 
+	  String result = "";
+		try 
+		{
+			byte[] array = str.getBytes("GBK");
+
+			for (byte y : array) 
+			{
+				result += Integer.toHexString(y & 0xFF);
+			}
+		} 
+		catch (Exception e) 
+		{
+		}
+	 
+	 return result;
+	}
+	
+	/**
+	 * 获取递增整数。到Integer最大值重新初始化为0
+	 * @return
+	 */
+	public static Integer getNum()
+	{
+	 
+	 if(num >= Integer.MAX_VALUE) num=0;
+	
+	 return num++;
+	}
+	
+	
+	
+	public static Integer getRandomNum(int max)
+	{
+	 
+	 Random random = new Random();
+	 
+	 return random.nextInt(max);
+	 
+	}
+	
+	/**
+	 * 
+	 * @param dateStr
+	 * @return 是否是最新时间
+	 * @throws Exception
+	 */
+	public static  boolean isNew(String dateStr) throws Exception
+	{
+		
+		Long d=Long.parseLong(dateStr);
+		Long now =System.currentTimeMillis();
+		if((now - d) <=(30*60*1000)) //30分钟            	//if((now - d) <=(60*5 *1000))
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public static String builStr(String str)
+	{
+		if(StringUtils.isEmpty(str))
+			return str;
+		
+		if(str.startsWith(","))
+			return str.substring(1);
+		
+		return str;
+	}
+	
+	public static String getLocationBaidu(String lat,String lon) {
+		StringBuffer urlBuffer = new StringBuffer();
+		String address="";
+		//http://api.map.baidu.com/geocoder?output=json&location=26.612743,%20104.777478&key=37492c0ee6f924cb5e934fa08c6b1676
+		urlBuffer.append("http://api.map.baidu.com/geocoder?output=json&location=")
+				 .append(lat)
+				 .append(",%20")
+				 .append(lon)
+				 .append("&key=37492c0ee6f924cb5e934fa08c6b1676");
+		
+		try {
+			Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+			if(200== resulResponse.getStatusCode()){
+				Map json=JSONUtil.fromJson(resulResponse.asString(), Map.class);
+				address=((Map<String,String>) json.get("result")).get("formatted_address");
+			}
+		} catch (Exception e) {
+			return "";
+		}
+		return  address;
+	}
+	
+	public static String[] getRealngLatBaidu(String lnglat){
+		StringBuffer urlBuffer = new StringBuffer();
+		String address="";
+		String[] lngLatAry = lnglat.split(",");
+		urlBuffer.append("http://api.map.baidu.com/ag/coord/convert?from=0&to=4&x=")
+				 .append(lngLatAry[0])
+				 .append("&y=")
+				 .append(lngLatAry[1]);
+		try {
+			Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+			if(200== resulResponse.getStatusCode()){
+				address = resulResponse.asString().substring(1, resulResponse.asString().length()-1);
+			}
+			String[] results = address.split("\\,");
+	        if (results.length == 3){
+	            if (results[0].split("\\:")[1].equals("0")){
+	                String mapX = results[1].split("\\:")[1];
+	                String mapY = results[2].split("\\:")[1];
+	                mapX = mapX.substring(1, mapX.length()-1);
+	                mapY = mapY.substring(1, mapY.length()-1);
+	                mapX = new String(Base64.decoderMessage(mapX));
+	                mapY = new String(Base64.decoderMessage(mapY));
+	                lngLatAry[0] = mapX;
+	                lngLatAry[1] = mapY;
+	            }
+	        }
+		} catch (Exception e) {
+			lngLatAry = lnglat.split(",");
+		}
+		return lngLatAry;
+	}
+	public static  String[] getRealLngLat(String lnglat){//经度,纬度
+		return getRealLngLatTr(lnglat);
+	}
+	
+	/**
+	 * 获取偏移后的经纬度
+	 * <p>
+	 * 根据地图类型获取偏移经纬度,
+	 * </p>
+	 * @param lnglat 经纬度字符串
+	 * @param mapType 地图类型 mapType 为空取原值，不做交换
+	 * @return String[] 经纬度
+	 */
+	public static  String[] getRealLngLat(String lnglat,String mapType){
+		if(mapType==null || (mapType!=null && "".equals(mapType)))return lnglat.split(",");
+		if(mapType.equals("1")){
+	    	return getRealngLatBaidu(lnglat);
+	    } else if(mapType.equals("2")){
+	    	return getRealLngLatTr(lnglat);
+	    }else{
+	    	return lnglat.split(",");
+	    }
+	}
+	
+	/**
+	 * 
+	 * @param lnglat
+	 * @return
+	 */
+	public static String[][] getRealLngLatBath(String[][] lnglat){
+		if(lnglat==null)return null;
+		 //取车辆的经纬度
+		String[][] nlngLat = new String[lnglat.length][2];
+		String address="";
+		StringBuffer urlBuffer=new StringBuffer();
+		urlBuffer.append(Constants.MAP_BASE_URL+"/SE_SH")
+		         .append("?")
+		         .append("st=SE_SH&points=");
+		for(int i=0;i<lnglat.length;i++){
+			if(i!=lnglat.length-1){
+				urlBuffer.append(lnglat[i][0]).append(",").append(lnglat[i][1]).append(";");
+			}else{
+				urlBuffer.append(lnglat[i][0]).append(",").append(lnglat[i][1]).append("&uid=")
+				 .append(Constants.MAP_UID);;
+			}
+		}
+		try {
+			Response resulResponse;
+			resulResponse = HttpClient.getAddress(urlBuffer.toString());
+			address =resulResponse.asString();
+			Document document = DocumentHelper.parseText(address); 
+			Element root = document.getRootElement(); 
+			Element status=root.element("status");
+			if(Constants.MAP_OK.equals(status.getStringValue())){
+				   Element resultElement=root.element("result");
+				   Element pointsElement=resultElement.element("points");
+				   Iterator  pointElement=pointsElement.elementIterator("point");
+				   int countSum = 0;
+				   while(pointElement.hasNext()){
+					   Element itemEle = (Element) pointElement.next();
+					   Element lngElement=itemEle.element("lng");
+					   String lng=lngElement.getStringValue();
+					   nlngLat[countSum][0]=lng;
+					   Element latElement=itemEle.element("lat");
+					   String lat=latElement.getStringValue();
+					   nlngLat[countSum][1]=lat;
+					   countSum++;
+				   }
+			   }else {
+				   nlngLat=lnglat;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		 return nlngLat; 
+	}
+	/**
+	 * 取泰瑞经纬度偏移值
+	 * 
+	 * @param lnglat String
+	 * @return  String[] 经纬度
+	 */
+	public static String[] getRealLngLatTr(String lnglat){
+		 //取车辆的经纬度
+		String address="";
+		StringBuffer urlBuffer=new StringBuffer();
+		urlBuffer.append(Constants.MAP_BASE_URL+"/SE_SH")
+		         .append("?")
+		         .append("st=SE_SH&points=")
+		         .append(lnglat)
+		         .append("&uid=")
+				 .append(Constants.MAP_UID);
+		String[] lngArray=new String[2];
+		  try {
+		   Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+		   address =resulResponse.asString();
+		   Document document; 
+		   document = DocumentHelper.parseText(address); 
+		   Element root = document.getRootElement(); 
+		   Element status=root.element("status");
+		   if(Constants.MAP_OK.equals(status.getStringValue())){
+			   Element resultElement=root.element("result");
+			   Element pointsElement=resultElement.element("points");
+			   Element pointElement=pointsElement.element("point");
+			   Element lngElement=pointElement.element("lng");
+			   String lng=lngElement.getStringValue();
+			   lngArray[0]=lng;
+			   Element latElement=pointElement.element("lat");
+			   String lat=latElement.getStringValue();
+			   lngArray[1]=lat;
+		   }else {
+			   lngArray=lnglat.split(",");
+		}
+		} catch (Exception e) {
+			 lngArray=lnglat.split(",");
+			//e.printStackTrace();
+		}
+		return lngArray;
+	}
+	
+	//获取反偏移经纬度
+	public static  String[] getRSHRealLngLat(String lnglat){//经度,纬度
+		 //取车辆的经纬度
+		String address="";
+		StringBuffer urlBuffer=new StringBuffer();
+		urlBuffer.append(Constants.MAP_BASE_URL+"/SE_SH")
+        .append("?")
+        .append("st=SE_RSH&points=")
+        .append(lnglat)
+        .append("&uid=")
+		 .append(Constants.MAP_UID);
+		String[] lngArray=new String[2];
+		  try {
+		   Response resulResponse=HttpClient.getAddress(urlBuffer.toString());
+		   address =resulResponse.asString();
+		   Document document; 
+		   document = DocumentHelper.parseText(address); 
+		   Element root = document.getRootElement(); 
+		   Element status=root.element("status");
+		   if(Constants.MAP_OK.equals(status.getStringValue())){
+			   Element resultElement=root.element("result");
+			   Element pointsElement=resultElement.element("points");
+			   Element pointElement=pointsElement.element("point");
+			   Element lngElement=pointElement.element("lng");
+			   String lng=lngElement.getStringValue();
+			   lngArray[0]=lng;
+			   Element latElement=pointElement.element("lat");
+			   String lat=latElement.getStringValue();
+			   lngArray[1]=lat;
+		   }else {
+			   lngArray=lnglat.split(",");
+		}
+		} catch (Exception e) {
+			 lngArray=lnglat.split(",");
+			//e.printStackTrace();
+		}
+		return lngArray;
+	}
+	
+	 private static Map<String,String> alarmMap=new HashMap<String,String>();
+	 private static Map<String, String> alarmSourceMap=new HashMap<String,String>();
+	 static{
+		 alarmMap.put("2","超速报警");
+		 alarmMap.put("3","疲劳驾驶报警");
+		 alarmMap.put("1","紧急报警");
+		 alarmMap.put("4","预警");
+		 alarmMap.put("5","GNSS模块发生故障");
+		 alarmMap.put("6","GNSS天线未接或被剪断");
+		 alarmMap.put("7","GNSS天线短路");
+		 alarmMap.put("8","终端主电源欠压");
+		 alarmMap.put("9","终端主电源掉电");
+		 alarmMap.put("10","终端LCD或显示器故障");
+		 alarmMap.put("11","TTS模块故障");
+		 alarmMap.put("12","摄像头故障");
+		 alarmMap.put("13","当天累计驾驶超时");
+		 alarmMap.put("14","超时停车");
+		 //alarmMap.put("15","进出区域");
+		 alarmMap.put("16","进出路线");
+		 alarmMap.put("17","路段行驶时间不足/过长");
+		 alarmMap.put("18","路线偏离报警");
+		 alarmMap.put("19","车辆VSS故障");
+		 alarmMap.put("20","车辆油量异常");
+		 alarmMap.put("21","车辆被盗");
+		 alarmMap.put("22","车辆非法点火");
+		 alarmMap.put("23","车辆非法位移");
+		 alarmMap.put("24","碰撞侧翻报警");
+		 
+		 alarmMap.put("26", "进入区域");
+		 alarmMap.put("27", "离开区域");
+			
+		
+		 
+	    //=======================平台报警=================
+		 alarmMap.put("315", "超速报警(平台)");
+		 alarmMap.put("316", "疲劳驾驶报警(平台)");
+		 alarmMap.put("318", "进出地点报警(平台)");
+		 alarmMap.put("319", "进出区域报警(平台)");
+		 alarmMap.put("321", "夜间行车报警(平台)");
+		 alarmMap.put("317", "地点超时停车报警(平台)");
+		 
+		//过检指定六种报警平台报警
+		 alarmMap.put("320", "路段偏离报警(平台)");
+		 alarmMap.put("322", "分路段超速报警(平台)");
+		 alarmMap.put("323", "进入指定区域报警(平台)");
+		 alarmMap.put("324", "离开指定区域报警(平台)");
+		 alarmMap.put("325", "规定时间未到达指定地点报警(平台)");
+		 alarmMap.put("326", "规定时间未离开指定地点报警(平台)");
+		
+		//=======================平台报警=================
+
+			
+		 alarmSourceMap.put("1", "车载终端"); 
+		 alarmSourceMap.put("2", "企业监控平台"); 
+		 alarmSourceMap.put("3", "政府监管平台"); 
+		 alarmSourceMap.put("5","平台");
+		 alarmSourceMap.put("9", "其他"); 
+		// add by Pomelo(柚子.) Time:2013-05-27
+		 alarmSourceMap.put("10", "平台报警");
+		// End======================
+	 }
+	 
+    /**
+     * 亿程车管_手机客户端
+     */
+	 private static Map<String,String> map=new HashMap<String,String>();
+	 static{
+		 map.put("2","超速报警");
+		 map.put("3","疲劳驾驶");
+		 map.put("1","紧急报警");
+		 map.put("14","超时停车");
+		 map.put("15","进出区域");
+	 }
+	
+		/**
+		 * (亿程车管_手机客户端)
+		 * 把车辆的报警队列转行成List的报警类型
+		 * @param vehicleQueue
+		 * @return
+		 */
+			
+		public static AlarmModel alarmQueueTypeToList1(String[] strs,String vehicleInfo,String alarmTime,String alarmNamStrings) throws Exception
+			 { 
+			//旧版报警协议
+			// 业务流水号,业务代码,业务内容,是否定位,纬度,经度,速度,方向,状态,里程,油位,GPS时间,业务描述
+				//1,2014,疲劳驾驶,0,0.000000,0.000000,0,0,00000001,130,0,2011-05-10 10:42:38,门限、
+				//9101,2014,疲劳驾驶,1,22.940048,113.403355,0,264,00000000,22732,0,2011-05-10 15:07:30,门限、
+				//vehicleStr 格式:|车辆ID|车牌号|终端编号
+					//车牌号|车牌颜色|所属行业|所属业户
+			
+			/*新版报警协议
+			 * sendBody := Format(
+			 *   0 '%d,' +                     //车辆ID                     4
+	             1 '%s,' +                     //报警时间                   8
+	             2 '%s,' +                     //报警开始时间               8
+	             3 '%s,' +                     //报警本段开始报警时间       8
+	             4 '%d,' +                     //报警类型：1:紧急报警 2:超速 3:疲劳，...                               4
+	             5 '%d,' +                     //报警来源：1:车载终端；2:企业监控平台；3:政府监管平台；5:PA; 9：其它。
+	             6 '%s,' +                     //报警来源名称
+	             7 '%d,' +                     //外部报警信息ID                                                        4
+	             8 '%s,' +                     //如：疲劳门限、休息时间、当前驾驶时间。 各种报警参数各不相同           N
+	             9 '%.6f,'+                    //经度            1/1E6      4
+	             10'%.6f,'+                    //纬度            1/1E6      4
+	             11'%d,' +                     //传感器速度      1km        1
+	             12'%d,' +                     //GPS速度         1km        1
+	             13'%d,' +                     //传感器里程      0.1km      4
+	             14'%d,' +                     //GPS里程         0.1km      4
+	             15'%d,' +                     //方向            2dec       1
+	             16'%d,' +                     //本段报警次数               2
+	             17'%d,' +                     //累计报警次数               4
+	             18'%s',                       //状态字 32位               32      sum = 57 + 32 + N
+			 */
+
+					String[] vehicleInfoArr = vehicleInfo.split("\\|");
+					String alarmNamString="其它报警";
+					
+					AlarmModel alarm=new AlarmModel();
+					alarm.setBeginTime(strs[2]);
+					alarm.setStartTime(strs[3]);
+					alarm.setSpeed1(strs[12]);
+					alarm.setSpeed2(strs[11]);
+					alarm.setGpsMileage1(strs[14]);
+					alarm.setGpsMileage2(strs[13]);
+					alarm.setHead(strs[15]);
+					alarm.setState(strs[18]);
+					
+					alarm.setVehicleId(strs[0]);//车辆ID
+					alarm.setRegistrationNo(vehicleInfoArr[0]);//车牌号码
+//								alarm.setCommNo(vehicle.getCommNo());//终端号
+					alarm.setRegistrationColor(vehicleInfoArr[1]);//车牌颜色
+//								alarm.setTypeNo(strs[4]);//报警代码
+					String alarmNamTypeId=alarmNamStrings;//报警ID
+					/**报警类型中文名称 begin**/
+					if(StringUtils.isNotEmpty(map.get(alarmNamTypeId))){
+						alarmNamString = map.get(alarmNamTypeId);
+					}
+					alarm.setAlarmName(alarmNamString);//报警名称
+					/**报警类型中文名称 end**/
+					alarm.setAlarmTypeId(alarmNamTypeId);//报警类型Id
+					
+					Float longitude = Float.valueOf(strs[9])*1000000; 
+					Float latitude = Float.valueOf(strs[10])*1000000; 
+					
+					alarm.setLongitude(String.valueOf(longitude));//经度
+					alarm.setLatitude(String.valueOf(latitude));//纬度
+					alarm.setAlarmTime(strs[1]);//报警时间
+					alarm.setReceveTime(alarmTime);//接受时间
+					alarm.setAlarmInfoId(strs[7]);//外部报警信息ID 
+					
+					String sourceStr = "其它";
+					
+					String sourceId=strs[5];
+					alarm.setSourceID(sourceId);//报警来源
+					 
+					if(StringUtils.isNotEmpty(alarmSourceMap.get(sourceId))){
+						sourceStr = alarmSourceMap.get(sourceId);
+					}
+					
+					alarm.setSourceStr(sourceStr);//报警来源描述
+					alarm.setDesc(strs[8]);//报警描述
+					return alarm;
+		}
+	 
+	/**
+	 * 把车辆的报警队列转行成List的报警类型
+	 * @param vehicleQueue
+	 * @return
+	 */
+		
+	public static AlarmModel alarmQueueTypeToList(String[] strs,String vehicleInfo,String alarmTime) throws Exception
+		 { 
+		//旧版报警协议
+		// 业务流水号,业务代码,业务内容,是否定位,纬度,经度,速度,方向,状态,里程,油位,GPS时间,业务描述
+			//1,2014,疲劳驾驶,0,0.000000,0.000000,0,0,00000001,130,0,2011-05-10 10:42:38,门限、
+			//9101,2014,疲劳驾驶,1,22.940048,113.403355,0,264,00000000,22732,0,2011-05-10 15:07:30,门限、
+			//vehicleStr 格式:|车辆ID|车牌号|终端编号
+				//车牌号|车牌颜色|所属行业|所属业户
+		
+		/*新版报警协议
+		 * sendBody := Format(
+		 *   0 '%d,' +                     //车辆ID                     4
+             1 '%s,' +                     //报警时间                   8
+             2 '%s,' +                     //报警开始时间               8
+             3 '%s,' +                     //报警本段开始报警时间       8
+             4 '%d,' +                     //报警类型：1:紧急报警 2:超速 3:疲劳，...                               4
+             5 '%d,' +                     //报警来源：1:车载终端；2:企业监控平台；3:政府监管平台；5:PA; 9：其它。
+             6 '%s,' +                     //报警来源名称
+             7 '%d,' +                     //外部报警信息ID                                                        4
+             8 '%s,' +                     //如：疲劳门限、休息时间、当前驾驶时间。 各种报警参数各不相同           N
+             9 '%.6f,'+                    //经度            1/1E6      4
+             10'%.6f,'+                    //纬度            1/1E6      4
+             11'%d,' +                     //传感器速度      1km        1
+             12'%d,' +                     //GPS速度         1km        1
+             13'%d,' +                     //传感器里程      0.1km      4
+             14'%d,' +                     //GPS里程         0.1km      4
+             15'%d,' +                     //方向            2dec       1
+             16'%d,' +                     //本段报警次数               2
+             17'%d,' +                     //累计报警次数               4
+             18'%s',                       //状态字 32位               32      sum = 57 + 32 + N
+		 */
+
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				String alarmNamString="其它报警";
+		
+				AlarmModel alarm=new AlarmModel();
+				alarm.setBeginTime(strs[2]);
+				alarm.setStartTime(strs[3]);
+				alarm.setSpeed1(strs[12]);
+				alarm.setSpeed2(strs[11]);
+				alarm.setGpsMileage1(strs[14]);
+				alarm.setGpsMileage2(strs[13]);
+				alarm.setHead(strs[15]);
+				alarm.setState(strs[18]);
+				
+				alarm.setVehicleId(strs[0]);//车辆ID
+				alarm.setRegistrationNo(vehicleInfoArr[0]);//车牌号码
+//				alarm.setCommNo(vehicle.getCommNo());//终端号
+				alarm.setRegistrationColor(vehicleInfoArr[1]);//车牌颜色
+//				alarm.setTypeNo(strs[4]);//报警代码
+				String alarmNamTypeId=strs[4];//报警ID
+				/**报警类型中文名称 begin**/
+				if(StringUtils.isNotEmpty(alarmMap.get(alarmNamTypeId))){
+					alarmNamString = alarmMap.get(alarmNamTypeId);
+				}
+				alarm.setAlarmName(alarmNamString);//报警名称
+				/**报警类型中文名称 end**/
+				alarm.setAlarmTypeId(alarmNamTypeId);//报警类型Id
+				
+				alarm.setLongitude(strs[9]);//经度
+				alarm.setLatitude(strs[10]);//纬度
+				
+//				alarm.setLongitude(String.valueOf(strs[9]));//经度
+//				alarm.setLatitude(String.valueOf(strs[10]));//纬度
+				alarm.setAlarmTime(strs[1]);//报警时间
+				alarm.setReceveTime(alarmTime);//接受时间
+				alarm.setAlarmInfoId(strs[7]);//外部报警信息ID 
+				
+				String sourceStr = "其它";
+				
+				String sourceId=strs[5];
+				alarm.setSourceID(sourceId);//报警来源
+				 
+				if(StringUtils.isNotEmpty(alarmSourceMap.get(sourceId))){
+					sourceStr = alarmSourceMap.get(sourceId);
+				}
+				
+				alarm.setSourceStr(sourceStr);//报警来源描述
+				alarm.setDesc(strs[8]);//报警描述
+				return alarm;
+	}
+	
+	public static SimpleDateFormat getSimpleDateFormat(String formatStr){
+		SimpleDateFormat sdf = new SimpleDateFormat(formatStr);
+		sdf.setTimeZone(timeZoneChina);
+		return sdf;
+	}
+	private static TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区 
+	
+	/**
+	 * 将短时间格式字符串转换为时间 yyyy-MM-dd
+	 * 
+	 * @param strDate
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static Date strToDate(String strDate) throws ParseException {
+		SimpleDateFormat formatter = getSimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date strtodate = formatter.parse(strDate);
+		return strtodate;
+	}
+	
+	/**
+	 * 将日期转换成字符串
+	 * 
+	 * @param dateTime
+	 * @return
+	 */
+	public static String convertDateToString(Date dateTime) {
+		SimpleDateFormat df =getSimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return df.format(dateTime);
+	}
+	
+	/**
+	 * 返回格式化日期字符串[yyyy-M-dd HH:mm:ss]
+	 * @return
+	 */
+	public static String formatDate(Date date) throws Exception{
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		sdf.setTimeZone(timeZoneChina);
+		
+		return sdf.format(date);
+	}
+	
+	/**
+	 * 转换LIST
+	 * @return
+	 */
+	public static List<String> buildVehicleId(List<HashMap<String,String>> ls,List<String> resultls){
+		 
+		if(ls!=null && ls.size()>0){
+			for(HashMap<String,String> map:ls){
+				resultls.add(String.valueOf(map.get("vehicleID")));
+			}
+		}
+		
+		return resultls;
+	}
+	
+	/**
+	 *  判断车辆状态
+	 *   0：车辆正常运行  ACC开 速度>0
+		  1：停车状态(发动机开，没速度) ACC开 速度=0
+		  2：车辆停车状态（发动机关闭） ACC关 速度=0
+	 */
+	//info.getGs().indexOf("ACC关")=29
+	public static String getGpsStatus(GpsInfo info) throws Exception{//GPS速度
+		System.out.println("============================================================:"+info.getGs());
+		System.out.println("========================速度====================================:"+info.getSd2());
+		if (info.getGs()!=null && info.getGs().indexOf("ACC关")>-1 && Integer.parseInt(info.getSd2())==0){
+			return "2";
+		}else if(info.getGs()!=null && info.getGs().indexOf("ACC开")>-1 && Integer.parseInt(info.getSd2())==0){
+			return "1";
+		}else {
+			return "0";
+		}
+			
+		
+	}
+	
+	/**
+	 * 车辆状态：
+		  0：车辆正常运行  ACC开 速度>0
+		  1：停车状态(发动机开，没速度) ACC开 速度=0
+		  2：车辆停车状态（发动机关闭） ACC关 速度=0
+		  3：在油库 Pec_VehiclePositionStatus.positionStatus = 3
+		  4：在油站 Pec_VehiclePositionStatus.positionStatus = 2
+		  5：在停车场 Pec_VehiclePositionStatus.positionStatus = 1
+		  6：GPS异常  Pec_AlarmInfo.AlarmKindID = 100104 AND Pec_AlarmInfo.isblind=1 AND #请求时间#  BETWEEN Pec_AlarmInfo.startTime AND Pec_AlarmInfo.endTime
+		  7：不在线
+		优先级由高到低
+		不在线-GPS异常-在停车场-在油站-在油库-车辆停车状态-停车状态-车辆正常运行
+		默认：0 车辆正常运行
+	 * @param ls
+	 * @throws Exception
+	 */
+	public static void buildResult(CommandRepository commandRepository,List<HashMap<String,String>> ls,String mapType) throws Exception{
+		if(ls!=null && ls.size()>0){
+			GpsInfo info = null;
+			for(HashMap<String,String> map:ls){
+				info = commandRepository.getVehicleGpsInfo(map.get("vehicleID"),mapType);
+				
+				map.put("status","7");
+				
+				if(info == null){
+					map.put("status","7");
+				}else if(getVehicleIsOnline(info.getGt())){
+					String pecAlarmInfos=String.valueOf(map.get("pecAlarmInfo"));
+					if(pecAlarmInfos!=null && pecAlarmInfos!="null"){
+						int pecAlarmInfo=Integer.parseInt(pecAlarmInfos);
+						if(pecAlarmInfo!=0){
+							map.put("status","6");
+						}else if(StringUtils.isNotEmpty(map.get("positionStatus"))){
+							map.put("status",map.get("positionStatus"));
+						}else{
+							map.put("status",getGpsStatus(info));
+						}
+					}else if(StringUtils.isNotEmpty(map.get("positionStatus"))){
+						map.put("status",map.get("positionStatus"));
+					}else{
+						map.put("status",getGpsStatus(info));
+					}
+					
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 判断车辆是否在线
+	 * @return 在线返回ture,不在线返回flase
+	 * @author lihaiyan
+	 */
+	public static boolean getVehicleIsOnline(String gpsTime ){
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		Calendar calendar=Calendar.getInstance();
+		TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		sdf.setTimeZone(timeZoneChina);// 设置系统时区
+		calendar.setTimeZone(timeZoneChina);
+		Long nowTime=calendar.getTimeInMillis();
+			try {
+				if(StringUtils.isEmpty(gpsTime)){
+					return false;
+				}else{
+					Long time=sdf.parse(gpsTime).getTime();
+					if((nowTime-time)<=600000){//10分钟内有轨迹
+						return true;
+					}else{
+						return false;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+	}
+	
+	/**
+	 * 根据用户名和密码查询用户
+	 * 
+	 * @param userName
+	 *            用户名
+	 * @param password
+	 *            密码
+	 * @return
+	 * @throws Exception
+	 */
+	public static User queryUserTA(IbatisServices ibatisServices,String userName, String password) throws Exception {
+
+		User user = null;
+
+		Map<String, Object> param = new HashMap<String, Object>(2);
+		param.put("userName", userName);
+		param.put("password", password);
+
+		List<User> list = ibatisServices.queryForList(User.class, "checkUserLoginSQL",param);
+		if (list!=null && list.size()>0) {
+			user = list.get(0);
+		}
+
+		return user;
+
+	}
+	
+	/**
+	 * 获取车辆方向
+	 * @param head
+	 * @author lihaiyan
+	 * @createTime 2011-08-09
+	 * @return
+	 */
+	public static String getHead(Integer head){
+		     if(head==0){
+		    	 return "正东向";
+		     }else if((head >= 0 && head <= 10) || (head >= 350)){
+		    	 return "东向";
+		     }else if(head > 10 && head <= 80){
+		    	 return "东北向";
+		     }else if(head == 90){
+		    	 return "正北向";
+		     }else if(head > 80 && head <= 100){
+		    	 return "北向";
+		     }else if(head > 100 && head <= 170){
+		    	 return "西北向";
+		     }else if(head == 180){
+		    	 return "正西向";
+		     }else if(head > 170 && head <= 190){
+		    	 return "西向";
+		     }else if((head > 190 && head <= 260)){
+		    	 return "西南向";
+		     }else if(head == 270){
+		    	 return "正南向";
+		     }else if(head > 260 && head <= 280){
+		    	 return "南向";
+		     }else if(head > 280 && head < 350){
+		    	 return "东南向";
+		     }else{
+		    	 return  "未知方向";
+		     }
+		  
+		}
+	
+	/**
+	 * 取GPS状态
+	 * @return
+	 */
+	public static String translationGpsStatus(String state) throws Exception{
+		String stateStr = "";
+		stateStr = State.getTermianlState(state);//gps状态|报警状态 
+	    String[] stateStrArray=stateStr.split("\\|");
+	    
+	    return stateStrArray[0];
+	}
+	
+	public static boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i=0; i<children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        // 目录此时为空，可以删除
+        return dir.delete();
+    }
+	public static void main(String[] args) throws ParseException{
+//		String d = convertDateToString(strToDate("2012-07-05-15 5402"));
+//		System.out.println(d);
+//		String lat[] = getRealngLatBaidu("113.540124,23.517846");
+//		System.out.println(lat[0]+"----"+lat[1]);
+		
+		
+//		String str ="1,2，3,4";
+//		String[] str2 = str.split(",");
+//		System.out.println("长度："+str2.length);
+		//System.out.println(getNewArray("121,221,32323,3232,32".split(","),2,2222,"，"));
+		
+	}
+	public static String getNewArray(String[] oldAryStr,int star,int end,String replaceStrSplit){
+		StringBuffer nStr = new StringBuffer("");
+		for(int i=0;i<oldAryStr.length;i++){
+			if(i>=star && i<end)nStr.append(oldAryStr[i]).append(replaceStrSplit);
+		}
+		String nStr$ = nStr.toString();
+		return nStr$.substring(0,nStr$.length()-1);
+	}
+	
+	
+	
+	/**
+	 * 根据一个数组长度得到这个数组最后一个下标的数值
+	 * @param msgArr 数组
+	 * @param in 长度
+	 * @return 数组最后一个下标的数值
+	 */
+	public static String getArrayStr(String msgArr[], Integer in ){
+		String str ="";
+		if(in>=0){
+			if(msgArr.length>=in+1){
+				str = msgArr[in];
+			}
+		}
+		return str;
+	}
+	
+
+	
+	
+	
+	
+	
+	
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--历史查岗记录分页查询SQL  -->
+ <select id="getHistoryCheckupRecordsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		select 
+			    ell.ID,
+			    ell.CheckingNo,
+			    ell.CheckTime,
+			    ell.CheckContent,
+			    ell.CheckReturnTime,
+			    ell.CheckReturnContent,
+			    (case ell.IsResult when '1' then '回复' else '未回复' end) as isResult
+		 from Etent.dbo.Ent_HighLevelPatrol_Log ell
+	      where 1=1		      
+		
+         <dynamic>
+            <isNotNull property="IsResultpram">
+               <isNotEmpty property="IsResultpram" >
+                 <isNotEqual property="IsResultpram" prepend="and" compareValue="-1">
+                    ell.isResult = '$IsResultpram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            
+            <isNotEmpty property="CheckingNopram" prepend="and">
+      			ell.CheckingNo like '%$CheckingNopram$%'
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--历史查岗记录总数量SQL	-->
+	<select id="historyCheckupRecordCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*)  
+	FROM (
+	   select 
+			    ell.ID,
+			    ell.CheckingNo,
+			    ell.CheckTime,
+			    ell.CheckContent,
+			    ell.CheckReturnTime,
+			    ell.CheckReturnContent,
+			    (case ell.IsResult when '1' then '回复' else '未回复' end) as isResult,
+			    ell.IsResult as IsResultPram
+		 from Etent.dbo.Ent_HighLevelPatrol_Log ell) 
+		  C where 1=1
+      
+      <dynamic>
+      
+             <isNotNull property="IsResultpram">
+               <isNotEmpty property="IsResultpram" >
+                 <isNotEqual property="IsResultpram" prepend="and" compareValue="-1">
+                    C.IsResultPram = '$IsResultpram$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            <isNotEmpty property="CheckingNopram" prepend="and">
+      			C.CheckingNo like '%$CheckingNopram$%'
+            </isNotEmpty>
+		</dynamic>
+	</select>
+</sqlMap>

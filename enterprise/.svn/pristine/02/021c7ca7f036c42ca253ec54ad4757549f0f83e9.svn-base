@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+
+<!-- TA数据企业车辆在线率统计 -->
+<select id="workunitOnlineTASQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+SELECT * FROM(
+		 			SELECT ROW_NUMBER() OVER (
+						<dynamic prepend="order by">
+						  	<isNotNull property="workUnitIdOrder" prepend=",">
+								pw.id $workUnitIdOrder$
+							</isNotNull>
+						  	<isNotNull property="workUnitNameOrder" prepend=",">
+								pw.name $workUnitNameOrder$
+							</isNotNull>
+						  	<isNotNull property="totalOrder" prepend=",">
+								pv.total $totalOrder$
+							</isNotNull>
+						  	<isNotNull property="vehicleUplinetotalOrder" prepend=",">
+								pv.vehicleUplinetotal $vehicleUplinetotalOrder$
+							</isNotNull>
+						  	<isNotNull property="upLineRateOrder" prepend=",">
+								pv.upLineRate $upLineRateOrder$
+							</isNotNull>
+						  	<isNotNull property="onLineRateOrder" prepend=",">
+								pv.onLineRate $onLineRateOrder$
+							</isNotNull>
+						  	<isNotNull property="contactLossRateOrder" prepend=",">
+								pv.contactLossRate $contactLossRateOrder$
+							</isNotNull>
+							<isNotNull property="offLineRateOrder" prepend=",">
+								pv.offLineRate $offLineRateOrder$
+							</isNotNull>
+				   </dynamic>
+		 			) RowNo,
+				  pw.name as workUnitName,pv.total ,pv.vehicleUplinetotal,pv.upLineRate,pw.id as workUnitId,  pv.onLineRate, 
+				  (100-upLineRate) as contactLossRate,(100-onLineRate) as offLineRate from(        
+                 select (case when isnull(total,0)>0 then total else 1 end)total,OnLineCount,     vehicleUplinetotal ,workUnitId,    
+                  convert(decimal(10,2),100*(cast(vehicleUplinetotal as DECIMAL(18,2)))/cast(total as DECIMAL(18,2))) as upLineRate,    
+                   convert(decimal(10,2),100*(cast((sumTime/10) as decimal(18,2)))/cast(#timeDay#*144*total as decimal(18,2))) as onLineRate  from(   
+                    select workUnitId,isnull(count(pv.id),0)as total,isnull(sum(ta.vehiclecount),0) as OnLineCount,
+                 isnull(count(ta.VehicleID),0)as vehicleUplinetotal, isnull(sum(ta.sumRealOnlineTime),0) as sumTime  
+                 from  Pub_Vehicle  pv WITH(nolock)
+		        
+		        <isNotNull property="userId">
+					<isNotEmpty property="userId">
+					    LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  pv.id=ev.vehicleID
+					</isNotEmpty>
+			      </isNotNull>  
+		        
+		        LEFT OUTER JOIN (select count(VehicleID) as vehiclecount, VehicleID,sum(RealOnlineTime) as sumRealOnlineTime 
+		        from  bi_hta_vehicle_online_rate  
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				CreateTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=CreateTime
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ta on ta.VehicleID=pv.id
+		            
+		        <dynamic prepend="where"> 
+			         <![CDATA[pv.isDeleted <> 1]]> 
+		            <isNotNull property="userId">
+					<isNotEmpty property="userId">
+					   AND ev.UserId=#userId#
+					</isNotEmpty>
+			      </isNotNull>    
+	             </dynamic>
+           group by  workUnitId)pv   
+           group by pv.OnLineCount,pv.vehicleUplinetotal,pv.total,pv.workUnitId,pv.sumTime)pv 
+            left outer join  pub_workUnit AS pw  ON pv.workUnitId=pw.id  where   1=1
+		 	<dynamic>
+			<isNotEmpty property="workUnitNameWhere">
+		      <isNotNull property="workUnitNameWhere">
+		          and pw.name='$workUnitNameWhere$'
+		      </isNotNull> 
+		     </isNotEmpty>
+				
+				 <isNotNull property="fullId">
+					<isNotEmpty property="fullId">
+					   and pw.fullid like '%$fullId$%'
+					</isNotEmpty>
+					</isNotNull>
+	             
+			</dynamic>
+		)A  
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				A.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+	</select>	
+
+
+  <select id="workunitOnlineTACountSQL" parameterClass="java.util.HashMap" resultClass="Long">
+
+		SELECT count(*)
+      FROM(
+		    select (case when isnull(total,0)>0 then total else 1 end)total,OnLineCount,     vehicleUplinetotal ,workUnitId,    
+                  convert(decimal(10,2),100*(cast(vehicleUplinetotal as DECIMAL(18,2)))/cast(total as DECIMAL(18,2))) as upLineRate,    
+                   convert(decimal(10,2),100*(cast((sumTime/10) as decimal(18,2)))/cast(#timeDay#*144*total as decimal(18,2))) as onLineRate  from(   
+                  select workUnitId,isnull(count(pv.id),0)as total,isnull(sum(ta.vehiclecount),0) as OnLineCount,
+                  isnull(count(ta.VehicleID),0)as vehicleUplinetotal, isnull(sum(ta.sumRealOnlineTime),0) as sumTime  
+                  from  Pub_Vehicle  pv WITH(nolock)
+		         <isNotNull property="userId">
+					<isNotEmpty property="userId">
+					    LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  pv.id=ev.vehicleID
+					</isNotEmpty>
+			      </isNotNull>  
+		          LEFT OUTER JOIN (select count(VehicleID) as vehiclecount, VehicleID,sum(RealOnlineTime) as sumRealOnlineTime 
+		        from  bi_hta_vehicle_online_rate  
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				CreateTime>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=CreateTime
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	             GROUP BY VehicleID
+		        )ta on ta.VehicleID=pv.id
+		        <dynamic prepend="where"> 
+			         <![CDATA[pv.isDeleted <> 1]]> 
+			      <isNotNull property="userId">
+					<isNotEmpty property="userId">
+					   AND ev.UserId=#userId#
+					</isNotEmpty>
+			      </isNotNull>    
+	             </dynamic>
+           group by  workUnitId)pv  
+           group by pv.OnLineCount,pv.vehicleUplinetotal,pv.total,pv.workUnitId,pv.sumTime)pv 
+            left outer join  pub_workUnit AS pw  ON pv.workUnitId=pw.id  where   1=1
+		 	<dynamic>
+			<isNotEmpty property="workUnitNameWhere">
+		         <isNotNull property="workUnitNameWhere">
+		          and pw.name='$workUnitNameWhere$'
+		      </isNotNull> 
+		     </isNotEmpty>
+				<isNotNull property="fullId">
+					<isNotEmpty property="fullId">
+					   and pw.fullid like '%$fullId$%'
+					</isNotEmpty>
+					</isNotNull>
+			</dynamic>
+	</select>
+</sqlMap>

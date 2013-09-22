@@ -1,0 +1,53 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+
+<link href="<%=basePath%>css/jq/jquery-ui.css" rel="stylesheet" type="text/css"/>
+<link rel="stylesheet" type="text/css" href="<%=basePath%>css/body.css">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<style type="text/css">
+
+
+body{overflow:hidden;}
+
+
+</style>
+
+	<head>
+		<title>系统公告设置</title>
+		<script type="text/javascript" src="${basePath}js/sys/systemNotice/systemNoticeHistory.js"></script>
+		
+	</head>
+	<body style="margin-left: 10px; width: 947px; height:435px;">
+	
+		<div style="width: 947px; height: 435px;" id="cont_box">
+		<div class="main">
+		<div class="mon_cont">
+		
+			<div id="adSearch">
+				<table border="0" cellspacing="0" cellpadding="0" class="que_tab">
+					<tr>
+						<td width="100" align="right">标题:</td>
+						<td width="150" align="left">
+							<input id="sname" name="sname" type="text" class="mon_ser_text" style="width: 150;"
+								maxlength="30"
+								onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+				                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))"/>
+						</td>
+						<td width="60">
+							<a id="searchBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">查询</a>
+						</td>
+					</tr>
+				</table>
+				
+				
+		    <div id="editWindow" class="wDiv" style="width:100%;border: 1px solid #d0d0d0; height: 100%">
+			 <table id="systemNoticeList" style="display: none"></table>
+			</div>
+			</div>
+
+		</div>
+		</div>
+	</body>
+</html>

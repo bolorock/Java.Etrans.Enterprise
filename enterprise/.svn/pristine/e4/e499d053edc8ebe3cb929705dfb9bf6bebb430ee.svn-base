@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<select id="getRealngLatBaiduSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+			SELECT [offsetX],[offsetY]
+	FROM [MapOffset].[dbo].[Offset_BaiduMap] where lng='$lng$' and lat='$lat$'
+	</select>
+
+
+<!-- 获取要订阅的车辆-->
+	<parameterMap id="getGpsVehicleInfoParams" class="java.util.HashMap">
+		<parameter property="@UserId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@FullID" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@RegistrationNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@SimNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@VehicleTeam" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@DriverName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@TradeKind" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@IsSplitPage" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@StarRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@EndRow" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+	</parameterMap>
+	<parameterMap id="getWebServiceGpsVehicleInfoParams" class="java.util.HashMap">
+		<parameter property="@UserId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@FullID" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@RegistrationNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />		
+		<parameter property="@SimNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@VehicleTeam" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@DriverName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+	</parameterMap>
+<procedure id="getGpsVehicleSQL" parameterMap="getGpsVehicleInfoParams" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_getGpsVehicleInfo_bak_2013(?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure>
+<procedure id="getWebServiceGpsVehicleSQL" parameterMap="getGpsVehicleInfoParams" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_getWebServiceGpsVehicleInfo(?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure>
+
+<select id="getGpsVehicleInfoSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	SELECT top 1 V.id,V.RegistrationNO AS registrationNO,PR.Name AS registrationNOColor,MVT.Name+'('+MVT.Code+')' AS typeName,
+       psc.phoneNo,mvst.Name AS standType,ma.Name AS areaName,MTM.name AS workUnitName,
+        V.transportPermits,V.terminalId,T.commNO,T.simId,
+        V.registrationNOColorId,V.tradeKindID,V.workUnitID,V.areaID
+      FROM pub_Vehicle V
+    LEFT OUTER  JOIN  PUB_TERMINAL T  WITH ( NOLOCK ) ON V.terminalID = T.ID
+    LEFT OUTER  JOIN  PUB_SIMCard  psc WITH ( NOLOCK ) on psc.id=T.simId
+    LEFT OUTER  JOIN  Pub_WorkUnit  MTM WITH ( NOLOCK ) ON V.WorkUnitID=MTM.Id
+    LEFT OUTER  JOIN  Pub_TradeKind  MVT WITH ( NOLOCK ) ON v.TradeKindID=mvt.ID
+    LEFT OUTER  JOIN  Pub_VehicleKind  mvst WITH ( NOLOCK )   ON v.kindID=mvst.id
+    LEFT OUTER  JOIN  Pub_REGISTRATIONnOCOLOR PR WITH ( NOLOCK )  on PR.ID=V.RegistrationNOColorId
+    LEFT OUTER  JOIN  pub_area ma WITH ( NOLOCK ) ON V.AreaID=ma.Id
+    WHERE  v.id=#vehicleId# and <![CDATA[v.isDeleted <> 1]]>
+			
+	</select>
+	
+	<select id="getDriverMessageNewSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select top 1 (case ActionKind when 1  then
+	'姓名：'+pd.name+'  身份证号：'+isnull(pd.identityCard,'')
+	+'  驾驶证号：'+isnull(pd.drivingLicence,'')
+	+'  从业资格证号：'+isnull(pd.workCertificate,'')
+	else '' end) as driverinfos from pub_driver pd               
+	inner join Pub_ICCardAction pi on pd.id=pi.driverid               
+	where  pi.vehicleid=#vehicleId# order by actiontime desc 
+	</select>
+	
+	<select id="getNewestDriverMessageSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	select top 1 pd.name,pd.identityCard,pd.drivingLicence,pd.workCertificate from pub_driver pd
+              inner join Pub_ICCardAction pi on pd.id=pi.driverid
+              where  actionkind=0 and pi.vehicleid=#vehicleId# order by actiontime desc
+	</select>
+	
+	<select id="getDriverMessageSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select top 1 pd.name,pd.identityCard,pd.drivingLicence,pd.workCertificate from pub_driver pd
+              inner join Pub_ICCardAction pi on pd.id=pi.driverid
+               where  actionkind=0 and pi.vehicleid=#vehicleId# and  #gpsTime#>=actiontime order by actiontime desc
+	</select>
+	
+	<select id="getAlarmVehicleInfoSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	SELECT top 1 v.RegistrationNO AS registrationNO,PR.Name AS registrationNOColor, MVT.Name AS typeName,
+       psc.phoneNo,mvst.Name AS standType,mf.name AS platformName,ma.Name AS areaName,MTM.name AS workUnitName,
+        V.transportPermits,TK.NAME as terminalName
+      FROM pub_Vehicle V
+    LEFT OUTER JOIN pub_platform MF WITH ( NOLOCK ) ON V.platformID=MF.Id
+    LEFT OUTER JOIN PUB_TERMINAL T  WITH ( NOLOCK ) ON V.terminalID = T.ID
+       LEFT OUTER JOIN Pub_TerminalKind TK WITH (NOLOCK) ON t.terminalKindid=TK.ID
+    LEFT OUTER JOIN PUB_SIMCard  psc WITH ( NOLOCK ) on psc.id=T.simId
+    LEFT OUTER JOIN Pub_WorkUnit  MTM WITH ( NOLOCK ) ON V.WorkUnitID=MTM.Id
+    LEFT OUTER JOIN Pub_TradeKind  MVT WITH ( NOLOCK ) ON v.TradeKindID=mvt.ID
+    LEFT OUTER JOIN Pub_VehicleKind  mvst WITH ( NOLOCK )   ON v.kindID=mvst.id
+    LEFT OUTER JOIN Pub_REGISTRATIONnOCOLOR PR WITH ( NOLOCK )  on PR.ID=V.RegistrationNOColorId
+    LEFT OUTER JOIN pub_area ma WITH ( NOLOCK ) ON V.AreaID=ma.Id
+    WHERE v.id=#vehicleId#
+     <isNotEqual property="userId" compareValue="0" prepend="AND">
+			      exists(SELECT  1 FROM Ent_UserVehicle WHERE UserID=#userId# and vehicleId = #vehicleId#)
+	 </isNotEqual>   
+	</select>
+	<!-- 车辆树形列表 -->
+		<parameterMap id="getGpsVehicleInfoParamsTree" class="java.util.HashMap">
+		<parameter property="@UserId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitId" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@FullID" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@RegistrationNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@WorkUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@SimNo" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@VehicleTeam" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@DriverName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@TradeKind" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="@TerminalKindID" mode="IN" jdbcType="int" javaType="java.lang.Integer" />
+		<parameter property="@LevelNumber" mode="IN" jdbcType="int" javaType="java.lang.Integer" />
+	</parameterMap>
+	<procedure id="getGpsVehicleSQLTree" parameterMap="getGpsVehicleInfoParamsTree" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_getGpsVehicleInfo_for_Tree(?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure>
+	<select id="getTradeKindAll" resultClass="java.util.HashMap">
+		select * from pub_tradeKind t
+	</select>
+		<select id="getTerminalKind" resultClass="java.util.HashMap">
+		select * from Pub_TerminalKind t
+	</select>
+	<update id="updateVehicle2SQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Vehicle]
+    	 SET 
+            [RegistrationNO] = #registrationNo#
+           ,[WorkUnitID] = #workUnitId#
+           ,[RegistrationNOColorID] = #registrationNoColorId#
+           ,[ModifyDatetime] = #modifyDateTime#
+           ,[ModifyUserID] = #modifyUserId#
+           ,[TransportPermits] = #transportPermits#
+           ,[TradeKindID] = #tradeKindId#
+           ,[TerminalID] = #terminalId#
+           ,[AreaID] = #areaId#
+		  
+     	WHERE
+     		[ID] = #vehicleId#
+	</update>
+	
+	<!--查询视频监控参数信息-->
+	<select id="getVideoInfoSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select top 1 a.paramvalue  from 
+			pub_vehicledevicesetup a,
+			pub_vehicledevicetype b,
+			pub_vehicledevicemodel c
+			where 1=1 
+			and b.code = 'Video'
+			and a.devicetypeid=b.id
+			and a.devicemodelid=c.id
+			and a.vehicleid=#vehicleId#
+	</select>
+	
+	<update id="updateTerminal2SQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Terminal]
+         SET [CommNO] = #commNO#
+     	WHERE
+     		[ID] = #terminalId#
+	</update>
+	
+	<update id="updateSIMCard2SQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_SIMCard]
+        SET [Code] = #phoneNo#
+         ,[PhoneNO] =#phoneNo#
+      WHERE 
+     		[ID] = #simId#
+	</update>
+	
+<!--查询车牌号码列表begin【用作轨迹回放车牌号码选择】-->
+	 <select id="getVehicleNoBtrackBackServiceSql" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+	 	select b.id as ID,b.registrationNO as Name from (
+		<dynamic>
+				<!--超级管理员-->
+				<isEqual compareValue="0" property="userType">
+					select * from (
+						<include refid="DeviceSetup.getAdminsesVehicleIdSQL_D"/>
+						)a where 1=1 
+						<isNotNull property="registrationNo">
+					   		and a.registrationNO  LIKE '%$registrationNo$%'
+						</isNotNull>
+				</isEqual>
+				<!--企业管理员-->
+				<isEqual compareValue="1" property="userType">
+					select * from (
+						<include refid="DeviceSetup.getAdminVehicleIdSQL_D"/>
+						)a where 1=1 
+						<isNotNull property="registrationNo">
+					   		and a.registrationNO  LIKE '%$registrationNo$%'
+						</isNotNull>
+				</isEqual>
+		</dynamic>
+		) b 
+		where 1=1 order by b.id desc
+	 </select>
+	 
+	<!--普通用户下id车辆  -->
+	 <select id="getVehicleIdstatSQL_BtrackBack" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		   select v.vehicleid ID,pv.registrationNO Name from (
+		    	select vehicleid from Ent_UserVehicle
+	        	<dynamic prepend="where">
+					<isNotNull property="userId">
+					   userid = #userId#
+					</isNotNull>
+				</dynamic>
+		)v
+		left join Pub_Vehicle pv on v.vehicleid=pv.id
+		where 1=1
+		<isNotNull property="registrationNo">
+			and  pv.registrationNO  LIKE '%$registrationNo$%'
+		</isNotNull>
+		order by v.vehicleid desc
+	</select>
+<!--查询车牌号码列表begin【用作轨迹回放车牌号码选择】-->
+
+</sqlMap>

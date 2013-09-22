@@ -1,0 +1,2 @@
+#HttpRepuest .net报警设置
+neturl=http://192.168.2.16:8080/loginAnalyse.aspx

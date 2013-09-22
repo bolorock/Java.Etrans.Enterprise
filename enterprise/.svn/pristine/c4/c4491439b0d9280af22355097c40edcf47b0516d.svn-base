@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--【超级管理员】-->
+
+<select id="getAdminsesVehicleIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+   SELECT top 200
+		   pve.id,
+		   pve.registrationNo
+		 	FROM 
+			 	Pub_Vehicle pve, 
+			 	Pub_REGISTRATIONnOCOLOR pvc , 
+			 	pub_workUnit d,
+			 	Pub_TradeKind f,
+			 	Pub_Terminal j ,
+			 	pub_simcard k 
+		 	WHERE 
+			 	pve.RegistrationNOColorID = pvc.id  AND 
+			 	pve.WorkUnitID = d.id AND
+	 		 	pve.TradeKindID=f.id  and 
+				(pve.isDeleted!=1 or pve.isdeleted is null) AND 
+				pve.TerminalID = j.id AND 
+				j.simID= k.id 
+				
+		 <dynamic>
+           <isNotNull property="registrationNo">
+				<isNotEmpty property="registrationNo">
+					and pve.registrationNo LIKE '%$registrationNo$%' 
+				</isNotEmpty>
+			</isNotNull>
+				
+		</dynamic>        
+
+</select>
+
+
+<!--企业管理员所有id车辆  -->
+ <select id="getAdminVehicleIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+       SELECT 
+		 		top 200 a.id,a.registrationNo
+		 	FROM 
+		 		Pub_Vehicle a ,
+		 		Pub_REGISTRATIONnOCOLOR e ,
+		 		pub_workUnit d, 
+		 		Pub_TradeKind f,
+		 		Pub_Terminal j ,
+		 		pub_simcard k
+		 WHERE 
+		 		a.RegistrationNOColorID=e.id AND 
+		 		a.WorkUnitID = d.id AND
+ 		 		a.TradeKindID=f.id  AND 
+				(a.isDeleted!=1 or a.isdeleted is null) and 
+				a.TerminalID = j.id AND 
+				j.simID= k.id   and 1=1
+        <dynamic prepend="and">
+           <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					 d.fullId LIKE '%$fullId$%' 
+				</isNotEmpty>
+			</isNotNull>
+			
+           <isNotNull property="registrationNo">
+				<isNotEmpty property="registrationNo">
+					and a.registrationNo LIKE '%$registrationNo$%' 
+				</isNotEmpty>
+			</isNotNull>
+				
+		
+		</dynamic>
+		
+	</select>
+
+
+<!--普通用户下id车辆  -->
+ <select id="getVehicleIdstatSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	   Select top 200 vehicleid,registrationNo from (select vehicleid,a.registrationNo as registrationNo,userid from Ent_UserVehicle eu,Pub_Vehicle a where eu.vehicleid = a.id) c
+        <dynamic prepend="where">
+				<isNotNull property="userId">
+				   c.userid = #userId# 
+				</isNotNull>
+				
+			 <isNotNull property="registrationNo">
+				<isNotEmpty property="registrationNo">
+					and c.registrationNo LIKE '%$registrationNo$%' 
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+ </select>
+	
+
+	
+<!--查询车辆上线率 统计-->
+	<parameterMap id="VehicleUpLineMap" class="java.util.HashMap">
+        <parameter property="@year" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@month" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@day" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@week" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@vehicle_list" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+        <parameter property="@toRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@fromRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@registrationNo" mode="IN" jdbcType="varchar(4000)" javaType="java.lang.String"/>
+        <parameter property="@workunitid" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@workUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+        <parameter property="@SortName" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@SortOrder" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@IsExport" mode="IN" jdbcType="varchar" javaType="java.lang.String" /> 
+    </parameterMap>
+       
+      <!-- 按车辆统计 --> 
+      <procedure id="getVehicleUpLineStatSQL" parameterMap="VehicleUpLineMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetUplineData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+	
+	<!-- 按部门统计 --> 
+      <procedure id="getVehicleSectionUpLineStatSQL" parameterMap="VehicleUpLineMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetUplineSectionData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+</sqlMap>
+

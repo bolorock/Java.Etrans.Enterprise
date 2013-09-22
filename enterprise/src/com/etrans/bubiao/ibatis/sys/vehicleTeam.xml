@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--查询车队信息 -->
+ <select id="getVehicleTeamsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		    SELECT 
+			      pvt.id as ID
+			      ,pvt.name
+			      ,(select pw.name from dbo.Pub_WorkUnit pw where pw.id=pvt.workUnitID) WorkUnitID
+			      ,pwu.FullId
+			FROM dbo.Pub_VehicleTeam pvt 
+			left join (select * from dbo.Pub_WorkUnit pp where pp.IsDeleted!=1) pwu on pwu.id=pvt.WorkUnitId
+		<dynamic prepend="where 1=1">
+		     
+		     <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					 and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            <isNotEmpty property="namePram" >
+      		 and pvt.name like '%$namePram$%'
+            </isNotEmpty>
+            
+            
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+
+<!--车队信息总数量SQL	-->
+	<select id="getVehicleTeamsCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+	(
+	  SELECT 
+	      pvt.id as ID
+	      ,pvt.name
+	      ,(select pw.name from dbo.Pub_WorkUnit pw where pw.id=pvt.workUnitID) WorkUnitID
+	      ,pwu.FullId
+		FROM dbo.Pub_VehicleTeam pvt 
+		left join (select * from dbo.Pub_WorkUnit pp where pp.IsDeleted!=1) pwu on pwu.id=pvt.WorkUnitId
+	) C where 1=1
+		<dynamic>
+		    
+		     <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					and C.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            <isNotEmpty property="namePram" >
+      		 and c.name like '%$namePram$%'
+            </isNotEmpty>
+            
+		    
+		</dynamic>
+	</select>
+	
+	<!-- 插入SIM卡数据 -->
+	<insert id="insertVehicleTeamSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_VehicleTeam]
+           (
+            [name]
+           ,[WorkUnitID]
+           )
+     VALUES
+           (
+           	#name#,
+           	#WorkUnitID#
+           )
+	</insert>
+	
+<!--根据ID查询车队信息	-->
+    <select id="getVehicleTeamByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		  pvt.ID
+	      ,pvt.name
+	      ,pvt.WorkUnitID
+	      ,pw.name  as workUnitIDName
+  		FROM Pub_VehicleTeam pvt 
+  		left join Pub_WorkUnit pw on pw.id= pvt.workUnitID where 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				pvt.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改车队信息   -->
+     <update id="updateVehicleTeamSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [Pub_VehicleTeam]
+		   SET [name] = '$name$'
+		      ,[WorkUnitID] = '$WorkUnitID$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+   
+<!-- 根据ID删除SIM卡信息  -->
+     <delete id="deleteVehicleTeamSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM Pub_VehicleTeam WHERE ID in ($id$)
+	</delete>
+
+<!-- 根据ID修改车辆信息   -->
+     <update id="updateVehicleByIDSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [pub_vehicle]
+		   SET [vehicleTeamId] = '-1'
+		 WHERE [vehicleTeamId] in ('$id$') 
+		 
+   </update>
+   
+   
+ <!--根据企业id查看车队名是否唯一	-->
+    <select id="checkVehicleTeamNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		   pvt.ID
+	      ,pvt.name
+	      ,pvt.WorkUnitID
+  		FROM Pub_VehicleTeam pvt 
+  		where 1=1
+ 	<dynamic>
+ 	   <isNotNull property="WorkUnitID" prepend="AND">
+				pvt.WorkUnitID = #WorkUnitID# 
+		</isNotNull>
+		
+		<isNotEmpty property="name" >
+      		   and pvt.name= #name#
+            </isNotEmpty>
+ 	</dynamic>
+    </select>
+</sqlMap>

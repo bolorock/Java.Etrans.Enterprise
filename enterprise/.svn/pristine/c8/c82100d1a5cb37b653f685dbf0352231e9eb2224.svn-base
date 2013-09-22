@@ -1,0 +1,10 @@
+*{ margin:0; padding:0;}
+body { font:12px/1.8 Arial; color:#666; background:#f9f9f9;
+	}
+
+ul,li{ list-style:none;}
+.tab2{border:0px solid #D8D8D8; height:100%; overflow-y:auto; background:#f9f9f9; width:100%;}
+.tab-hd { float:right;margin:10px 10px 0 0px ;background:#60b90f; overflow:hidden; zoom:1;}
+.tab-hd div{ float:left; width:150px; color:#fff; text-align:center; cursor:pointer;}
+.tab-hd div.active{ background:#fe5e06;}
+.tab-bd div{display:none; width:auto; height:auto; padding:0px; border:0px solid red; margin:0px 0px 0 0px!important;margin:0px 0px 0 0px;}

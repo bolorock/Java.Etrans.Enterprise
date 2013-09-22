@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--终端信息分页查询SQL  -->
+ <select id="getTerminalSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		 select * from 
+			(SELECT 
+		        PT.ID ID, 
+		        PT.COMMNO as CommNO, 
+		        PTK.NAME as TerminalKindID,
+		        PT.BATCHNO as BatchNO,
+		        PT.PLATFORMTERMINALID as PlatformTerminalID, 
+		        PT.MANUFACTURERTERMINALID as ManufacturerTerminalID,  
+		        PT.MODEL_TYPE as Model_Type,
+		        PS.CODE as SimID, 
+		        PT.SIGNCODE as SignCode,
+		        (case PT.USEFLAG when '1' then '开户' else '停用' end) as UseFlag,
+		        PT.USEFLAG AS PT_USEFLAG,  
+		        PWU.NAME as WorkUnitID,
+		        PT.WorkUnitID AS PT_WorkUnitID,
+		        pwu.FullId 
+		     FROM dbo.Pub_Terminal PT
+		       left join dbo.Pub_TerminalKind PTK on PT.TERMINALKINDID=PTK.ID
+		       left join dbo.Pub_SIMCard PS on  PT.SIMID=PS.ID 
+		       left join dbo.Pub_WorkUnit PWU on  PT.WORKUNITID=PWU.ID) C where 1=1
+		<dynamic>
+		    
+		    <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					and C.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+		    
+            <isNotEmpty property="CommNOs" prepend="and">
+      			C.CommNO like '%$CommNOs$%'
+            </isNotEmpty>
+            
+            <isNotNull property="useflags">
+	            <isNotEmpty property="useflags">
+	              <isNotEqual property="useflags" compareValue="-1" prepend="and">
+	                 C.PT_USEFLAG ='$useflags$'
+	              </isNotEqual>
+	            </isNotEmpty>
+            </isNotNull>
+            
+            <isNotEmpty property="simParam" prepend="and">
+      			C.SimID like'%$simParam$%'
+            </isNotEmpty>
+            
+          <isNotNull property="WorkUnitIDPram">
+	            <isNotEmpty property="WorkUnitIDPram">
+	              <isNotEqual property="WorkUnitIDPram" compareValue="-1" prepend="and">
+	                 C.PT_WorkUnitID = '$WorkUnitIDPram$'
+	              </isNotEqual>
+	            </isNotEmpty>
+            </isNotNull>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--终端信息总数量SQL	-->
+	<select id="getTerminalsCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		 select count(*) from 
+			(SELECT 
+		        PT.ID ID, 
+		        PT.COMMNO as CommNO, 
+		        PTK.NAME as TerminalKindID,
+		        PT.BATCHNO as BatchNO,
+		        PT.PLATFORMTERMINALID as PlatformTerminalID, 
+		        PT.MANUFACTURERTERMINALID as ManufacturerTerminalID,  
+		        PT.MODEL_TYPE as Model_Type,
+		        PS.CODE as SimID,
+		        PS.CODE AS CODE, 
+		        PT.SIGNCODE as SignCode,
+		        (case PT.USEFLAG when '1' then '开户' else '销户' end) as UseFlag,
+		        PT.USEFLAG AS PT_USEFLAG, 
+		        PWU.NAME as WorkUnitID,
+		        PT.WorkUnitID AS PT_WorkUnitID,
+		        pwu.FullId   
+		     FROM dbo.Pub_Terminal PT
+		       left join dbo.Pub_TerminalKind PTK on PT.TERMINALKINDID=PTK.ID
+		       left join dbo.Pub_SIMCard PS on  PT.SIMID=PS.ID 
+		       left join dbo.Pub_WorkUnit PWU on  PT.WORKUNITID=PWU.ID) C where 1=1
+        
+         <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					and C.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            <isNotEmpty property="CommNOs" prepend="and">
+      			C.CommNO like '%$CommNOs$%'
+            </isNotEmpty>
+            
+             <isNotNull property="useflags">
+	            <isNotEmpty property="useflags">
+	              <isNotEqual property="useflags" compareValue="-1" prepend="and">
+	                 C.PT_USEFLAG ='$useflags$'
+	              </isNotEqual>
+	            </isNotEmpty>
+            </isNotNull>
+            
+            <isNotEmpty property="simParam" prepend="and">
+      			C.SimID like '%$simParam$%'
+            </isNotEmpty>
+            
+             <isNotNull property="WorkUnitIDPram">
+	            <isNotEmpty property="WorkUnitIDPram">
+	              <isNotEqual property="WorkUnitIDPram" compareValue="-1" prepend="and">
+	                 C.PT_WorkUnitID = '$WorkUnitIDPram$'
+	              </isNotEqual>
+	            </isNotEmpty>
+            </isNotNull>
+          
+		</dynamic>
+	</select>
+		
+
+<!--插入终端信息数据 -->
+	<insert id="insertTerminalSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_Terminal]
+           (
+            [CommNO]
+           ,[TerminalKindID]
+           ,[BatchNO]
+           ,[PlatformTerminalID]
+           ,[ManufacturerTerminalID]
+           ,[Model_Type]
+           ,[WorkUnitID]
+           ,[SignCode]
+           ,[SimID]
+           ,[UseFlag]
+           )
+     VALUES
+           (
+           	#CommNO#,
+           	#TerminalKindID#,
+           	#BatchNO#,
+           	#PlatformTerminalID#,
+           	#ManufacturerTerminalID#,
+           	#Model_Type#,
+           	#WorkUnitID#,
+           	#SignCode#,
+           	#SimID#,
+           	#UseFlag#
+           )
+	</insert>
+	
+<!--根据ID查询终端信息	-->
+    <select id="getTerminalByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		   PT.ID ID,
+			      PT.COMMNO as CommNO,
+			      PT.TERMINALKINDID as TerminalKindID,
+			      ptk.name as TerminalKindIDName,
+			      PT.BATCHNO as BatchNO,
+			      PT.PLATFORMTERMINALID as PlatformTerminalID,
+			      PT.MANUFACTURERTERMINALID as ManufacturerTerminalID,
+			      PT.MODEL_TYPE as Model_Type,
+			      PT.SIMID as SimID,
+			      ps.code as SimName,
+			      PT.SIGNCODE as SignCode,
+			      PT.USEFLAG as UseFlag,
+			      PT.WORKUNITID as WorkUnitID,
+			      pw.name  as workUnitIDName
+        FROM dbo.Pub_Terminal PT
+        left join Pub_SIMCard ps on pt.simid=ps.id
+        left join Pub_WorkUnit pw on pw.id=pt.workUnitId
+        left join Pub_TerminalKind ptk on ptk.id=pt.TerminalKindID
+       WHERE 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				PT.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改SIM卡信息   -->
+     <update id="updateTerminalSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [Pub_Terminal]
+             SET 
+             [CommNO] = '$CommNO$'
+             ,[TerminalKindID] = '$TerminalKindID$'
+             ,[BatchNO] = '$BatchNO$'
+             ,[PlatformTerminalID] = '$PlatformTerminalID$'
+             ,[ManufacturerTerminalID] = '$ManufacturerTerminalID$'
+             ,[Model_Type] = '$Model_Type$'
+             ,[WorkUnitID] = '$WorkUnitID$'
+             ,[SignCode] = '$SignCode$'
+             ,[SimID] = '$SimID$'
+             ,[UseFlag] = '$UseFlag$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除SIM卡信息  -->
+     <delete id="deleteTerminalSQL"  parameterClass="java.util.HashMap">
+		DELETE  FROM dbo.Pub_Terminal WHERE ID in ($id$)
+	</delete>
+
+   
+<!-- 验证不能有相同的通信号  -->
+     <select id="checkCommnoSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,CommNO  FROM dbo.Pub_Terminal where CommNO='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+</sqlMap>

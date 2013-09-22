@@ -1,0 +1,84 @@
+/**    
+ * gpsInfoHandleThread.java
+ * Create on 2011-4-14
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64ThreadLocal;
+import com.etrans.common.util.DateUtil;
+
+/**
+ * GPS定位信息处理线程
+ * @author lihaiyan
+ * @version 1.0
+ */
+
+public class GpsInfoHandleThread implements Runnable {
+	private final static ThreadLocal<Base64ThreadLocal> base64Local = new ThreadLocal<Base64ThreadLocal>();
+	private ConcurrentHashMap<String, String> gpsInfoHashMap;// GPS信息存储Map
+	private GpsInfoQueue gpsInfoQueue; // GPS信息存储队列
+	private final Log logger = LogFactory.getLog(GpsInfoHandleThread.class.getName());
+	Base64ThreadLocal base64;
+	public GpsInfoHandleThread(ConcurrentHashMap<String, String> gpsInfoHashMap, GpsInfoQueue gpsInfoQueue) {
+		this.gpsInfoHashMap = gpsInfoHashMap;
+		this.gpsInfoQueue = gpsInfoQueue;
+	}
+
+	public void run() {
+		logger.info("---------GPS定位信息处理线程启动!---------");
+		base64 = base64Local.get();
+		if (base64 == null) {
+			base64 = new Base64ThreadLocal();
+			base64Local.set(base64);
+		}
+		while (true) {
+			try {
+
+				/**
+				 * 定位信息: ##110,5,51908,NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+				 * NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+				 * 解密后是51908,2012-04-19 13:45:29,2012-04-19 13:44:48,108.366378,30.846198,0,0,0,19,0,0,0,1,0,1081,0,161,0200000000000000
+				 * 分别是，车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态
+				 */
+				String message = gpsInfoQueue.consume();
+				if (!StringUtils.isEmpty(message)) {
+					String[] gpsinfo = message.split(",");
+					if (gpsinfo != null && gpsinfo.length > 3) {
+					  	String value = base64.decoderMessage(gpsinfo[3].toString()) + "," + System.currentTimeMillis();
+						String oldValue=gpsInfoHashMap.get(gpsinfo[2]);
+						if(StringUtils.isNotEmpty(oldValue)){
+							String oldGpsTimeString=oldValue.split(",")[1];
+							String nowGpsTimeString=value.split(",")[1];
+							if(DateUtil.compareTwoDate(nowGpsTimeString, oldGpsTimeString, "yyyy-M-dd HH:mm:ss")){//过渡补发定位信息
+								gpsInfoHashMap.put(gpsinfo[2],value ); // 手机号,(车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态,当前毫秒)
+							}
+						}else {
+						 	gpsInfoHashMap.put(gpsinfo[2],value ); // 手机号,(车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态,当前毫秒)
+						}
+					}
+				}else{
+					Thread.sleep(5);	
+				}
+
+				//System.out.println("待处理数据======="+gpsInfoQueue.size());
+				
+				//System.out.println("===================订阅车辆数："+gpsInfoHashMap.size());
+				
+			} catch (Exception e) {
+				logger.error("---------GPS定位信息处理线程处理出错---------" + e);
+			}
+
+		}
+
+	}
+}

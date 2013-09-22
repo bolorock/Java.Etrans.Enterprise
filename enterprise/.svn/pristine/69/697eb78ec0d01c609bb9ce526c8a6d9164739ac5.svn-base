@@ -1,0 +1,65 @@
+$(function() {
+	//按钮绑定点击事件
+	$('#searchBtn').bind('click', toSearch);
+	initGrid();
+});
+
+function initGrid(){
+	$("#systemNoticeList").flexigrid( {
+		url : 'systemNotice/systemNoticeList.action',
+		dataType : 'json',
+		colModel : [ 
+         {
+			display : '标题',
+			name : 'title',
+			width : 230,
+			sortable : true,
+			align : 'center'
+		},{
+			display : '内容',
+			name : 'newContents',
+			width : 400,
+			sortable : true,
+			align : 'left'
+		},{
+			display : '发布时间',
+			name : 'releaseDate',
+			width : 200,
+			sortable : true,
+			align : 'center'
+		}],
+		
+		sortname : "id",//第一次加载数据时排序列
+		sortorder : "desc",//第一次加载数据时排序类型
+		usepager : true,//是否分页，默认为true。
+		showTableToggleBtn : true,//是否显示收起/打开按钮,默认不显示。
+		useRp : true,//是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,//每页记录数，默认为10
+		//checkbox : true,//是否要多选框,默认为false。
+		rowId : 'ID',// 多选框绑定行的id,只有checkbox : true时才有效。
+		singleSelect:false,
+		width : 'auto',//表格宽度
+		height :getNormalHeight()//表格高度
+	});
+    
+};
+
+/**
+ * 查询方法
+ */
+function toSearch(){
+	
+		var title = $("#sname").val();
+		//查询参数
+		var params = [{
+			name : 'title',
+			value : title
+		}];
+		// 重置表格的某些参数
+		$("#systemNoticeList").flexOptions({
+				newp : 1,// 设置起始页
+				params : params// 设置查询参数
+			}).flexReload();// 重新加载
+	
+	
+}

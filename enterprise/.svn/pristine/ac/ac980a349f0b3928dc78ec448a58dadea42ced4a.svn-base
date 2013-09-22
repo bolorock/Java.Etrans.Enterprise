@@ -1,0 +1,317 @@
+package com.etrans.bubiao.services.sys;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.PageBean;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.ParamKey;
+import com.etrans.common.util.web.RowNumUtil;
+
+/**
+ * 工作单位（企业）信息管理Service
+ * @author Administrator
+ *
+ */
+@Service
+public class WorkUnitManagerServices {
+	
+	@Autowired
+	private IbatisServices ibatisServices;
+	
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+	
+	
+	/**
+	 * 单位树形
+	 * @param id 查询条件
+	 */
+	@SuppressWarnings("unchecked")
+	public String getWorkUnitTree (String id,long in) throws Exception {
+		//拼接树字符串结果
+		StringBuilder jsonString = new StringBuilder();
+		jsonString.append("[");
+		
+		List<Map<String,Object>> areas = new ArrayList<Map<String,Object>>();
+		
+		String parentFullId = "";
+		
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		if(id == null || id.equals("")){
+			//得到最高级别的单位
+			Result result = this.getRootWorkUnit();
+			areas = (List<Map<String,Object>>)result.getData();			
+		}
+		//超级管理员UserContext.isBsRootUser()
+		else if(UserContext.isBsRootUser()){
+			parentFullId = id;
+		}
+		//企业管理员&&user.isWorkUnitSuperAdmin()
+		else if(user!=null&&user.isWorkUnitSuperAdmin()){
+			parentFullId = id;
+		}
+		//如果父id不等于空
+		if(!parentFullId.equals("")){
+			Map whereMap = new HashMap();
+			whereMap.put("parentFullId", parentFullId.trim());
+			areas = this.ibatisServices.queryForList(Map.class, "getWorkUnitMenuSQL",whereMap);
+		}
+		
+		//如果结果不等于空
+		if(areas!=null && areas.size()>0){
+			for(Map<String,Object> map : areas){
+				jsonString.append("{");
+				jsonString.append("\"id\":\"" + (String)map.get("FullID") + "\",");
+				jsonString.append("\"text\":\"" + ((String)map.get("Name")).trim() + "\",");
+				jsonString.append("\"iconCls\":\"icon-group\",");
+				jsonString.append("\"state\":\"closed\"");
+				jsonString.append("}");
+				jsonString.append(",");
+			}
+			jsonString.deleteCharAt(jsonString.toString().length() - 1);
+		}
+		
+		jsonString.append("]");
+		return jsonString.toString();
+	}
+	
+	/**
+	 * 查询最高级别单位
+	 * @param whereMap
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public Result getRootWorkUnit() throws Exception {
+		Result result = new Result();
+		Map params = new HashMap();
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		if(user != null){
+			//超级管理员UserContext.isBsRootUser()
+			if(UserContext.isBsRootUser()){
+				params.put("lengths", 8);
+			}
+			//企业管理员或者是普通用户
+			else{
+				params = user.getParamsOrFullid(params);
+			}
+		}
+		List<Map<String,Object>> listInfo = this.ibatisServices.queryForList(Map.class, "getRootWorkUnitSQL",params);
+		result.setData(listInfo);
+		return result;
+	}
+	
+	
+	
+	/**
+	 * 查询工作单位list列表
+	 * @param queryJSON flexGrid的查询条件
+	 * @return 分页对象
+	 */
+	@SuppressWarnings("unchecked")
+	public PageBean findList(String queryJSON,long in) throws Exception{
+		//返回结果对象
+		PageBean pageBean = new PageBean();
+		//把FlexiGrid传过来的json参数封装成map对象
+		Map params = FlexiGridUtil.parseParam(queryJSON);
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		
+		//System.out.println(user.isWorkUnitSuperAdmin()+"--"+UserContext.isSuperUser());
+		//超级管理员UserContext.isBsRootUser()
+		if(UserContext.isBsRootUser()){
+			if(params.get("level").equals("1")){
+				params.put("lengths", 8);
+			}else{
+				if(params.get("level").equals("subordinate")){params.remove("level");}
+				params = user.getParamsOrFullid(params);
+			}
+		}
+		//企业管理员&&user.isWorkUnitSuperAdmin()
+		else if(user != null&&user.isWorkUnitSuperAdmin()){
+			if(params.get("level").equals("subordinate")){params.remove("level");}
+			params = user.getParamsOrFullid(params);
+		}
+		//普通用户
+		else{
+			if(params.get("level").equals("subordinate")){return pageBean;}
+			params.put("level", "1");
+			params = user.getParamsOrFullid(params);
+			params.remove("parentFullId");
+			
+		}
+		//工作单位信息list
+		List<Map<String,Object>> listInfo = this.ibatisServices.queryForList(Map.class, "getWorkUnitSQL",params);
+		//工作单位信息总条数
+		Long total= this.getWorkUnitCount(params);
+		
+		pageBean.setPage((Integer)params.get(ParamKey.PAGE));
+		pageBean.setRows(listInfo);
+		pageBean.setTotal(total);
+		
+		return pageBean;
+	}
+	
+	/**
+	 * 查询工作单位信息数据总条数
+	 * @param params 参数
+	 * @return 数据总条数
+	 * @throws Exception
+	 */
+	public Long getWorkUnitCount(Map<String,Object> params) throws Exception {
+		
+		return this.ibatisServices.findIbatisListCount("getWorkUnitCountSQL", params);
+		
+	}
+	/**
+	 * 判断名称重复
+	 * @param whereMap 查询条件
+	 * @return 结果对象
+	 * @throws Exception 数据库操作异常
+	 */
+	@SuppressWarnings("unchecked")
+	public Result checkWorkUnitByName(Map whereMap) throws Exception {
+		Result result = new Result();
+		List<Map<String,Object>> listInfo = this.ibatisServices.queryForList(Map.class, "getWorkUnitByNameSQL",whereMap);
+		if(null!=listInfo){
+			result.setData(listInfo.size());//数据
+			result.setCode(1);//表示查询有数据
+		}
+		return result;
+	}
+		
+	/**
+	 * 增加工作单位
+	 * @param map 增加的内容 
+	 * @return 结果字符串
+	 */
+	@SuppressWarnings("unchecked")
+	public Result createWorkUnit(Map map)throws Exception{
+		Result result= new Result();
+		this.ibatisServices.insertIbatisObject("insertWorkUnitProcSQL",map);	
+		result.setCode(0);
+		return result;
+	}
+	
+	/**
+	 * 由ID查询工作单位详细信息
+	 * @param map 查询条件
+	 * @return 结果对象
+	 */
+	@SuppressWarnings("unchecked")
+	public Result getWorkUnitById(Map map)throws Exception{
+		Result result = new Result();
+		List<Map<String,Object>> listInfo=this.ibatisServices.queryForList(Map.class, "getWorkUnitByIdSQL", map);
+		result.setData(listInfo);
+		//成功
+		result.setCode(0);
+		return result;
+	}
+	
+	/**
+	 * 修改工作单位
+	 * @param setMap 修改的内容
+	 * @param whereMap 条件
+	 * @return 结果对象
+	 */
+	@SuppressWarnings("unchecked")
+	public Result updateWorkUnit(Map whereMap){
+		Result result = new Result();
+		this.ibatisServices.updateIbatisObject("updateWorkUnitProcSQL",whereMap);
+		//成功
+		result.setCode(0);
+		return result;
+	}
+	
+	/**
+	 * 删除工作单位
+	 * @param paramMap
+	 * @return 结果对象
+	 */
+	@SuppressWarnings("unchecked")
+	public Result deleteWorkUnit(Map paramMap){
+		Result result = new Result();
+		//删除工作单位以及子单位
+		this.ibatisServices.delete("delWorkUnitProcSQL", paramMap);
+		//删除与这个企业相关的SIM卡信息
+		this.ibatisServices.delete("delSIMCardSQL", paramMap);
+		//删除与这个企业相关的终端信息
+		this.ibatisServices.delete("delTerminalSQL", paramMap);
+		//结果为成功
+		result.setCode(0);
+		return result;
+	}
+	
+	
+	/**
+	 * 查询数据导出到EXCEL
+	 * @param queryJSON 查询参数
+	 * @param fromPage 开始页
+	 * @param toPage 结束页
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String,Object>> downWorkDataLogExportExl (String queryJSON,String fromPage,String toPage) throws Exception {
+		List<Map<String,Object>> loginLogList = new ArrayList<Map<String,Object>>();
+		//把FlexiGrid传过来的json参数封装成map对象
+		Map params = FlexiGridUtil.parseParam(queryJSON);
+		//重新查询数据开始行数和结束行数
+		String pageSize =params.get(ParamKey.PAGE_SIZE).toString();
+		Integer fromRow = RowNumUtil.getFromRowNum(fromPage, pageSize);
+		Integer toRow = RowNumUtil.getToRowNum(toPage, pageSize);
+		params.put("fromRow", fromRow);
+		params.put("toRow", toRow);
+		//获得用户所属企业完整id并且保存到查询条件集合中
+		SessionUser user = UserContext.getLoginUser();
+		
+		//超级管理员UserContext.isBsRootUser()
+		if(UserContext.isBsRootUser()){
+			if(params.get("level").equals("1")){
+				params.put("lengths", 8);
+			}else{
+				if(params.get("level").equals("subordinate")){params.remove("level");}
+				params = user.getParamsOrFullid(params);
+			}
+		}
+		//企业管理员&&user.isWorkUnitSuperAdmin()
+		else if(user != null&&user.isWorkUnitSuperAdmin()){
+			if(params.get("level").equals("subordinate")){params.remove("level");}
+			params = user.getParamsOrFullid(params);
+		}
+		//普通用户
+		else{
+			if(params.get("level").equals("subordinate")){return loginLogList;}
+			params.put("level", "1");
+			params = user.getParamsOrFullid(params);
+			params.remove("parentFullId");
+		}
+		loginLogList = this.ibatisServices.queryForList(Map.class, "getWorkUnitSQL",params);
+		return loginLogList;
+	}
+	
+	
+	
+	/**
+	 * 其它
+	 */
+	
+	
+}

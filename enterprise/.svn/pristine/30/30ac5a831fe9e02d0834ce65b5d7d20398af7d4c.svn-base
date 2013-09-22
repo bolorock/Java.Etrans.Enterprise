@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--企业管理员用户查询历史图片查询start  -->
+ <select id="getHistoryImageSelectsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 imgId asc) RowNo,A.* from (
+		    select * from (
+		    select 
+				A.vehicleId,
+				A.gpsTime,
+				A.imgId,
+				A.registrationNo,
+				A.uploadTime,
+				A.longitude,
+				A.latitude,
+				A.RegistrationNOColor,
+				pwu.FULLID
+				from
+			 (select 
+				 pv.ID AS vehicleId,      
+				 si.gpsTime as gpsTime,       
+				 si.ID AS imgId,      
+				 pv.registrationNo as registrationNo,       
+				 si.uploadTime as uploadTime,      
+				 isnull(si.longitude,0.0) as longitude,      
+				 isnull(si.latitude,0.0) as latitude ,
+				 prc.Name AS RegistrationNOColor,
+			     pv.workUnitId as workUnitId  
+			FROM         
+				dbo.sys_Image si        
+			left join  dbo.Pub_Vehicle pv  on  si.VehicleID = pv.ID 
+			left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID) A,
+			dbo.Pub_WorkUnit pwu
+			where pwu.id=A.workUnitId) C   
+	where 1=1
+		
+        <dynamic>
+           <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+			
+			<isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleId in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			
+		    <isNotNull property="beginTime">
+		     	<isNotEmpty property="beginTime">
+		     		and C.gpsTime >= '$beginTime$'
+		     	</isNotEmpty>
+		    </isNotNull>
+		    <isNotNull property="endTime">
+		     	<isNotEmpty property="endTime">
+		     		 and '$endTime$' >= C.gpsTime
+		     	</isNotEmpty>
+		    </isNotNull>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--历史图片查询总数量SQL	-->
+	<select id="historyImageSelectCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	    select count(*) from (
+		 select 
+				A.vehicleId,
+				A.gpsTime,
+				A.imgId,
+				A.registrationNo,
+				A.uploadTime,
+				A.longitude,
+				A.latitude,
+				A.RegistrationNOColor,
+				pwu.FULLID
+				from
+			 (select 
+				 pv.ID AS vehicleId,      
+				 si.gpsTime as gpsTime,       
+				 si.ID AS imgId,      
+				 pv.registrationNo as registrationNo,       
+				 si.uploadTime as uploadTime,      
+				 isnull(si.longitude,0.0) as longitude,      
+				 isnull(si.latitude,0.0) as latitude ,
+				 prc.Name AS RegistrationNOColor,
+			     pv.workUnitId as workUnitId  
+			FROM         
+				dbo.sys_Image si        
+			left join  dbo.Pub_Vehicle pv  on  si.VehicleID = pv.ID 
+			left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID ) A,
+			dbo.Pub_WorkUnit pwu
+			where pwu.id=A.workUnitId ) C  where 1=1
+        <dynamic>
+             <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+           <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleId in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			  
+		    <isNotNull property="beginTime">
+		     	<isNotEmpty property="beginTime">
+		     		and C.gpsTime >= '$beginTime$'
+		     	</isNotEmpty>
+		    </isNotNull>
+		    <isNotNull property="endTime">
+		     	<isNotEmpty property="endTime">
+		     		 and '$endTime$' >= C.gpsTime
+		     	</isNotEmpty>
+		    </isNotNull>
+		</dynamic>
+	</select>
+<!--企业管理员用户查询历史图片查询end -->	
+
+
+
+
+<!--普通用户查询历史图片查询start  -->
+ <select id="getUserHistoryImageSelectsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 imgId asc) RowNo,A.* from (
+		    select * from (
+		    select 
+				 puv.VEHICLEID AS vehicleId,      
+				 si.gpsTime as gpsTime,       
+				 si.ID AS imgId,      
+				 puv.registrationno as registrationNo,       
+				 si.uploadTime as uploadTime,      
+				 isnull(si.longitude,0.0) as longitude,      
+				 isnull(si.latitude,0.0) as latitude ,
+			     puv.workunitID as workunitID,
+			     puv.RegistrationNOColor,
+			     puv.FULLID   
+		FROM         
+		dbo.sys_Image si ,       
+	    (select ev.VEHICLEID,
+			   PV.workunitID as workunitID,
+	           pv.RegistrationNo as registrationno,
+			   pwu.FULLID as FULLID
+	     from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu,Pub_RegistrationNOColor prc 
+     where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID
+     and pv.RegistrationNOColorID = prc.ID ) PUV
+where si.VEHICLEID = PUV.VEHICLEID) C   
+	where 1=1
+		
+        <dynamic>
+           <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+        
+	       <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleId in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			  
+		    <isNotNull property="beginTime">
+		     	<isNotEmpty property="beginTime">
+		     		and C.gpsTime >= '$beginTime$'
+		     	</isNotEmpty>
+		    </isNotNull>
+		    <isNotNull property="endTime">
+		     	<isNotEmpty property="endTime">
+		     		 and '$endTime$' >= C.gpsTime
+		     	</isNotEmpty>
+		    </isNotNull>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--历史图片查询总数量SQL	-->
+	<select id="UserhistoryImageSelectCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	    select count(*) from (
+		     select 
+				 puv.VEHICLEID AS vehicleId,      
+				 si.gpsTime as gpsTime,       
+				 si.ID AS imgId,      
+				 puv.registrationno as registrationNo,       
+				 si.uploadTime as uploadTime,      
+				 isnull(si.longitude,0.0) as longitude,      
+				 isnull(si.latitude,0.0) as latitude ,
+			     puv.workunitID as workunitID,
+			     puv.RegistrationNOColor,
+			     puv.FULLID   
+		FROM         
+		dbo.sys_Image si ,       
+	    (select ev.VEHICLEID,
+			   PV.workunitID as workunitID,
+	           pv.RegistrationNo as registrationno,
+			   pwu.FULLID as FULLID
+	     from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu,Pub_RegistrationNOColor prc 
+     where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID
+     and pv.RegistrationNOColorID = prc.ID  ) PUV
+where si.VEHICLEID = PUV.VEHICLEID) C  where 1=1
+        <dynamic>
+             <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+           <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleId in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			  
+		    <isNotNull property="beginTime">
+		     	<isNotEmpty property="beginTime">
+		     		and C.gpsTime >= '$beginTime$'
+		     	</isNotEmpty>
+		    </isNotNull>
+		    <isNotNull property="endTime">
+		     	<isNotEmpty property="endTime">
+		     		 and '$endTime$' >= C.gpsTime
+		     	</isNotEmpty>
+		    </isNotNull>
+		</dynamic>
+	</select>
+<!--普通用户查询历史图片查询end -->	
+
+<!-- 查询图片流 -->
+	<select id="getImageStreamByIdSQL" resultClass="HashMap">
+		select ImageStream from EtBaseTimingData.dbo.sys_Image  si WHERE si.ID='$id$'
+	</select>
+	<select id="getImageListByVehicleIdTop9" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT  top 9  ImageStream FROM [EtBaseTimingData].[dbo].[Sys_Image] t where t.vehicleId=#vehicleId# order by t.uploadtime desc
+	</select>
+</sqlMap>

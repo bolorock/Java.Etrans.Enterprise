@@ -1,0 +1,201 @@
+function  showWorkUnitAddTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/workUnitAddParamName.jsp';
+	openDialog(url, 400, 350,"企业信息");
+	
+}
+
+function  showAreaTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleAreaTree.jsp';
+	openDialog(url, 400, 350,"区域信息");
+	
+}
+
+function  showTradeTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleTradeTree.jsp';
+	openDialog(url, 400, 350,"行业类型");
+	
+}
+
+function  showRKindTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleRCKindTree.jsp';
+	openDialog(url, 400, 350,"车牌类型");
+	
+}
+function  showVehicleKindTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehiclKindTree.jsp';
+	openDialog(url, 400, 350,"车辆类型");
+	
+}
+
+function  showVehicleColorTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleColorTree.jsp';
+	openDialog(url, 400, 350,"车辆颜色");
+	
+}
+
+function  showRegistrationNoColorTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleRColorTree.jsp';
+	openDialog(url, 400, 350,"车牌颜色");
+	
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
+/**
+ * 车辆基本信息里面的 车牌颜色弹出框
+ **/
+function  showRnoColorTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/colorTree.jsp';
+	openDialog(url, 400, 350,"车牌颜色");
+	
+}
+
+/**
+ * 车辆基本信息里面的 所属行业弹出框
+ **/
+function showtradeKindTree() {
+var basePath = getRootPath(); 
+var url=basePath+'/sys/tree/tradeKindTree.jsp';
+openDialog(url, 400, 350,"所属行业");
+  
+}
+/**
+ * 车辆基本信息里面的 所属区域弹出框
+ **/
+function showAreaTree(){
+var basePath = getRootPath(); 
+var url=basePath+'/sys/tree/areaTree.jsp';
+openDialog(url, 400, 350,"所属区域");  
+
+}
+/**
+ * 车辆基本信息里面的 运输企业弹出框
+ **/
+function showWorkUnitTree(){
+var basePath = getRootPath(); 
+var url=basePath+'/sys/tree/wrokUnitTree.jsp';
+openDialog(url, 400, 350,"运输企业");
+}
+//////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+function  showVehicleTeamTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleTeamTree.jsp';
+	openDialog(url, 400, 350,"所属车队");
+	
+}
+
+
+function  showTerminalTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleTerminalTree.jsp';
+	openDialog(url, 400, 350,"通信号");
+	
+}
+
+function showTerminalKindIDTree(){
+	
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleTerminalKindIDTree.jsp';
+	openDialog(url, 400, 350,"终端类型");
+}
+
+function  showSimTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleSimTree.jsp';
+	openDialog(url, 400, 350,"Sim卡信息");
+	
+}
+
+function  showFirstDriverTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleDriverTree.jsp';
+	openDialog(url, 400, 350,"司机信息");
+	
+}
+
+function  showSecondDriverTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleSecondDriverTree.jsp';
+	openDialog(url, 400, 350,"司机信息");
+	
+}
+
+function  showUsageTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleUsagesTree.jsp';
+	openDialog(url, 400, 350,"用途");
+	
+}
+
+
+function  showBandTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleBandTree.jsp';
+	openDialog(url, 400, 350,"品牌");
+	
+}
+
+function  showManufactoryTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/tree/vehicleManufactoryTree.jsp';
+	openDialog(url, 400, 350,"厂商");
+	
+}
+
+/****
+ * 回放车辆页面的请选择车牌
+ * @return
+ */
+function showRegistrationVhicleTree(){
+	var basePath = getRootPath(); 
+	var  url=basePath+'/sys/table/vehicleNoTable.jsp';
+	openDialog(url, 400, 400,"选择回放车辆");
+}
+
+function closeDialog(){
+	$('#dialogs').dialog('close');
+}
+
+
+function getRootPath(){    
+	//获取当前网址，如： http://192.168.2.133:8080/bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp    
+	var curWwwPath=window.document.location.href;    
+	//获取主机地址之后的目录，如：bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp
+	var pathName=window.document.location.pathname;   
+	var pos=curWwwPath.indexOf(pathName);    
+	//获取主机地址，如：http://192.168.2.133:8080 
+	var localhostPaht=curWwwPath.substring(0,pos);    
+	//获取带"/"的项目名，如：/bubiaoQdn    
+	var projectName=pathName.substring(0,pathName.substr(1).indexOf('/')+1);    
+	return(localhostPaht+projectName);
+	
+}
+
+function openDialog(src, width, height, title) {
+
+	$("#dialogs").css("display", "block");
+	$("#dialogFrame").attr("src", src);
+	$("#dialogs").dialog({
+		width : width,
+		height : height,
+		title : title,
+		maximizable : false,
+		inline : true
+	});
+}
+

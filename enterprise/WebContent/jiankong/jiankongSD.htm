@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+    <title></title>
+</head>
+	
+	<!--连接成功--响应事件-->
+<!--	<script type="text/javascript" for="SDClientRegDll" event="Connect(op)">-->
+<!--		alert("连接成功:"+op);-->
+<!--		//向服务器请求注册-->
+<!--		SDClientRegDll.GetDevice();-->
+<!--	</script>-->
+	
+	<!--向服务器请求注册--响应事件-->
+<!--	<script type="text/javascript" for="SDClientRegDll" event="RegReply(Result,Desc);">-->
+<!--		alert("结果："+Result+"  描述："+Desc);-->
+<!--		if(Result==0){-->
+<!--			alert("向服务器请求注册成功，下面进行获取3G视频服务地址！");-->
+<!--			//向服务器获取3G视频服务地址14000373675 14000373507-->
+<!--			//116.254.206.2 5222   14000373535 -->
+<!--			SDClientRegDll.GetVMSC("14000373535");-->
+<!--		}else{-->
+<!--			alert("向服务器请求注册失败！");-->
+<!--		}-->
+<!--	</script>-->
+	
+	<!--向服务器获取3G视频服务地址--响应事件-->
+	<script type="text/javascript" for="SDClientRegDll" event="DeviceVMSCUP(TargetID,VMSCHost,VMSCPort);">
+		alert("返回结果： "+"终端通信号："+TargetID+"  3G服务器IP："+VMSCHost+" 3G服务器端口："+VMSCPort);
+		
+		/***************调用ocx************/
+		/**系统设置**/
+		objOcx.SetConfigInfo(815,TargetID,VMSCHost,VMSCPort,1,'admin','123');
+		objOcx2.SetConfigInfo(815,TargetID,VMSCHost,VMSCPort,2,'admin','123');
+		objOcx3.SetConfigInfo(815,TargetID,VMSCHost,VMSCPort,3,'admin','123');
+		objOcx4.SetConfigInfo(815,TargetID,VMSCHost,VMSCPort,4,'admin','123');
+		objOcx.OpenVideo();
+		objOcx2.OpenVideo();
+		objOcx3.OpenVideo();
+		objOcx4.OpenVideo();
+	</script>
+
+  <script type="text/javascript">
+  	var SDClientRegDll;
+	var objOcx;
+	var objOcx2;
+	var objOcx3;
+	var objOcx4;
+  	function onloadDevice(){
+		/**得到视频对象**/
+		objOcx = window.document.getElementById("UserProxy1");	
+		objOcx2 = window.document.getElementById("UserProxy2");	
+		objOcx3 = window.document.getElementById("UserProxy3");	
+		objOcx4 = window.document.getElementById("UserProxy4");	
+		SDClientRegDll= window.document.getElementById("SDClientRegDll");
+
+		var UserProxy10 = window.document.getElementById("UserProxy10");
+		/**TransmitIP=121.33.255.142,TransmitPort=6213,TransmitPort_TCP=6226,ID=14000373571,Kind=815,Channel=1&2&3&4,RegistrationNO=桂A20607**/
+		/**************注册服务器dll文件************/
+		//连接上服务器
+		//SDClientRegDll.ConnectToSrv('121.33.255.142',6213);
+		SDClientRegDll.ConnectToSrv('121.33.255.142',6226);
+		////向服务器获取3G视频服务地址
+		SDClientRegDll.GetVMSC("14000373571");
+		//关闭连接
+		//ss.DisConnectSrv();
+		
+	}
+	
+  </script>
+
+
+<body   style="background-color: transparent;" onload="onloadDevice();">
+
+
+
+<H1> Delphi 7 ActiveX Test Page </H1><p>
+You should see your Delphi 7 forms or controls embedded in the form below.
+<HR><center><P>
+
+<!--网页中的object其实就是一个COM组件（概念可以网上查一下），classid就是这个COM组件在系统中注册的一个ID值，有了这个ID值系统才能找到这个COM组件对应的DLL文件，就像普通的软件用其他DLL时需要一个路径一样。而后面的codebase一般是用来下载和更新组件用的，比如浏览某个网页时，发现您的机器上没有安装这个组件，就会去codebase的地方下载组件，有了新的版本也会提示您安装新版本。基本就这样 GUID=FA52021E-4027-454A-A71C-5D2EC565EFE9  -->
+<object id="UserProxy1" 
+	  classid="clsid:FA52021E-4027-454A-A71C-5D2EC565EFE9"
+	  width=350
+	  height=250
+	  align=center
+	  hspace=0
+	  vspace=0
+>
+</object>
+<OBJECT id="UserProxy2"
+	  classid="clsid:FA52021E-4027-454A-A71C-5D2EC565EFE9"
+	  width=350
+	  height=250
+	  align=center
+	  hspace=0
+	  vspace=0
+>
+</OBJECT>
+
+</P>
+<P>
+<object id="UserProxy3"
+	  classid="clsid:FA52021E-4027-454A-A71C-5D2EC565EFE9"
+	  width=350
+	  height=250
+	  align=center
+	  hspace=0
+	  vspace=0
+>
+</object>
+<OBJECT id="UserProxy4"
+	  classid="clsid:FA52021E-4027-454A-A71C-5D2EC565EFE9"
+	  width=350
+	  height=250
+	  align=center
+	  hspace=0
+	  vspace=0
+>
+</OBJECT>
+
+
+<OBJECT id="SDClientRegDll"
+	  classid="clsid:B478BA1A-DA42-4819-8179-ED3E52C6588C"
+	  width=350
+	  height=250
+	  align=center
+	  hspace=0
+	  vspace=0
+	  style="display:none"
+>
+</OBJECT>
+
+</P>
+</center>
+</p>
+</body>
+
+</HTML>

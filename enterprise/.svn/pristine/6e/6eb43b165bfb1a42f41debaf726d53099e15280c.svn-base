@@ -1,0 +1,47 @@
+package com.etrans.bubiao.sys;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.catalina.CometEvent;
+import org.apache.catalina.CometProcessor;
+
+public class SecondServlet extends HttpServlet implements CometProcessor  {
+	private static final long serialVersionUID = 1L;
+	  
+    public void event(CometEvent event) throws IOException{
+        /*
+         * event方法用来处理各种请求，可以根据状态的不同得到各种响应
+         * 同时可以不断根据自己的需求像客户端发送信息
+         */
+        HttpServletResponse resp = event.getHttpServletResponse();
+        HttpServletRequest req = event.getHttpServletRequest();
+        //对于event而言，会存在多种状态，在begin的时候可以开始获取数据
+        if(event.getEventType()==CometEvent.EventType.BEGIN) {
+            System.out.println(req.getSession().getId());
+            //在begin的状态进行数据写操作
+            //log(req.getSession().getId()+"连接建立成功");
+            new Thread(new RandomThread(resp)).start();
+        } else if(event.getEventType()==CometEvent.EventType.END) {
+            //请求结束的时候执行
+            //log(req.getSession().getId()+"已经结束");
+            event.close();
+        } else if(event.getEventType()==CometEvent.EventType.ERROR) {
+            //发送错误的时候处理
+            //log(req.getSession().getId()+"发送错误");
+            event.close();
+        } else if(event.getEventType()==CometEvent.EventType.READ) {
+            //还正读取数据的状态
+            throw new RuntimeException("该状态无法进行操作");
+        }
+    }
+  
+    @Override
+    public void init() throws ServletException {
+        super.init();
+    }
+}

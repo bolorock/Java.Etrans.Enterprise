@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 车牌号查车 -->
+<select id="getVehilceListTreeSQL" resultClass="java.util.HashMap" resultSetType="SCROLL_INSENSITIVE">
+		SELECT
+		    TOP 50 
+			PV.id,
+			PV.registrationNO 
+			FROM Pub_Vehicle PV with(nolock) 
+			  <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  PV.id=ev.vehicleID
+		        </isEqual>
+		    <dynamic prepend="where">
+			PV.isdeleted=0
+			<isNotEmpty property="registrationNO" prepend="AND">
+			   and  PV.registrationNO  like '%$registrationNO$%'
+			</isNotEmpty>
+			<isNotEmpty property="workUnitName">
+			   and  PV.workUnitId in (select ID From Pub_WorkUnit Where Name like '%$workUnitName$%')
+			</isNotEmpty>
+		   <isEqual property="isSuper" compareValue="0">
+             AND ev.UserId=#userId#
+             </isEqual>
+             <isEqual property="isSuper" compareValue="1">
+             	<isNotEmpty property="workUnitId" prepend="AND">
+		        	AND PV.workUnitId=#workUnitId#
+		         </isNotEmpty>
+		      </isEqual>
+             </dynamic>
+			ORDER BY PV.registrationNO
+	</select>
+  
+</sqlMap>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--设备厂商信息分页查询SQL  -->
+ <select id="getVehicleDeviceVendorListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+		 select * from 
+			(SELECT 
+		        pvv.ID as ID, 
+		        pvv.Code as Code, 
+		        pvv.Name as Name,
+		        pvv.Memo as Memo  
+		     FROM dbo.Pub_VehicleDeviceVendor pvv
+		       ) C where 1=1
+		<dynamic>
+		    <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+<!--设备厂商信息总数量SQL	-->
+	<select id="getVehicleDeviceVendorCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		 select count(*) from 
+			(SELECT 
+		        pvv.ID as ID, 
+		        pvv.Code as Code, 
+		        pvv.Name as Name,
+		        pvv.Memo as Memo 
+		     FROM dbo.Pub_VehicleDeviceVendor pvv
+		       ) C where 1=1
+        
+         <dynamic>
+            <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+	</select>
+		
+
+<!--插入设备厂商信息数据 -->
+	<insert id="insertVehicleDeviceVendorSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_VehicleDeviceVendor]
+           (
+            [Code]
+           ,[Name]
+           ,[Memo]
+           )
+     VALUES
+           (
+           	#Code#,
+           	#Name#,
+           	#Memo#
+           )
+	</insert>
+	
+<!--根据ID查询设备厂商信息	-->
+    <select id="getVehicleDeviceVendorByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		        pvv.ID as ID, 
+		        pvv.Code as Code, 
+		        pvv.Name as Name,
+		        pvv.Memo as Memo  
+        FROM Pub_VehicleDeviceVendor pvv
+       WHERE 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				pvv.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改设备厂商信息   -->
+     <update id="updateVehicleDeviceVendorSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [Pub_VehicleDeviceVendor]
+             SET 
+             [Code] = '$Code$'
+             ,[Name] = '$Name$'
+             ,[Memo] = '$Memo$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除设备厂商信息  -->
+     <delete id="deleteVehicleDeviceVendorSQL"  parameterClass="java.util.HashMap">
+		DELETE  FROM dbo.Pub_VehicleDeviceVendor WHERE ID in ($id$)
+	</delete>
+
+   
+<!-- 验证不能有相同的设备厂商名称  -->
+     <select id="checkVehicleDeviceVendorNameSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,Name  FROM dbo.Pub_VehicleDeviceVendor where Name='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+</sqlMap>

@@ -1,0 +1,92 @@
+var isSetCommand = 1;
+$(function(){
+	initTree();
+	$("#saveBtn").click(doNode);
+	$("#cancelBtn").click(canDialog);
+});
+/**
+ * 初始化车辆组树形结构
+ */
+function initTree() {
+	try{
+		//车组权限
+		$("#vehicleAuthTree").html('<img src="imgs/load.gif" />');
+		$.ajax({
+		    type : "POST",
+		    url : "sys/role/getVehicleGoupTreeWorkUnitList.action",
+		    data : {roleId:roleId},
+		    dataType : "JSON",
+		    success : function(data) {
+		    	$('#vehicleAuthTree').tree({
+		    		data:data,
+		    		checkbox:true,
+		    		animate : true,
+		    		onlyLeafCheck:false   
+		    	});
+		    }
+	    });
+		
+		$("#fnctionAuthTree").html('<img src="imgs/load.gif" />');
+		$.ajax({
+		    type : "POST",
+		    url : "sys/role/findMenusByParent_new.action",
+		    data : {roleId:roleId},
+		    dataType : "JSON",
+		    success : function(data) {
+		    	$('#fnctionAuthTree').tree({
+		    		data:data,
+		    		checkbox:true,
+		    		animate : true
+		    	});
+		    }
+	    });
+	}catch(e){}
+}
+function loadCommandTree(){
+	isSetCommand = 0;
+	$("#configCommandRole").html('<img src="imgs/load.gif" />');
+	$.ajax({
+	    type : "POST",
+	    url : "sys/role/findCommandMenu.action",
+	    data : {roleId:roleId},
+	    dataType : "JSON",
+	    success : function(data) {
+	    	$("#configCommandRole").remove();
+	    	$('#commandAuthTree').tree({
+	    		data:data,
+	    		checkbox:true,
+	    		animate : true
+	    	});
+	    }
+    });
+}
+function doNode(){
+	var roleType= $("#roleType").val();
+    var c="";
+    var p="";
+    $(".tree-checkbox1").parent().children('.tree-title').each(function(){
+      c+=$(this).parent().attr('node-id')+",";
+    });
+     $(".tree-checkbox2").parent().children('.tree-title').each(function(){
+    	 p+=$(this).parent().attr('node-id')+",";
+    });
+    var str=(c+p);
+    str=str.substring(0,str.length-1);
+    $.ajax({
+	    type : "POST",
+	    url : "sys/role/saveRoleAuth.action",
+	    data : {roleType:roleType,roleId:roleId,auths:str,isCommand:isSetCommand},
+	    dataType : "JSON",
+	    success : function(data) {
+    		$.messager.alert('提示信息','分配成功！','info');
+    		parent.$('#dialogs').dialog('close');
+    		parent.$("#dialogFrame").removeAttr("src");
+	    },
+	    error : function(data) {
+	    }
+    });
+}
+
+function canDialog(){
+	window.close();
+}

@@ -1,0 +1,207 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<title>首页</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Bootstrap -->
+<link href="/enterprise/js/bootstrap/css/bootstrap.min.css"
+	rel="stylesheet" media="screen">
+<style type="text/css">
+.box .box-title .icon {
+	float: right;
+	width: 20px;
+	height: 20px;
+	top: 50%;
+	margin-right: 5px;
+	cursor: pointer;
+	font-size: 14px;
+}
+
+.box .box-title {
+	padding: 10px 15px 10px;
+	margin: 0px;
+	background-color: #f5f5f5;
+}
+
+.box {
+	margin-bottom: 15px;
+	overflow: visible;
+	position: relative;
+	padding: 0px;
+	background-color: white;
+}
+
+.box .box-content {
+	padding: 10px 15px 15px;
+}
+
+p {
+	margin: 0 0 10.5px;
+}
+
+#myModal .modal-body {
+	max-height: 800px;
+}
+
+#myModal {
+	/* SET THE WIDTH OF THE MODAL 设置Modal的宽度*/
+	top: 3%;
+	width: 900px;
+	height: 450px;
+	left: 38%;
+	/* CHANGE MARGINS TO ACCOMODATE THE NEW WIDTH (original = margin: -250px 0 0 -280px;) */
+}
+
+.container {
+	margin-top: 20px;
+}
+</style>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="span6 column ui-sortable">
+				<div class="box well ">
+					<h4 class="box-title">
+						<i class="icon chevron icon-chevron-up"></i> <i
+							class="icon icon-wrench pull-right" data-toggle="modal"
+							data-target="#myModal"></i> 导航工具
+					</h4>
+					<div id="myMenu" class="box-content " style="display: block;"></div>
+				</div>
+			</div>
+
+			<div class="span6 column ui-sortable">
+				<div class="box well ">
+					<h4 class="box-title">
+						<i class="icon chevron icon-chevron-up"></i> <i
+							class="icon icon-wrench pull-right" data-toggle="modal"
+							data-target="#myModal"></i> 导航图
+					</h4>
+					<div class="box-content " style="display: block;"></div>
+				</div>
+			</div>
+
+			<div class="span6 column ui-sortable">
+				<div class="box well ">
+					<h4 class="box-title">
+						<i class="icon chevron icon-chevron-up"></i> <i
+							class="icon icon-wrench pull-right" data-toggle="modal"
+							data-target="#myModal"></i> 导航图
+					</h4>
+					<div class="box-content " style="display: block;"></div>
+				</div>
+			</div>
+
+			<div class="span6 column ui-sortable">
+				<div class="box well ">
+					<h4 class="box-title">
+						<i class="icon chevron icon-chevron-up"></i> <i
+							class="icon icon-wrench pull-right" data-toggle="modal"
+							data-target="#myModal"></i> 导航图
+					</h4>
+					<div class="box-content " style="display: block;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal hide fade" tabindex="-1" role="dialog" id="myModal"
+		style="display: none;" aria-hidden="true">
+		<button type="button" class="close" data-dismiss="modal"
+			aria-hidden="true">&times;</button>
+		<iframe src="shortcutSet.jsp" id="dialogFrame" name="dialogFrame"
+			width="100%" height="100%" frameborder="0" scrolling="auto"></iframe>
+	</div>
+
+	<div id="defaultMenu" style="display: none;">
+		<div class="row-fluid">
+			<a href="../basicBlue/usermanage/userList.jsp" class="span3"> <img
+				src="../imgs/menu/fatigueAlarm.png" class="img-polaroid">
+				<p>用户信息</p>
+			</a> <a href="../query/log/workLog.jsp" class="span3"> <img
+				src="../imgs/menu/log.png" class="img-polaroid">
+				<p>操作日志</p>
+			</a> <a href="../monitorCenter/monitor.jsp" class="span3"> <img
+				src="../imgs/menu/historyAlarm.png" class="img-polaroid">
+				<p>车辆监控</p>
+			</a> <a href="../basicBlue/vehiclegroup/vehicleGroupManagement.jsp"
+				class="span3"> <img src="../imgs/menu/mileageStat.png"
+				class="img-polaroid">
+				<p>车辆分组管理</p>
+			</a>
+		</div>
+		<div class="row-fluid">
+			<a href="../query/alarmMsgInfo/alarmMsgInfo.jsp" class="span3"> <img
+				src="../imgs/menu/speedAlarm.png" class="img-polaroid">
+				<p>历史报警查询</p>
+			</a> <a href="../UI/OneBI_IAA_MileageRpt/BI_IAA_MileageRptIndex.aspx"
+				class="span3"> <img src="../imgs/menu/vehicle.png"
+				class="img-polaroid">
+				<p>里程统计查询</p>
+			</a>
+		</div>
+	</div>
+
+	<script type="text/javascript"
+		src="/enterprise/js/jq/jquery-1.7.1.min.js"></script>
+	<script type="text/javascript"
+		src="/enterprise/js/bootstrap/js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+		jQuery(function() {
+			getUserMenu();
+			$(".box-title .icon.chevron").click(
+					function() {
+						$(this).toggleClass("icon-chevron-up").toggleClass(
+								"icon-chevron-down");
+						$(this).parents(".box:first").find(".box-content")
+								.toggle('fast');
+					});
+		});
+
+		var closeWin = function() {
+			$("#myModal").modal('hide');
+		};
+
+		/**
+		 * 获取用户所有的菜单设置
+		 */
+		function getUserMenu() {
+			var $boxContent = $("#myMenu");
+			$.ajax({
+						type : "POST",
+						url : "../sys/userMenu/getUserMenu.action",
+						success : function(data) {
+							if (data) {
+								var json = eval(data);
+								var len = json.length;
+								if (len == 0) { //默认菜单
+									$boxContent.append($("#defaultMenu").html());
+									return;
+								}
+								var htmlStr = "";
+								for ( var i = 0; i < len; i++) {
+									if (i == 0 || i % 4 == 0) {
+										htmlStr += "<div class='row-fluid'>";
+									}
+									htmlStr += "<a href='../"+json[i].url+"' class='span3'><img src='../"
+							+json[i].imageURL+"' alt='"+ json[i].functionName  + "' class='img-polaroid'><p>"
+											+ json[i].name + "</p></a>";
+									if ((i + 1) % 4 == 0) {
+										htmlStr += "</div>";
+									}
+								}
+
+								$boxContent.empty();
+								$boxContent.append(htmlStr);
+							} else {
+								alert("Fail:" + data);
+							}
+						}
+					});
+		}
+	</script>
+</body>
+</html>

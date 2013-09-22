@@ -1,0 +1,1169 @@
+/**    
+ * CommandRepositoryImpl.java
+ * Create on 2010-7-30
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javassist.expr.NewArray;
+
+import jxl.write.DateTime;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.record.formula.functions.Now;
+import org.springframework.core.task.TaskExecutor;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.AlarmModel;
+import com.etrans.bubiao.entities.GpsInfo;
+import com.etrans.bubiao.services.monitorCenter.MonitorCenterServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.State;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.web.Struts2Utils;
+import com.sun.org.apache.bcel.internal.generic.NEW;
+
+
+/**
+* 指令操作,网络传输处理层
+* @author lihaiyan
+* @version 1.0
+*/
+
+
+public class CommandRepositoryImpl implements CommandRepository {
+	private SocketTemplate socketTemplate; // socket连接模板
+	private GpsInfoQueue gpsInfoQueue; // 车辆订阅指令结果接收队列
+	private CommandSendQueue commandSendQueue; // 指令发送队列
+	private BusinessQueue businessQueue;// 业务数据接收队列
+	private CommandResultQueue commandResultQueue;// 指令回复数据接收队列
+	private AlarmQueue alarmQueue;// 报警数据接收队列
+	private ConcurrentHashMap<String, String> gpsInfoHashMap;// GPS信息存储Map
+	private HashMap<String, String> commandResultHashMap;// 指令数据数据存储Map
+	private HashMap<String, Queue<String>> alarmHashMap;// 报警数据存储Map
+	private HashMap<String,String> specialCommandResultMap;// 指令回复数据储存map(拍摄图片信息)
+	private MonitorCenterServices monitorCenterServices;
+	private Map<String,String> vehileMap;
+	private Queue<String> lowerFlatQueue = new LinkedList<String>();
+	private ConcurrentHashMap<String, String>  billMap=new ConcurrentHashMap<String, String>();//电子运单储存map,key=vehicleID,value=bill
+	private SendMessage sendMessage;
+	private ReceivedMessage receivedMessage;
+	private AffixationQueue affixationQueue; //附加信息数据接收队列
+	private HashMap<String,AffixationBean> affixationHashMap;//附加信息数据存储map
+	
+	private TaskExecutor taskExecutor; // 线程池
+	private int sendSequence = 100; // 指令系列号
+	public CommandRepositoryImpl(
+			SocketTemplate socketTemplate, 
+			TaskExecutor taskExecutor, 
+			GpsInfoQueue gpsInfoQueue,
+			CommandSendQueue commandSendQueue, 
+			BusinessQueue businessQueue, 
+			CommandResultQueue commandResultQueue,
+			AlarmQueue alarmQueue,
+			ConcurrentHashMap<String, String> gpsInfoHashMap,
+			HashMap<String, String> commandResultHashMap,HashMap<String,
+			Queue<String>> alarmHashMap,
+			HashMap<String, String> specialCommandResultMap,
+			MonitorCenterServices monitorCenterServices,
+			AffixationQueue affixationQueue,
+			HashMap<String, AffixationBean> affixationHashMap
+			)
+	   {
+		
+		this.socketTemplate = socketTemplate;
+		this.gpsInfoQueue = gpsInfoQueue;
+		this.taskExecutor = taskExecutor;
+		this.commandSendQueue = commandSendQueue;
+		this.businessQueue = businessQueue;
+		this.commandResultQueue = commandResultQueue;
+		this.alarmQueue = alarmQueue;
+		this.gpsInfoHashMap = gpsInfoHashMap;
+		this.commandResultHashMap = commandResultHashMap;
+		this.alarmHashMap = alarmHashMap;
+		this.specialCommandResultMap = specialCommandResultMap;
+		this.monitorCenterServices = monitorCenterServices;
+		this.affixationQueue = affixationQueue;
+		this.affixationHashMap=affixationHashMap;
+ 
+		sendMessage(); // 启动发送线程
+		getReceivedMessage(); // 启动接收线程
+		gpsInfoHandleThread();// GPS定位信息处理线程
+		businessHandleThread();// 业务数据处理线程
+		alarmHandleThread();//报警数据处理线程
+		commandResultHandleThread();//指令回复数据处理线程	
+		socketTemplate.addEventListener(sendMessage);
+		socketTemplate.addEventListener(receivedMessage);
+		affixationHandleThread();//附加信息处理线程ljy
+	}
+
+
+	/**
+	 * 取GSP定位信息
+	 * @param commNOStr 要查询的以','隔开的终端编号串
+	 * @param vehicleMap 用户车辆map
+	 * @return List GPS信息列表
+	 * */
+public List<GpsInfo> getGpsInfos(String vehicleIdStr, Map<String,String> vehicleMap,String mapType) throws Exception {
+		List<GpsInfo> gpsBackList = new ArrayList<GpsInfo>();
+		try {
+			for (String vehicleId : vehicleIdStr.split(",")) {
+				   vehicleId = StringUtils.deleteWhitespace(vehicleId);
+					String gpsInfoMessage = this.getGpsInfo(vehicleId);
+					String vehicleInfoString=vehicleMap.get(vehicleId);
+					AffixationBean affixationBean= this.getAffixationBean(vehicleId);//附加信息实体
+					/**
+					 * 定位信息: ##110,5,51908,NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+					 * NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+					 * 解密后是51908,2012-04-19 13:45:29,2012-04-19 13:44:48,108.366378,30.846198,0,0,0,19,0,0,0,1,0,1081,0,161,0200000000000000
+					 * 分别是，车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态
+					 */
+					if (null != gpsInfoMessage) {
+						String[] gpsInfoMessageArray = gpsInfoMessage.split(",");
+						// 解释终端状态
+						// 判断是否有司机信息g
+						String stateStr = "";// 状态
+						stateStr = State.getTermianlState(gpsInfoMessageArray[17]);//gps状态|报警状态 
+					    String[] stateStrArray=stateStr.split("\\|");
+					    String gpsStateString=stateStrArray[0];
+					    String alarmsStateString=stateStrArray[1];
+						String[] vehicleValue=vehicleInfoString.split("\\|");//车牌号|车牌颜色|所属行业|所属业户|sim卡号
+						//gpsStateString+=",车牌颜色:"+vehicleValue[1];
+						
+						//车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态
+					    //String lnglat=gpsInfoMessageArray[3]+","+gpsInfoMessageArray[4];//经度,纬度
+					   // String[] lngArray =monitorCenterServices.getRealngLatBaidu(gpsInfoMessageArray[3], gpsInfoMessageArray[4]);  //Tools.getRealLngLat(lnglat,mapType);
+						String sd2 =gpsInfoMessageArray[6]; //记录仪速度State.getRecorderspeed(gpsInfoMessageArray[5]);
+						GpsInfo info=new GpsInfo();
+						info.setNoColor(vehicleValue[1]);
+						info.setLat(gpsInfoMessageArray[4]);// 纬度
+						info.setLon(gpsInfoMessageArray[3]);// 经度
+						info.setsHlat(gpsInfoMessageArray[4]);//偏移后纬度
+						info.setsHlon(gpsInfoMessageArray[3]);//偏移后经度
+						info.setHd(gpsInfoMessageArray[8]);//方向
+						info.setSd(gpsInfoMessageArray[7]);//GPS速度
+						info.setSd2(sd2);//行驶记录速度
+					    info.setVehicleId(vehicleId);//车辆id
+					    info.setSim(vehicleValue[4]);//sim卡
+						info.setNo(vehicleValue[0]);//车牌号
+						info.setNoColor(vehicleValue[1]);
+						info.setGs(gpsStateString);//状态字符串
+						info.setAlarmState(alarmsStateString);//报警状态字符串
+						info.setKindName(vehicleValue[2]);
+						info.setWorkunitName(vehicleValue[3]);
+						info.setGt(gpsInfoMessageArray[1]);//定位时间
+						info.setOi(String.valueOf(Integer.parseInt(gpsInfoMessageArray[16])/10));//油位
+						info.setGv(gpsInfoMessageArray[12]);//是否定位
+						info.setSh(String.valueOf(Integer.parseInt(gpsInfoMessageArray[14])/10));//记录仪里程
+						info.setSt(gpsInfoMessageArray[12]);//
+						info.setGd(gpsInfoMessageArray[5]);//海拔
+						info.setBill(this.getBillValueByVehicleId(vehicleId));//电子运单
+						
+						/**附加信息**/
+						if(affixationBean!=null){
+							//人工确认报警事件的ID
+							info.setAlarmAffairID(affixationBean.getAlarmAffairID()==null?"":affixationBean.getAlarmAffairID().toString());
+							//超速报警
+							info.setOverspeedAlarm(affixationBean.getOverspeedAlarm()==null?"":affixationBean.getOverspeedAlarm().toString());
+							//进出区域
+							info.setTurnoverArea(affixationBean.getTurnoverArea()==null?"":affixationBean.getTurnoverArea().toString());
+						}
+						
+						
+						gpsBackList.add(info);
+					}
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+//		GpsInfo info=new GpsInfo();
+//		info.setLat("38.034202");
+//		info.setLon("114.557241");
+//		info.setHd("33");
+//		info.setSd("0");
+//		info.setSd2("18");
+//		info.setSim("13290007524");
+//		info.setNo("粤A88888");
+//		info.setGs("海拔:0,,里程:2220 公里 ,车辆电路正常,车辆油路正常,东经,北纬,定位,ACC开");
+//		info.setGt("2011-11-02 15:47:12");
+//		info.setGv("1");
+//		info.setSh("2220");
+//		info.setOi("0");
+//		info.setGd("司机姓名:吴凡,驾驶员身份证号:412000198309251112,,从业资格证编号:1234567890123456789012345678901234567890,,发证机构名称:广州亿程交通信息有限公司");
+//	    gpsBackList.add(info);
+		return gpsBackList;
+	}
+
+/**
+ *  取某车GSP定位信息
+ *  @param vehicleId 车辆ID
+ */
+	public GpsInfo getVehicleGpsInfo(String vehicleId,String mapType) throws Exception {
+		GpsInfo info=new GpsInfo();
+		try{
+				    vehicleId = StringUtils.deleteWhitespace(vehicleId);
+					String gpsInfoMessage = this.getGpsInfo(vehicleId);
+					
+					/**
+					 * 定位信息: ##110,5,51908,NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+					 * NTE5MDgsMjAxMi0wNC0xOSAxMzo0NToyOSwyMDEyLTA0LTE5IDEzOjQ0OjQ4LDEwOC4zNjYzNzgsMzAuODQ2MTk4LDAsMCwwLDE5LDAsMCwwLDEsMCwxMDgxLDAsMTYxLDAyMDAwMDAwMDAwMDAwMDA=
+					 * 解密后是51908,2012-04-19 13:45:29,2012-04-19 13:44:48,108.366378,30.846198,0,0,0,19,0,0,0,1,0,1081,0,161,0200000000000000
+					 * 分别是，车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态
+					 */
+					if (null != gpsInfoMessage) {
+						String[] gpsInfoMessageArray = gpsInfoMessage.split(",");
+						// 解释终端状态
+						// 判断是否有司机信息g
+						String stateStr = "";// 状态
+						stateStr = State.getTermianlState(gpsInfoMessageArray[17]);//gps状态|报警状态 
+					    String[] stateStrArray=stateStr.split("\\|");
+					    String gpsStateString=stateStrArray[0];
+					    String alarmsStateString=stateStrArray[1];
+						//gpsStateString+=",车牌颜色:"+vehicleValue[1];
+						
+						//车辆id,定位时间,接收时间,经度,维度,海拔,传感器速度,GPS速度,方向,西经,北纬,ACC开,定位精确,是否补偿数据,传感器里程,GPS里程,油位,终端状态
+					    String lnglat=gpsInfoMessageArray[3]+","+gpsInfoMessageArray[4];//经度,纬度
+					    String[] lngArray=Tools.getRealLngLat(lnglat,mapType);
+						String sd2 =gpsInfoMessageArray[6]; //记录仪速度State.getRecorderspeed(gpsInfoMessageArray[5]);
+						info.setLat(gpsInfoMessageArray[4]);// 纬度
+						info.setLon(gpsInfoMessageArray[3]);// 经度
+						info.setsHlat(lngArray[1]);//偏移后纬度
+						info.setsHlon(lngArray[0]);//偏移后经度
+						info.setHd(gpsInfoMessageArray[8]);//方向
+						info.setSd(gpsInfoMessageArray[7]);//GPS速度
+						info.setSd2(sd2);//行驶记录速度
+					    info.setVehicleId(vehicleId);//车辆id
+						info.setGs(gpsStateString);//状态字符串
+						info.setAlarmState(alarmsStateString);//报警状态字符串
+						info.setGt(gpsInfoMessageArray[1]);//定位时间
+						info.setOi(String.valueOf(Integer.parseInt(gpsInfoMessageArray[16])/10));//油位
+						info.setGv(gpsInfoMessageArray[12]);//是否定位
+						info.setSh(String.valueOf(Integer.parseInt(gpsInfoMessageArray[14])/10));//传感器里程
+						info.setSm(String.valueOf(Integer.parseInt(gpsInfoMessageArray[15])/10));//GPS里程
+						info.setSt(gpsInfoMessageArray[12]);//
+						info.setGd(gpsInfoMessageArray[5]);//海拔
+						info.setBill(this.getBillValueByVehicleId(vehicleId));//电子运单
+					}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return info;
+	}
+
+	/**
+	 * 判断车辆是否在线
+	 * @param vehicleId 车辆id
+	 * @return 在线返回ture,不在线返回flase
+	 * @author lihaiyan
+	 */
+	public boolean getVehicleIsOnline(String vehicleId){
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		Calendar calendar=Calendar.getInstance();
+		TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		sdf.setTimeZone(timeZoneChina);// 设置系统时区
+		calendar.setTimeZone(timeZoneChina);
+		Long nowTime=calendar.getTimeInMillis();
+			try {
+				String gpsInfoMessage = this.getGpsInfo(vehicleId);
+				if(StringUtils.isEmpty(gpsInfoMessage)){
+					return false;
+				}else{
+					String[] gpsInfoMessageArray = gpsInfoMessage.split(",");
+					String gpsTimeString=gpsInfoMessageArray[1];
+					Long gpsTime=sdf.parse(gpsTimeString).getTime();
+					if((nowTime-gpsTime)<=600000){//10分钟内有轨迹
+						return true;
+					}else{
+						return false;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+	}
+	
+	/**
+	 * 矩形区域查询
+	 * @param leftLatLon ,矩形区域左上角经纬度(经度|纬度)
+	 * @param rightLatLon , 矩形区域右下角经纬度(经度|纬度)
+	 * @param mapType 地图类型（1是泰瑞，2是百度）
+	 * @param vehicleMap ,用户车辆map
+	 * @return 车辆列表List(车辆id)
+	 * */
+	public List<String> findRectangleAreaCar(String leftLatLon, String rightLatLon,Map<String,String> vehicleMap,String mapType) throws Exception {
+		List<String> rectangleBackList = new ArrayList<String>();
+
+		// 用户车辆\
+		Iterator<String> iterator = vehicleMap.keySet().iterator();
+
+		double leftLat = Double.parseDouble(leftLatLon.split("\\|")[0]); // 左下角经度
+		double leftLon = Double.parseDouble(leftLatLon.split("\\|")[1]); // 左下角纬度
+		double rightLat = Double.parseDouble(rightLatLon.split("\\|")[0]); // 右上方经度
+		double rightLon = Double.parseDouble(rightLatLon.split("\\|")[1]);// 右上方纬度
+		/**泰瑞地图的偏移**/
+		if(mapType.equals("2")){
+			String[] leftRSH=Tools.getRSHRealLngLat(leftLat+","+leftLon);//反偏移
+			leftLat=Double.parseDouble(leftRSH[0]);
+			leftLon=Double.parseDouble(leftRSH[1]);
+			String[] rightRSH=Tools.getRSHRealLngLat(rightLat+","+rightLon);//反偏移
+			rightLat=Double.parseDouble(rightRSH[0]);
+			rightLon=Double.parseDouble(rightRSH[1]);
+		}
+		else if(mapType.equals("1")){
+			/**百度地图**/
+			leftLat=leftLat+0.010439549;
+			leftLon = leftLon+0.003489415;
+			rightLat=rightLat+0.010439549;
+			rightLon=rightLon+0.003489415;
+		}
+		
+		while (iterator.hasNext()) {
+			String vehicleId=iterator.next();
+			try {
+				String gpsInfo = this.getGpsInfo(vehicleId);// 车辆最新定位信息
+				//gpsInfo="109.498495,37.418602,109.498495,37";
+				if (StringUtils.isNotEmpty(gpsInfo)) {
+					double lat = Double.parseDouble(gpsInfo.split(",")[3]); // 车辆最新经度
+					double lon = Double.parseDouble(gpsInfo.split(",")[4]);// 车辆最新纬度
+					
+					/**百度地图**/
+//					if(mapType.equals("1")){
+////						lat = lat+0.010439549;
+////						lon = lon+0.003489415;
+//						StringBuffer latlon = new StringBuffer();
+//						latlon.append(lat).append(",").append(lon);
+//						String[] lngArray = Tools.getRealLngLat(latlon.toString(),mapType);
+//						lat=Double.parseDouble(lngArray[0]);
+//						lon=Double.parseDouble(lngArray[1]);
+//					}
+
+					// 对比经纬度
+					if ((lat > leftLat && lat < rightLat) && (lon > leftLon && lon < rightLon)) {
+						rectangleBackList.add(vehicleId);
+					}
+				}
+			} catch (Exception e) {
+
+			}
+		}
+		return rectangleBackList;
+	}
+	
+
+	
+	
+	/**
+	 * 通过车辆ID获取指令回复数据(摄像图片信息)
+	 * 
+	 * @param vehicleId
+	 * @return 此车辆的指令回复
+	 * */
+	public String findPictureResult(String vehicleId) throws Exception {
+		String msg = this.specialCommandResultMap.get(vehicleId);
+		 this.specialCommandResultMap.remove(vehicleId);//
+		 return msg;
+	}
+
+	/**
+	 * GPS定位信息处理线程
+	 * */
+	private void gpsInfoHandleThread() {
+		taskExecutor.execute(new GpsInfoHandleThread(gpsInfoHashMap, gpsInfoQueue));
+	}
+	
+	/**
+	 * 附加信息数据处理线程
+	 * */
+	private void affixationHandleThread() {
+		taskExecutor.execute(new AffxationHandleThread(affixationHashMap, affixationQueue));
+	}
+
+	/**
+	 * 业务数据处理线程
+	 * */
+	private void businessHandleThread() {
+		taskExecutor.execute(new BusinessHandleThread(businessQueue));
+	}
+	/**
+	 * 报警数据处理线程
+	 * */
+	private void alarmHandleThread() {
+		taskExecutor.execute(new AlarmHandleThread(alarmHashMap,alarmQueue));
+	}
+	/**
+	 * 指令回复数据处理线程
+	 * */
+	private void commandResultHandleThread() {
+		taskExecutor.execute(new CommandResultHandleThread(commandResultHashMap,commandResultQueue,specialCommandResultMap,lowerFlatQueue,billMap));
+	}
+
+	/**
+	 * 发送线程
+	 * */
+	private void sendMessage() {
+		try {
+			taskExecutor.execute(sendMessage = new SendMessage(socketTemplate, commandSendQueue));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 接收线程
+	 * */
+	private void getReceivedMessage() {
+		try {
+			taskExecutor.execute(receivedMessage = new ReceivedMessage(socketTemplate, gpsInfoQueue, businessQueue,commandResultQueue,alarmQueue,affixationQueue));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	
+	/**
+	 * 通过SIM号取定位信息
+	 * @param vehicleId ,车辆id
+	 * @return 此SIM号的定位信息
+	 * */
+	public String getGpsInfo(String vehicleId) throws Exception {
+		return this.gpsInfoHashMap.get(vehicleId);
+	}
+	
+	
+	/**
+	 * 通过车辆id号获取附加信息
+	 * @param vehicleId ,车辆id
+	 * @return 附加信息实体bean
+	 * */
+	public AffixationBean getAffixationBean(String vehicleId)throws Exception{
+		return this.affixationHashMap.get(vehicleId);
+	}
+
+	
+	/**
+	 * 通过车辆ID获取报警数据
+	 * @param vehicleId 
+	 * @return 此车辆的报警数据
+	 * */
+	public Queue<String> getAlarm(String vehicleId) throws Exception {
+		return this.alarmHashMap.get(vehicleId);
+	}
+	
+	/**
+	 * 通过车辆ID获取指令回复数据
+	 * @param vehicleId 
+	 * @return 此车辆的指令回复
+	 * */
+	public String getCommandResult(String vehicleId) throws Exception{
+		 String msg = this.commandResultHashMap.get(vehicleId);
+		 this.commandResultHashMap.remove(vehicleId);//
+		 return msg;
+	}
+
+	
+	/**
+	 * 取指令系列号
+	 * @return 系列号
+	 * */
+	public synchronized int getSendSequence() {
+		if (sendSequence > 9000) {
+			sendSequence = 100;
+		}
+		return ++sendSequence;
+	}
+
+	/**
+	 * 将发送指令插入发送队列
+	 * @param message 要插入的指令队列
+	 * */
+	public void insertCommandSendQueue(String message) throws Exception {
+		this.commandSendQueue.produce(message);
+	}
+
+	
+	/**
+	 * 判断是否有报警
+	 * 
+	 * @return
+	 */
+	public boolean findIsHaveAlarm(SessionUser user)
+	{
+		try
+		{       
+			if(UserContext.isBsRootUser()){//admin超级用户
+				for (Map.Entry<String, Queue<String>> entry : alarmHashMap.entrySet())
+				{
+					Queue<String> businessQueue = entry.getValue();
+					if (businessQueue != null)
+					{
+						String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+						for (String str : businessQueueStrs)
+						{
+							if(StringUtils.isNotEmpty(str)){
+								String[] tempStr = StringUtils.split(str, "=====");
+								String dateStr = tempStr[1];
+										if(Tools.isNew(dateStr))
+										{
+											/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】begin**/
+											String[] strs = StringUtils.split(tempStr[0], ",");
+											String alarmStr =strs[0]+"-"+strs[1]+"-"+strs[4];
+											if(validateAleram(alarmStr)){//未处理
+												return true;
+											}
+											/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】end**/
+										}
+							}
+							
+						}
+					}
+				}
+			}else{//其它用户
+				Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+				if(vehicleMap!=null){
+					for(Map.Entry<String, String> vehicle:vehicleMap.entrySet()){
+						   Queue<String> businessQueue=alarmHashMap.get(vehicle.getKey());
+							if (businessQueue != null)
+							{
+								String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+								for (String str : businessQueueStrs)
+								{
+									if(StringUtils.isNotEmpty(str)){
+										String[] tempStr = StringUtils.split(str, "=====");
+										String dateStr = tempStr[1];
+												if(Tools.isNew(dateStr))
+												{
+													/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】begin**/
+													String[] strs = StringUtils.split(tempStr[0], ",");
+													String alarmStr =strs[0]+"-"+strs[1]+"-"+strs[4];
+													if(validateAleram(alarmStr)){//未处理
+														return true;
+													}
+													/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】end**/
+												}
+									}
+									
+								}
+							}
+					   }
+				}
+			}
+			   
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+
+		return false;
+	}
+
+	public boolean isAlarm(String str)
+	{
+		int alarmCode = Integer.parseInt(str);
+		if (alarmCode >= 1 && alarmCode <= 14)
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	
+	/**
+	 * 获取实时报警
+	 * 
+	 * @param user
+	 * @param alarmTypeNo
+	 * @createTime 2012-11-8
+	 * @return
+	 */
+	public List<AlarmModel> getRealTimeAlarm(SessionUser user, String alarmTypeNo,String alarmSourceNo,String registrationNo)
+	{
+		int totalCount = 0;
+		List<AlarmModel> alarmModels = null;
+		try
+		{
+			
+			        alarmModels = new ArrayList<AlarmModel>();
+			        /***
+			         * alarmHashMap 保存的数据
+			         * 例如：Queue 里面的某一项数据：341,2013-05-15 10:44:21,2013-05-14 18:32:14,2013-05-15 10:43:30,3,1, ,28460,0,0,0.000113,0.000023,33,0,0,0,56,0,0,最后一个参数
+			         */
+			    	for (Map.Entry<String, Queue<String>> entry : alarmHashMap.entrySet())
+					{
+						Queue<String> businessQueue = entry.getValue();
+						if (businessQueue != null)
+						{
+							String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+							for(int alarmIndex=businessQueueStrs.length-1;alarmIndex>=0;alarmIndex--){
+								try
+								{
+									String str=businessQueueStrs[alarmIndex];
+									if(StringUtils.isNotEmpty(str))
+									{
+										String[] tempStr = StringUtils.split(str, "=====");
+										String dateStr = tempStr[1];
+										SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+										TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+										sdf.setTimeZone(timeZoneChina);// 设置系统时区
+									
+										//中文的,分割
+										//System.out.println("############"+tempStr[0]);
+										String[] strs = StringUtils.split(tempStr[0], ",");
+										
+										/**报警来源过滤begin**/
+										//其它报警 【有,{企业监控平台，政府监管平台,平台,其他},都是属于其它报警】
+										if("9".equals(alarmSourceNo)){ //其它报警
+											if(!("-1".equals(alarmSourceNo)) && (!(alarmSourceNo.equals(strs[5]))&&!("2".equals(strs[5]))&&!("3".equals(strs[5]))&&!("5".equals(strs[5]))  )   ){
+												continue;
+											}
+										}else{//车载终端,平台报警
+											if(!("-1".equals(alarmSourceNo)) && !(alarmSourceNo.equals(strs[5]))){
+												continue;
+											}
+										}
+										/**报警来源过滤end**/
+										if (!("-1".equals(alarmTypeNo)) && !(alarmTypeNo.equals(strs[4])))
+										{// 如果选择过滤报警
+											continue;
+										}
+										Date date = new Date(Long.valueOf(dateStr));
+										String alarmTime = sdf.format(date);
+										if (Tools.isNew(dateStr))
+										{
+											if (totalCount < Tools.realAlarmMaxCount)
+											{// 返回50条 
+												String vehicleInfo = getVehicleMessage(entry.getKey());
+												if(StringUtils.isEmpty(vehicleInfo)){
+													continue;
+												}
+												if (StringUtils.isNotEmpty(registrationNo))
+												{
+													if (vehicleInfo.indexOf(registrationNo) > -1)
+													{
+														/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】begin**/
+														AlarmModel alarmModel = new AlarmModel();
+														alarmModel = Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime);
+														String alarmStr = alarmModel.getVehicleId()+"-"+alarmModel.getAlarmTime()+"-"+alarmModel.getAlarmTypeId();
+														if(validateAleram(alarmStr)){//未处理
+															alarmModels.add(alarmModel);
+														}
+														/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】end**/
+													} else
+													{
+														continue;
+													}
+												} else
+												{
+													/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】begin**/
+													AlarmModel alarmModel = new AlarmModel();
+													alarmModel = Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime);
+													String alarmStr = alarmModel.getVehicleId()+"-"+alarmModel.getAlarmTime()+"-"+alarmModel.getAlarmTypeId();
+													if(validateAleram(alarmStr)){//未处理
+														alarmModels.add(alarmModel);
+													}
+													/**去掉已经处理的数据【ljy】【车辆ID-报警时间-报警类型】end**/
+												}
+
+											} else
+											{
+												return alarmModels;
+											}
+											totalCount++;
+										}
+									}
+								} catch (Exception e)
+								{
+									e.printStackTrace();
+								}
+							}
+						}
+					}
+				
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return alarmModels;
+	}
+	
+	/**
+	 * 验证是否已经处理了此报警信息
+	 * @param alarmMapKey key值，由【车辆ID-报警时间-报警类型】组合而成
+	 * @return true 已经处理，false未处理
+	 */
+	@SuppressWarnings("unchecked")
+	public boolean validateAleram(String alarmMapKey){
+		//内存已经处理的数据
+		Map<String, String> alarmMap = (Map<String, String>)Struts2Utils.getSessionAttribute(Constants.ALARMDEL);
+		if(alarmMap==null){ //未处理
+			return true;
+		}else{
+			String alarmStr2 = alarmMap.get(alarmMapKey);
+			if(null==alarmStr2||alarmStr2.equals("")){  //已处理
+				return true;
+			}else{//已经处理
+				return false;
+			}
+		}
+	}
+	
+
+	/**
+	 * 获取实时报警(超级管理员与普通管理员分开处理)
+	 * 
+	 * @param user
+	 * @param alarmTypeNo
+	 * @return
+	 */
+	public List<AlarmModel> getRealTimeAlarm_back(SessionUser user, String alarmTypeNo, String registrationNo)
+	{
+		int totalCount = 0;
+		List<AlarmModel> alarmModels = null;
+		try
+		{
+			
+			    alarmModels = new ArrayList<AlarmModel>();
+			    if(UserContext.isBsRootUser()){//admin超级用户
+			    	for (Map.Entry<String, Queue<String>> entry : alarmHashMap.entrySet())
+					{
+						Queue<String> businessQueue = entry.getValue();
+						if (businessQueue != null)
+						{
+							String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+							for (String str : businessQueueStrs)
+							{
+								if(StringUtils.isNotEmpty(str))
+								{
+									String[] tempStr = StringUtils.split(str, "=====");
+									String dateStr = tempStr[1];
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+									TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+									sdf.setTimeZone(timeZoneChina);// 设置系统时区
+									Date date = new Date(Long.valueOf(dateStr));
+									String alarmTime = sdf.format(date);
+									String[] strs = StringUtils.split(tempStr[0], ",");
+									
+									if (!("-1".equals(alarmTypeNo)) && !(alarmTypeNo.equals(strs[4])))
+									{// 如果选择过滤报警
+										continue;
+									}
+									
+									if (Tools.isNew(dateStr))
+									{
+										if (totalCount < Tools.realAlarmMaxCount)
+										{// 返回50条
+											String vehicleInfo = getVehicleMessage(entry.getKey());
+											if(StringUtils.isEmpty(vehicleInfo)){
+												continue;
+											}
+											if (StringUtils.isNotEmpty(registrationNo))
+											{
+												if (vehicleInfo.indexOf(registrationNo) > -1)
+												{
+													alarmModels.add(Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime));
+												} else
+												{
+													continue;
+												}
+											} else
+											{
+												alarmModels.add(Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime));
+											}
+
+										} else
+										{
+											return alarmModels;
+										}
+										totalCount++;
+									}
+								}
+								
+							}
+						}
+					}
+			    }else {//其它用户
+			    	Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+					for(Map.Entry<String, String> vehicle:vehicleMap.entrySet()){
+						 Queue<String> businessQueue=alarmHashMap.get(vehicle.getKey());
+							if (businessQueue != null)
+							{
+								String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+								for (String str : businessQueueStrs)
+								{
+									if(StringUtils.isNotEmpty(str))
+									{
+										String[] tempStr = StringUtils.split(str, "=====");
+										String dateStr = tempStr[1];
+										SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+										TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+										sdf.setTimeZone(timeZoneChina);// 设置系统时区
+										Date date = new Date(Long.valueOf(dateStr));
+										String alarmTime = sdf.format(date);
+										String[] strs = StringUtils.split(tempStr[0], ",");
+										
+										if (!("-1".equals(alarmTypeNo)) && !(alarmTypeNo.equals(strs[4])))
+										{// 如果选择过滤报警
+											continue;
+										}
+										
+										if (Tools.isNew(dateStr))
+										{
+											if (totalCount < 50)
+											{// 返回50条
+												String vehicleInfo =vehicle.getValue();
+												if(StringUtils.isEmpty(vehicleInfo)){
+													continue;
+												}
+												if (StringUtils.isNotEmpty(registrationNo))
+												{
+													if (vehicleInfo.indexOf(registrationNo) > -1)
+													{
+														alarmModels.add(Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime));
+													} else
+													{
+														continue;
+													}
+												} else
+												{
+													alarmModels.add(Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime));
+												}
+
+											} else
+											{
+												return alarmModels;
+											}
+											totalCount++;
+										}
+									}
+									
+								}
+							}
+					}
+				}
+				
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		return alarmModels;
+	}
+	
+
+	/**
+	 * 获取用户所有实时报警
+	 * @param paramMap
+	 * @return
+	 */
+	public List<Map<String,String>> getRealTimeVehicleAlarm(String alarmTypeNo,List<HashMap<String,String>> ls) throws Exception
+	{
+		int totalCount = 0;
+		int maxCount = 50000;
+		List<Map<String,String>> resultls = new ArrayList<Map<String,String>>();
+
+		try
+		{
+			
+	        if(ls!=null && ls.size()>0){
+		        for(int i=0;i<ls.size();i++){
+		        	Map<String,String> map = ls.get(i);
+					Queue<String> businessQueue = alarmHashMap.get(map.get("vehicleID"));
+					if (businessQueue != null)
+					{
+						String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+						for(int alarmIndex=businessQueueStrs.length-1;alarmIndex>=0;alarmIndex--){
+							try
+							{
+								String str=businessQueueStrs[alarmIndex];
+								if(StringUtils.isNotEmpty(str))
+								{
+									/*新版报警协议
+									 * sendBody := Format(
+									 *   0 '%d,' +                     //车辆ID                     4
+							             1 '%s,' +                     //报警时间                   8
+							             2 '%s,' +                     //报警开始时间               8
+							             3 '%s,' +                     //报警本段开始报警时间       8
+							             4 '%d,' +                     //报警类型：1:紧急报警 2:超速 3:疲劳，...                               4
+							             5 '%d,' +                     //报警来源：1:车载终端；2:企业监控平台；3:政府监管平台；5:PA; 9：其它。
+							             6 '%s,' +                     //报警来源名称
+							             7 '%d,' +                     //外部报警信息ID                                                        4
+							             8 '%s,' +                     //如：疲劳门限、休息时间、当前驾驶时间。 各种报警参数各不相同           N
+							             9 '%.6f,'+                    //经度            1/1E6      4
+							             10'%.6f,'+                    //纬度            1/1E6      4
+							             11'%d,' +                     //传感器速度      1km        1
+							             12'%d,' +                     //GPS速度         1km        1
+							             13'%d,' +                     //传感器里程      0.1km      4
+							             14'%d,' +                     //GPS里程         0.1km      4
+							             15'%d,' +                     //方向            2dec       1
+							             16'%d,' +                     //本段报警次数               2
+							             17'%d,' +                     //累计报警次数               4
+							             18'%s',                       //状态字 32位               32      sum = 57 + 32 + N
+									 */
+									//13,2013-01-23 18:29:10,2013-01-12 08:18:21,2013-01-23 18:25:10,14,1, ,8305369, ,0.000111,0.000028,0,0,14033679,14033679,0,0,0,                     =====1358936950968
+									String[] tempStr = StringUtils.split(str, "=====");
+									String dateStr = tempStr[1];
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+									TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+									sdf.setTimeZone(timeZoneChina);// 设置系统时区
+								
+									String[] strs = StringUtils.split(tempStr[0], ",");
+									
+									if (!("-1".equals(alarmTypeNo)) && !(alarmTypeNo.equals(strs[4])))
+									{// 如果选择过滤报警
+										continue;
+									}
+									Date date = new Date(Long.valueOf(dateStr));
+									String alarmTime = sdf.format(date);
+									
+									if (totalCount < maxCount)
+									{
+										String vehicleInfo = map.get("registrationNO")+"|"+map.get("registrationNOColor");
+										AlarmModel alarmModel = Tools.alarmQueueTypeToList(strs,vehicleInfo, alarmTime);
+
+										Map<String,String> val = new HashMap<String,String>();
+										
+										val.put("registrationNO", alarmModel.getRegistrationNo());//车牌
+										val.put("registraionColor", alarmModel.getRegistrationColor());//车牌颜色
+										val.put("vehicleID", alarmModel.getVehicleId());//车辆ID
+										val.put("alarmType", alarmModel.getAlarmName());//报警类型
+										val.put("longitude", alarmModel.getLongitude());//经度
+										val.put("latitude", alarmModel.getLatitude());//纬度
+										val.put("speed1", alarmModel.getSpeed1());//Gps速度
+										val.put("speed2", alarmModel.getSpeed2());
+										val.put("head", Tools.getHead(Integer.parseInt(alarmModel.getHead())));//方向
+										//val.put("status", Tools.translationGpsStatus(alarmModel.getState()));//状态[GPS定位、北纬、东经、运营状态、ACC关等]
+										val.put("gpsMileage1", alarmModel.getGpsMileage1());
+										val.put("gpsMileage2", alarmModel.getGpsMileage2());//里程
+										val.put("alarTime", alarmModel.getAlarmTime());//GPS时间
+										val.put("alarmDesc", alarmModel.getDesc());//报警描述
+										
+										resultls.add(val);
+										
+										totalCount++;
+									}else{
+										return resultls;
+									}
+								}
+							} catch (Exception e)
+							{
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+	        }
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		return resultls;
+	}
+	
+	
+	
+	
+
+
+//	/**
+//	 * 通过SIM号取业务数据
+//	 * @param commno ,SIM号
+//	 * @return 此SIM号的业务数据
+//	 * */
+//	public Queue<String> getBusiness(String commno) throws Exception {
+//		return this.businessHashMap.get(commno);
+//	}
+
+	
+	/**
+	 * 根据终端号获取车辆信息
+	 * 
+	 * @param vehicleId
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public String getVehicleMessage(String vehicleId)
+	{
+		vehileMap =(Map<String,String>) Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+		String getVehicleMessage = vehileMap.get(vehicleId);
+		return getVehicleMessage;
+	}
+
+	public Queue<String> getLowerFlatQueue()
+	{
+	 return lowerFlatQueue;
+	}
+	
+	/**
+	 * 获取车辆id获取电子运单
+	 * @param vehicleId
+	 * @return
+	 */
+	private String getBillValueByVehicleId(String vehicleId){
+		String bill="";
+		bill=this.billMap.get(vehicleId);
+		return bill!=null?bill:"";
+	}
+
+	@Override
+	public MonitorCenterServices getMonitorCenterServices() {
+		return this.monitorCenterServices;
+	}
+	
+	public List<Map<String, String>> getRealTimeVehicleAlarmTest(
+			String alarmTypeNo, List<HashMap<String, String>> ls)
+			throws Exception {
+		int totalCount = 0;
+		int maxCount = 50000;
+		List<Map<String, String>> resultls = new ArrayList<Map<String, String>>();
+
+		try {
+
+			if (ls != null && ls.size() > 0) {
+				for (int i = 0; i < ls.size(); i++) {
+					Map<String, String> map = ls.get(i);
+					try {
+						// String str=businessQueueStrs[alarmIndex];
+						String str = "13,2013-01-23 18:29:10,2013-01-12 08:18:21,2013-01-23 18:25:10,39,1, ,8305369, ,0.000111,0.000028,0,0,14033679,14033679,0,0,0,=====1358936950968";
+						if (StringUtils.isNotEmpty(str)) {
+							/*
+							 * 新版报警协议 sendBody := Format( 0 '%d,' + //车辆ID 4 1
+							 * '%s,' + //报警时间 8 2 '%s,' + //报警开始时间 8 3 '%s,' +
+							 * //报警本段开始报警时间 8 4 '%d,' + //报警类型：1:紧急报警 2:超速
+							 * 3:疲劳，... 4 5 '%d,' +
+							 * //报警来源：1:车载终端；2:企业监控平台；3:政府监管平台；5:PA; 9：其它。 6
+							 * '%s,' + //报警来源名称 7 '%d,' + //外部报警信息ID 4 8 '%s,' +
+							 * //如：疲劳门限、休息时间、当前驾驶时间。 各种报警参数各不相同 N 9 '%.6f,'+
+							 * //经度 1/1E6 4 10'%.6f,'+ //纬度 1/1E6 4 11'%d,' +
+							 * //传感器速度 1km 1 12'%d,' + //GPS速度 1km 1 13'%d,' +
+							 * //传感器里程 0.1km 4 14'%d,' + //GPS里程 0.1km 4 15'%d,'
+							 * + //方向 2dec 1 16'%d,' + //本段报警次数 2 17'%d,' +
+							 * //累计报警次数 4 18'%s', //状态字 32位 32 sum = 57 + 32 + N
+							 */
+							// 13,2013-01-23 18:29:10,2013-01-12
+							// 08:18:21,2013-01-23 18:25:10,14,1, ,8305369,
+							// ,0.000111,0.000028,0,0,14033679,14033679,0,0,0,
+							// =====1358936950968
+							String[] tempStr = StringUtils.split(str, "=====");
+							String dateStr = tempStr[1];
+							SimpleDateFormat sdf = new SimpleDateFormat(
+									"yyyy-MM-dd HH:mm:ss");
+							TimeZone timeZoneChina = TimeZone
+									.getTimeZone("Asia/Shanghai");// 获取中国的时区
+							sdf.setTimeZone(timeZoneChina);// 设置系统时区
+
+							String[] strs = StringUtils.split(tempStr[0], ",");
+
+							if (!("-1".equals(alarmTypeNo))
+									&& !(alarmTypeNo.equals(strs[4]))) {// 如果选择过滤报警
+								continue;
+							}
+							Date date = new Date(Long.valueOf(dateStr));
+							String alarmTime = sdf.format(date);
+
+							if (totalCount < maxCount) {
+								String vehicleInfo = map
+										.get("registrationNO")
+										+ "|"
+										+ map.get("registrationNOColor");
+								AlarmModel alarmModel = Tools
+										.alarmQueueTypeToList(strs,
+												vehicleInfo, alarmTime);
+
+								Map<String, String> val = new HashMap<String, String>();
+
+								val.put("registrationNO",
+										alarmModel.getRegistrationNo());// 车牌
+								val.put("registraionColor",
+										alarmModel.getRegistrationColor());// 车牌颜色
+								val.put("vehicleID", alarmModel.getVehicleId());// 车辆ID
+								val.put("alarmType", alarmModel.getAlarmName());// 报警类型
+								val.put("alarmTypeId", alarmModel.getAlarmTypeId());//报警类型ID
+								val.put("longitude", alarmModel.getLongitude());// 经度
+								val.put("latitude", alarmModel.getLatitude());// 纬度
+								val.put("speed1", alarmModel.getSpeed1());// Gps速度
+								val.put("speed2", alarmModel.getSpeed2());
+								val.put("head", Tools.getHead(Integer
+										.parseInt(alarmModel.getHead())));// 方向
+								// val.put("status",
+								// Tools.translationGpsStatus(alarmModel.getState()));//状态[GPS定位、北纬、东经、运营状态、ACC关等]
+								val.put("gpsMileage1",
+										alarmModel.getGpsMileage1());
+								val.put("gpsMileage2",
+										alarmModel.getGpsMileage2());// 里程
+								val.put("alarmTime", alarmModel.getAlarmTime());// GPS时间
+								val.put("alarmDesc", alarmModel.getDesc());// 报警描述
+
+								resultls.add(val);
+
+								totalCount++;
+							} else {
+								return resultls;
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return resultls;
+	}
+
+
+	/**
+	 * 根据车辆id获取实时数据的最新的司机信息
+	 */
+	@Override
+	public Map<String, Object> getNewestDriverMessage(String vehilceId) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		try {
+			AffixationBean affixationBean = this.getAffixationBean(vehilceId);
+			
+			if(affixationBean!=null){
+				//司机姓名
+				result.put("name", affixationBean.getDrivinName()==null?"":affixationBean.getDrivinName().toString());
+				//司机IC卡号
+				result.put("driverIC", affixationBean.getDriverIC()==null?"":affixationBean.getDriverIC().toString());
+				//司机驾驶证号
+				result.put("drivingLicence", affixationBean.getDrivingLicence()==null?"":affixationBean.getDrivingLicence().toString());
+				//终端司机编号
+				result.put("zdDriverCode", affixationBean.getZdDriverCode()==null?"":affixationBean.getZdDriverCode().toString());
+				//终端是否插入IC
+				result.put("zdWhetherIC", affixationBean.getZdWhetherIC()==null?"":affixationBean.getZdWhetherIC().toString());
+				
+			}
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return result;
+		
+	}
+	
+	
+	
+	
+
+	
+	
+}

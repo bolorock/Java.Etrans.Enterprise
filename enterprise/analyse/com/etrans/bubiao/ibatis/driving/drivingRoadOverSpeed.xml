@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--路段速度报表 -->
+
+<select id="getDrivingRoadOverSpeedSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (    
+			select 
+			       v.RegistrationNO
+			      ,G.name as AnalyseGroupName
+			      ,D.GenerateTime
+			      ,D.BounceOverSpeed
+			      ,R.name as ParamRoadName
+			      ,D.RecordSpeed
+			      ,(CASE WHEN D.RecordSpeed >= 2 * D.BounceOverSpeed THEN '严重超速'
+			       WHEN (D.RecordSpeed >= 1.5 * D.BounceOverSpeed) AND (D.RecordSpeed <![CDATA[<]]>2 * D.BounceOverSpeed) THEN '较严重超速'
+			       WHEN (D.RecordSpeed >= D.BounceOverSpeed) AND (D.RecordSpeed <![CDATA[<]]>1.5 * D.BounceOverSpeed) THEN '一般超速'
+			       ELSE '低速' END) AS OverSpeedType
+			      ,D.OverSpeedTime
+			      ,D.Longitude
+			      ,D.Latitude 
+			  From 
+			dbo.ANA_DrivingRoadOverSpeed D
+			left join dbo.ANA_AnalyseGroups G on D.AnalyseGroupID=G.id
+			left join Pub_Vehicle  V on D.VehicleID=V.id
+			left join dbo.ANA_ParamRoadSegments R on D.RoadSegmentID=R.id
+			left join Ent_AnalyseGroupsIDAddUserID as au on D.AnalyseGroupID=au.AnalyseGroupsID
+		WHERE  
+		<![CDATA[V.isDeleted <> 1]]>
+		<isNotEmpty property="startDate">
+		    AND  D.GenerateTime>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" >
+		     AND #endDate#>=D.GenerateTime
+        </isNotEmpty>
+        <isNotEmpty property="registrationNO" >
+			AND V.RegistrationNO like '%$registrationNO$%' 
+		</isNotEmpty>
+		<isNotEmpty property="workUnitId">
+			AND G.groupid = #workUnitId# 
+	     </isNotEmpty>
+	     <!--普通用户权限-->
+<isNotEmpty property="userId">
+ and au.UserID = #userId#
+</isNotEmpty>
+	      <!--轨迹分析组条件-->
+	      <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and D.AnalyseGroupID=#analyseGroupID#
+		  </isNotEqual>
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+ </select>
+ 
+ <select id="getDrivingRoadOverSpeedCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+         select 
+			     COUNT(*)
+			  From 
+			dbo.ANA_DrivingRoadOverSpeed D
+			left join dbo.ANA_AnalyseGroups G on D.AnalyseGroupID=G.id
+			left join Pub_Vehicle  V on D.VehicleID=V.id
+			left join dbo.ANA_ParamRoadSegments R on D.RoadSegmentID=R.id
+			left join Ent_AnalyseGroupsIDAddUserID as au on D.AnalyseGroupID=au.AnalyseGroupsID
+	WHERE  
+	<![CDATA[V.isDeleted <> 1]]>
+	<isNotEmpty property="startDate">
+	    AND  D.GenerateTime>=#startDate#
+    </isNotEmpty>
+    <isNotEmpty property="endDate" >
+	     AND #endDate#>=D.GenerateTime
+    </isNotEmpty>
+    <isNotEmpty property="registrationNO" >
+		AND V.RegistrationNO like '%$registrationNO$%' 
+	</isNotEmpty>
+	<isNotEmpty property="workUnitId">
+		AND G.groupid = #workUnitId# 
+     </isNotEmpty>
+     <!--普通用户权限-->
+<isNotEmpty property="userId">
+ and au.UserID = #userId#
+</isNotEmpty>
+       <!--轨迹分析组条件-->
+	      <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and D.AnalyseGroupID=#analyseGroupID#
+		  </isNotEqual>
+ </select>
+ 
+</sqlMap>

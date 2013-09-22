@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="enterprise">
+        <wb-resource deploy-path="/" source-path="/WebContent"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/config"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/httpServer"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/analyse"/>
+        <property name="context-root" value="enterprise"/>
+        <property name="java-output-path" value="/enterprise/build/classes"/>
+    </wb-module>
+</project-modules>

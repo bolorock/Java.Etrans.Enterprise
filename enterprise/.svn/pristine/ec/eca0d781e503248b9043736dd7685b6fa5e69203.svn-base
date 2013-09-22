@@ -1,0 +1,195 @@
+
+/**全局车牌字符串**/
+var registrationNoStr="";
+/**初始化**/
+$(function(){
+	/**车牌字符串**/
+	//访问carlist.js全局变量【方式一】
+//	var registrationNoStr2 = parent.parent.parent.leftFrame.getTrackBackRegistrationNo();
+//	alert("前台值："+registrationNoStr2);
+	nameTableBody = document.getElementById("name_table_body");
+	inputField = window.parent.document.getElementById("registrationVehicleId");//隐藏域组件
+	inputValueFieId = window.parent.document.getElementById("registrationVhicleNo");//显示值组件
+	//访问后台【方式一】
+	$.ajax({
+	    type : "POST",
+	    url : "monitorCenter/getVehicleNoBtrackBack.action",
+	    dataType : "JSON",
+	    success : function(data) {
+	    	if(data!=''){
+	    		registrationNoStr = data;
+	    		initTable(registrationNoStr);
+	    	}	    	 
+	    }
+    });
+	
+});
+
+var nameTableBody;//显示返回内容的【表格内容】 组件
+var inputField; //输入的类容【文本框】【隐藏域】 组件
+var inputValueFieId; //输入的类容【文本框】【显示值】 组件
+
+/**
+ * 加载
+ */
+function initTable(registrationNoStr) {
+//	alert("车牌字符串："+registrationNoStr);
+	if(registrationNoStr!=null && registrationNoStr!=''){
+		registrationNoStr = registrationNoStr.substring(1);
+		var vehicleStr = registrationNoStr.split(",");
+		addTableChild(vehicleStr);
+	}
+}
+
+/***
+ * 给表格添加内容
+ * @param vehicleStr 车牌和id字符串
+ * @return
+ */
+function addTableChild(vehicleStr){
+	/**循环添加数据**/
+    var row, cell, txtNode;
+	for(var i=0;i<vehicleStr.length;i++){
+		var vehicleAry = vehicleStr[i].split("|");
+		//var option = $("<option>").text(vehicleAry[1]).val(vehicleAry[0])
+		var nextNodeId =vehicleAry[0];//id值
+		var nextNode = vehicleAry[1];//显示的车牌
+		row = document.createElement("tr");
+        cell = document.createElement("td");
+        
+        cell.onmouseout = function() {this.className='mouseOverA';};
+        cell.onmouseover = function() {this.className='mouseOutA';};
+//        cell.setAttribute("bgcolor", "#FFFAFA");
+        cell.setAttribute("bgcolor", "#FFFAFA");
+        cell.setAttribute("border", "0");
+        cell.setAttribute("fontSize", "10");
+        cell.setAttribute("width", "350px");
+        cell.setAttribute("id", nextNodeId);
+        cell.onclick = function() { populateName(this); } ;                                   
+        
+        txtNode = document.createTextNode(nextNode);
+        cell.appendChild(txtNode);
+        row.appendChild(cell);
+        nameTableBody.appendChild(row);
+	}
+}
+
+
+/**框赋值给文本框**/
+function populateName(cell) {
+//	alert("给文本框赋值:"+cell.firstChild.nodeValue);
+//	alert("隐藏域的车牌id："+$(cell).attr("id"));
+	inputValueFieId.value=cell.firstChild.nodeValue;
+	inputField.value=$(cell).attr("id");
+	window.parent.onchangeVehicleNo();
+	closeDialog();
+}
+
+/**清空**/
+function clearNames() {
+	if(nameTableBody==null){return;}
+    var ind = nameTableBody.childNodes.length;
+    for (var i = ind - 1; i >= 0 ; i--) {
+         nameTableBody.removeChild(nameTableBody.childNodes[i]);
+    }
+//    completeDiv.style.border = "none";
+//    nameTable.style.border = "none";
+}
+
+/**
+ * 关闭
+ * @return
+ */
+function closeDialog(){
+	clearNames();
+	parent.closeDialog();
+}
+
+
+/**
+ * 按车牌号码查询
+ * @return
+ */
+function toSearch(){
+	/**车牌字符串**/
+	//var registrationNoStr = parent.parent.parent.leftFrame.getTrackBackRegistrationNo();
+	var registrationNo= $("#registrationNo").val();
+	//清空车牌号
+	clearNames();
+	
+	/**后台查询**/
+	$.ajax({
+	    type : "POST",
+	    url : "monitorCenter/getVehicleNoBtrackBack.action?registrationNo="+registrationNo,
+	    dataType : "JSON",
+	    success : function(data) {
+	    	if(data!=''){
+	    		registrationNoStr = data;
+	    		//数据源不为空
+	    		if(registrationNoStr!=null && registrationNoStr!=''){
+	    			registrationNoStr = registrationNoStr.substring(1);
+	    			var vehicleStr = registrationNoStr.split(",");
+	    		
+	    			if(registrationNo==""){//查询条件为空
+	    				addTableChild(vehicleStr);//显示所有的
+	    			}else{
+	    				//var arrayObj=validateVhicleNo(vehicleStr,registrationNo);
+	    				var arrayObj = vehicleStr;
+	    				if(arrayObj.length==0){//数据源为空
+	    					nullValue();
+	    				}else{
+	    					addTableChild(arrayObj);//显示过滤后的车牌
+	    				}
+	    			}
+	    		}else{//数据源为空
+	    			nullValue();
+	    		}
+	    	}else{//数据源为空
+	    		nullValue();
+	    	}	    	 
+	    }
+    });
+	
+}
+
+
+/****
+ * 数据位空后显示提示
+ * @return
+ */
+function nullValue(){
+	var row, cell, txtNode;
+	 row = document.createElement("tr");
+    cell = document.createElement("td");
+    cell.setAttribute("bgcolor", "#FFFAFA");
+    cell.setAttribute("border", "0");
+    cell.setAttribute("fontSize", "10");
+    cell.setAttribute("width", "350px");
+    txtNode = document.createTextNode("查询结果为空！");
+    cell.appendChild(txtNode);
+    row.appendChild(cell);
+    nameTableBody.appendChild(row);
+}
+
+/**
+ * 过滤车牌号码 【没用到了】
+ * @return
+ */
+function validateVhicleNo(vehicleStr,registrationNo){
+	var arrayObj = new Array();　//创建一个数组
+	
+	for(var i=0;i<vehicleStr.length;i++){
+		var vehicleAry = vehicleStr[i].split("|");
+		var nextNodeId =vehicleAry[0];//id值
+		var nextNode = vehicleAry[1];//显示的车牌
+		//alert("nextNode:"+nextNode+" registrationNo:"+registrationNo);
+		if(nextNode.indexOf(registrationNo)!=-1){
+			arrayObj.push(vehicleStr[i]);
+			//vehicleStr.splice(i-1,1);//删除从指定位置i开始的指定数量1的元素，数组形式返回所移除的元素
+		}
+	}
+	return arrayObj;
+}
+
+
+

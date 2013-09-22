@@ -1,0 +1,18 @@
+
+/*自动补全样式*/
+
+ /**鼠标移出**/
+ .mouseOutA {
+  background: #708090;
+  color: #FFFAFA;
+  /**background: #30608F;**/
+  /**color:#D8D8D8;**/
+ }
+ /**鼠标移入**/
+ .mouseOverA {
+ background: #FFFAFA;
+ color: #000000;
+ /** background: #508AC5;**/
+  /**color:#D8D8D8;**/
+ 
+ }

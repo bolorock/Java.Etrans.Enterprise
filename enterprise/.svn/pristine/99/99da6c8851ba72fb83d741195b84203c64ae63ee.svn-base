@@ -1,0 +1,1141 @@
+package com.etrans.bubiao.action.command;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.ParentPackage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.repository.CommandRepository;
+import com.etrans.bubiao.services.command.CommandServices;
+import com.etrans.bubiao.services.sys.CustomMapServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.Base64;
+import com.etrans.common.util.CommandCode;
+import com.etrans.common.util.CommandTools;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.web.Struts2Utils;
+
+/**
+ * @author lihaiyan
+ * @version 1.0
+ * @brief
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/command")
+@ParentPackage("sessionPkg")
+public class CommandAction extends BaseAction
+{
+	
+	@Autowired
+	private CommandRepository commandRepository;
+	
+	@Autowired
+	private CommandServices commandServices;
+	
+	@Autowired
+	private CustomMapServices customMapServices;
+	
+	/**
+	 * 描述：查询终端返回结果
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "findCommandResult")
+	public String findCommandResult()
+	{
+		String vehicleId = getParameter("vehicleId");
+		String jsonString = "false";
+		if (StringUtils.isNotEmpty(vehicleId))
+		{
+			try
+			{
+				jsonString= this.commandServices.findCommandResult(vehicleId); // 查询指令返回的结果
+			} catch (Exception e)
+			{
+				e.printStackTrace();
+				jsonString = "false";
+			}
+		}
+		// 返回发送结果
+		this.renderText(jsonString);
+
+		return NONE;
+	}
+	
+	/**
+	 * 描述：查询终端拍照返回结果(直连)
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "findPictureResult")
+	public String findPictureResult()
+	{
+		String vehicleId = getParameter("vehicleId");
+		
+		String jsonString = "false";
+		if (StringUtils.isNotEmpty(vehicleId))
+		{
+			try
+			{
+				
+				jsonString = this.commandServices.findPictureResult(vehicleId); // 查询指令返回的结果
+			} catch (Exception e)
+			{
+				e.printStackTrace();
+				jsonString = "false";
+			}
+		}
+		// 返回发送结果
+		this.renderText(jsonString);
+
+		return NONE;
+	}
+	
+
+	
+	/**
+	 * 描述：获取第一级指令
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getCommandSendOne")
+	public void getCommandSendOne()
+	{
+		String terminalKindID=getParameter("terminalKindID");
+		Map<String, Object> paramsMap=new HashMap<String, Object>();
+		paramsMap.put("terminalKindID", terminalKindID);
+		SessionUser user = UserContext.getLoginUser();
+		this.renderJSON(commandServices.findPubCommandSendOne(paramsMap,user));
+	 }
+
+	
+	/**
+	 * 描述：获取直连指令参数
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getCommandSendParam")
+	public void getCommandSendParam()
+	{
+  		String commandId=getParameter("commandId");
+		Map<String, Object> paramsMap = new  HashMap<String, Object>(1);
+  		paramsMap.put("commandId", commandId);
+  		List<Map<String, Object>> rows=null;
+  		
+  		try{
+  			rows = this.commandServices.getCommandSendParam(paramsMap);
+  		}catch(Exception ex){
+  			ex.printStackTrace();
+  		}
+		this.renderJSON(rows);
+		
+	 }
+	
+	/**
+	 * 描述：获取第二级指令
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getCommandSendTwo")
+	public void getCommandSendTwo()
+	{
+		String terminalKindID=getParameter("terminalKindID");
+		String functionName=getParameter("functionName");
+		String functionName_Two = getParameter("functionName_Two");
+		Map<String, Object> paramsMap = new  HashMap<String, Object>(1);
+		paramsMap.put("catalogName", functionName);
+		paramsMap.put("terminalKindID", terminalKindID);
+		paramsMap.put("functionName_Two", functionName_Two);
+		SessionUser user = UserContext.getLoginUser();
+		this.renderJSON(commandServices.findPubCommandSendTwo(paramsMap,user));
+	 }
+	
+	@Action(value = "getPlatAndOtherCommand")
+	public void getPlatAndOtherCommand(){
+		StringBuffer sb = new StringBuffer();
+		if(UserContext.isBsRootUser()|| UserContext.getLoginUser().isWorkUnitSuperAdmin()){
+			sb.append("false");
+		}else{
+			SessionUser user = UserContext.getLoginUser();
+			List<Map<String,Object>> list = commandServices.findPlatCommandAndOther(user);
+			
+			if(list!=null && list.size()>0){
+				for(int i=0;i<list.size();i++){
+					sb.append(list.get(i).get("CommandKindID")).append(",");
+				}
+			}else{
+				sb.append("false");
+			}
+		}
+		this.renderJSON(JSONUtil.toJson(sb.toString()));
+	}
+	
+	/**
+	 * 去掉参数最后的逗号
+	 * @param str
+	 * @return
+	 */
+	public String delEndChar(String str){
+		if(str!=null){
+			if(str.endsWith("\\|")){
+			  return str.substring(0, str.length() - 1);
+			}else{
+				return str;
+			}
+		}
+		return str;
+	}
+	
+	/**
+	 * 描述：指令(终端)发送
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-20
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "sendCommandMessage")
+	public String sendCommandMessage() throws Exception {
+		SessionUser user = UserContext.getLoginUser();
+		String sendResult = "false"; // 发送状态
+		String sendMessage = ""; // 要发送的字符
+		int sendSequence = 0; // 系列号
+		String encoderParam = ""; // 加密后的参数
+		String vehicleId=getParameter("commandTarget");
+		String paramMeassage=getParameter("paramMeassage");
+		String commandCode=getParameter("commandCode");
+		
+		String commandName=getParameter("commandName");//pub_command指令名称
+		String commandId=getParameter("commandId");//pub_command指令ID
+		
+		String commandKindId=getParameter("commandKindId");//发送指令ID
+		
+		try {
+			if (StringUtils.isNotEmpty(vehicleId)) {
+				String sendMsg =""; 
+					vehicleId = StringUtils.deleteWhitespace(vehicleId);
+					sendSequence = this.commandServices.getSendSequence(); // 取系列号
+					if (StringUtils.isEmpty(paramMeassage) || "null".equals(paramMeassage)) {
+						sendMsg = commandId + "," + commandCode + "," + commandName+", ";
+						
+					} else {//##序列号,发送指令类型,车辆ID,指令ID,指令编码,指令名称,参数
+						sendMsg = commandId + "," + commandCode + "," + commandName + "," + commandServices.encoderMsg(delEndChar(paramMeassage),commandKindId);
+					
+					}
+					encoderParam = Base64.encoderMessage(sendMsg);
+					encoderParam = encoderParam.replaceAll("\\n", "").replaceAll("\\r", "");
+					sendMessage = "##" + sendSequence + ",14," + vehicleId + "," + encoderParam;//##序号, 数据类型,车辆ID, Enbase64数据
+					log.error("--------------报文内容-------"+sendMessage);
+					this.commandServices.insertCommandSendQueue(sendMessage);
+					
+					
+					String unSendMsg = new String(Base64.decoderMessage(encoderParam));
+					System.out.println("-------------------指令参数解密后的字符串"+unSendMsg);
+					
+					// 指令发送日志
+					Map<String,Object> setParamMap=new HashMap<String, Object>();
+					setParamMap.put("CommContent", sendMessage);
+				    setParamMap.put("CommName", commandCode);
+				    setParamMap.put("SendTime",new Date());
+				    String userId="0";
+				    if(!user.isWorkUnitSuperAdmin()){
+				    	userId=String.valueOf(user.getUserID());
+				    }
+				    setParamMap.put("UserID", userId);
+				    setParamMap.put("UserName", user.getUserName());
+				    setParamMap.put("VehicleID",vehicleId==null?"0":vehicleId);
+				    this.commandServices.addClientCommandSendLog(setParamMap);
+				sendResult ="true";
+			}
+		} catch (Exception e) {
+			sendResult ="false";
+			e.printStackTrace();
+		}
+
+		Struts2Utils.renderText(sendResult);
+
+		return NONE;
+	}
+	/**
+	 * 描述：终端参数设置入库
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-20
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "addTerminalParam")
+	public String addTerminalParam(){
+		String vehicleId=getParameter("commandTarget");
+		String paramsNameValue=getParameter("paramsNameValue");
+		if (StringUtils.isNotEmpty(vehicleId)&&StringUtils.isNotEmpty(paramsNameValue)) {
+			 String[] paramValueArrayList=paramsNameValue.split("\\|");//参数名:参数值|参数名:参数值....
+			 Map<String, Object> params=new HashMap<String, Object>();
+			 params.put("@VehicleID", vehicleId);
+			 for(String paramVlaue:paramValueArrayList){
+				 String[] paramValueArray=paramVlaue.split(":");//参数名:参数值
+				 params.put("@ParamName", paramValueArray[0]);
+				 params.put("@ParamValue",paramValueArray[1]);
+				 this.commandServices.addTerminalParamSetting(params);
+			 }
+		}
+		return NONE;
+	}
+	
+	/**
+	 * 描述：取用户自定义的区域(shapeId：距形1，多边形是3，圆是2)
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="findAreaInfo")
+	public String findAreaInfo() {
+
+		String jsonString = "false";
+		try {
+			SessionUser users = UserContext.getLoginUser();
+			String shapeId=getParameter("FenceType");
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); // 区域面查询参数
+			paramsMap.put("userId", users.getUserID());
+			paramsMap.put("shapeId", shapeId);
+			
+			// 取区域面
+			List<HashMap<String, String>> planeList=customMapServices.getCustomMapPlane(paramsMap);
+
+			if (planeList != null && planeList.size() > 0) {
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "区域查询", "", "取用户自定义的区域");
+				jsonString =JSONUtil.toJson(planeList);
+			}
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "区域查询", "", "取用户自定义的区域");
+			jsonString = "false";
+			e.printStackTrace();
+		}
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+	/**
+	 * 描述：取用户自定义的线路
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="findRoInfo")
+	public String findRoInfo() {
+
+		String jsonString = "false";
+		try {
+			SessionUser users = UserContext.getLoginUser();
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); //线查询参数
+			paramsMap.put("userId", users.getUserID());
+			
+			// 取线
+			List<HashMap<String, String>> planeList=customMapServices.getCustomMapLine(paramsMap);
+
+			if (planeList != null && planeList.size() > 0) {
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "线路查询", "", "取用户自定义的线路");
+				jsonString =JSONUtil.toJson(planeList);
+			}
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "线路查询", "", "取用户自定义的线路");
+			jsonString = "false";
+			e.printStackTrace();
+		}
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+
+	/**
+	 * 描述：取用户自定义区域(距形,多边形,圆)的点
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="findAreaPoint")
+	public String findAreaPoint() {
+ 
+		String jsonString = "false";
+		String fenceID=getParameter("FenceID");
+		try {
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); // 查询参数
+			paramsMap.put("mapPlaneId", fenceID);
+
+			List<HashMap<String, String>> pointList=customMapServices.getPlanePoint(paramsMap);
+
+			if (pointList != null && pointList.size() > 0) {
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "点查询", "", "取用户自定义区域(距形,多边形,圆)的点");
+				jsonString =JSONUtil.toJson(pointList);
+			}
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "点查询", "", "取用户自定义区域(距形,多边形,圆)的点");
+			jsonString = "false";
+			e.printStackTrace();
+		}
+
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+
+	/**
+	 * 描述：取用户自定义线路的点
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-22
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="findLinePoint")
+	public String findLinePoint() {
+ 
+		String jsonString = "false";
+		String fenceID=getParameter("FenceID");
+		try {
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); // 查询参数
+			paramsMap.put("mapPlaneId", fenceID);
+
+			List<HashMap<String, String>> pointList=customMapServices.getLinePoint(paramsMap);
+
+			if (pointList != null && pointList.size() > 0) {
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "点查询", "", "取用户自定义线路的点");
+				jsonString =JSONUtil.toJson(pointList);
+			}
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "点查询", "", "取用户自定义线路的点");
+			jsonString = "false";
+			e.printStackTrace();
+		}
+
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+
+
+	/**
+	 * 描述： 取字符的字节的16进制ASICC
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-14
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="getByteHex")
+	public String getByteHex() {
+		
+		String result = "";
+		String toASICCString=getParameter("toASICCString");
+		try {
+			byte[] array = toASICCString.getBytes("GBK");
+
+			for (byte y : array) {
+				 String hex = Integer.toHexString(y & 0xFF);
+				  if (hex.length() == 1) {
+				        hex = '0' + hex;
+				      }
+				  result+=hex;
+			}
+		} catch (Exception e) {
+		}
+
+       this.renderText(result.toUpperCase());
+
+		return NONE;
+
+	}
+
+	/**
+	 * 描述：查询用户自定义圆形，多边形，矩形数据  
+	 *  shapeId 代表 2:圆形，3:多边形，1:矩形坐标   
+	 *  EditKindId 分别代表 设置圆形区域  103
+     *  设置矩形区域  102
+	 *  设置多边形区域  101
+	 *  设置路线     104
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-30
+     *@return List<HashMap<String, String>> ,结果列表
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value="getCommandAreaSel")
+	public void getCommandAreaSel(){
+		List<Map<String, Object>>  commandArea = null;
+		try {
+			
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); // 查询参数
+			paramsMap.put("userId", UserContext.getLoginUserID());
+			paramsMap.put("shapeId", getParameter("shapeId"));
+			
+			commandArea=commandServices.getCommandAreaSel(paramsMap);
+			
+			if(getParameter("shapeId").equals("2")){
+				commandArea = this.commandServices.castCommandCircular(commandArea);
+				
+			}else if(getParameter("shapeId").equals("1")){
+				commandArea = this.commandServices.castCommandRectangular(commandArea);
+				
+			}else if(getParameter("shapeId").equals("3")){
+				commandArea = this.commandServices.castCommandPolygon(commandArea);
+				
+			}
+			
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+			commandArea = null;
+		}
+		this.renderJSON(commandArea);
+	}
+	
+	/**
+	 * 描述：发送获取链路状态
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-6-29
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "checkLinkStatus")
+	public void checkLinkStatus(){
+		//TODO 获取链路状态
+		try {
+			String encoder = Base64.encoderMessage(",");
+			encoder = encoder.replaceAll("\\n", "").replaceAll("\\r", "");
+			this.commandServices.insertPlatFormCommandSendQueue(getCommandHeader("7001")+encoder);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 描述：获取链路状态
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-6-29
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getLinkStatus")
+	public void getLinkStatus(){
+		String resultStr = "";
+		//TODO 获取链路状态
+		try {
+			String msg = this.commandServices.getLinkStatus();
+			
+			if(!StringUtils.isEmpty(msg)){
+				String[] msgArr = msg.split("\\|")[0].split(",");
+				resultStr = "主链路连接状态："+Tools.linkStatusMap.get(msgArr[2])
+					+"，从链路连接状态："+Tools.linkStatusMap.get(msgArr[3]);
+//			}else if(this.commandServices){
+//				
+			}else{
+				resultStr = "主链路连接状态：连接断开，从链路连接状态：连接断开";
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			resultStr = "";
+		}
+		this.renderText(resultStr);
+		
+	}
+	
+	
+	/**
+	 * 描述：查询用户自定义线数据
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-30
+     *@return List<HashMap<String, String>> ,结果列表
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value="getCommandLineSel")
+	public void getCommandLineSel(){
+		
+		List<Map<String, Object>>  commandArea = null;
+		try {
+			Map<String, Object> paramsMap = new HashMap<String, Object>(); // 查询参数
+			paramsMap.put("userId", UserContext.getLoginUserID());
+			
+			commandArea=commandServices.getCommandLineSel(paramsMap);
+        	
+			commandArea = commandServices.castCommandPolygon(commandArea);
+		} catch (Exception e) {
+			e.printStackTrace();
+			commandArea= null;
+		}
+		this.renderJSON(commandArea);
+	}
+	
+	
+	
+	
+	/**
+	 * 查岗回复
+	 * @throws Exception 
+	 */
+	@Action(value="chagangBackCommand")
+	public void chagangBackCommand(){
+		String answerStr = getParameter("answerStr");//应答
+		String commandContentStr = getParameter("commandContentStr");//应答参数
+		String getTimeCaGang = getParameter("getTimeCaGang"); //查岗接收时间
+		String command ="";//发送指令内容
+		
+		if(StringUtils.isEmpty(commandContentStr) 
+				|| StringUtils.isEmpty(answerStr)){
+			return;
+		}
+		
+		String[] msg = commandContentStr.split("#");
+		//查岗回复
+		try{
+			//‘##seq,7101,cmdseq,base64(800,1232,……)’
+			//流水号，业务类型，，， 查岗对象类型，查岗对象ID，消息ID，消息内容
+			
+			
+			StringBuffer sendMessage = new StringBuffer("");
+			sendMessage.append("")
+						.append(",")
+						.append(","+msg[0])// 查岗对象类型
+						.append(","+msg[1])//查岗对象ID
+						.append(","+msg[2])//消息ID
+						.append(","+answerStr.trim());
+			String encoder = Base64.encoderMessage(sendMessage.toString());
+			encoder = encoder.replaceAll("\\n", "").replaceAll("\\r", "");
+			
+			command = getCommandHeader(CommandCode.COMMAND_7004+"")+encoder;
+			this.commandServices.insertPlatFormCommandSendQueue(command);
+			
+			if(!getTimeCaGang.equals("no")){ //保存处理过后的信息
+				/**保存处理过后的 “查岗”信息到session 【BEGIN】 ljy 【（消息ID-查岗接收时间)作为唯一标示的key】*/
+				Map<String, String> cGOrDbMap =Constants.cGOrDbMap;
+				if(cGOrDbMap==null){
+					cGOrDbMap =new HashMap<String, String>();
+				}
+				String st = msg[2]+"-"+getTimeCaGang;//信息id-查岗接收时间
+				cGOrDbMap.put(st, st);
+				/**保存处理过后的 “查岗”信息到session 【END】 ljy*/
+			}
+		}catch(Exception e){
+			log.error("---------查岗回复失败！----------"+e.getMessage());
+			return;
+		}
+		
+			//更新回复状态
+			try{
+				Map<String,Object> params=new  HashMap<String,Object>();
+				params.put("CheckReturnTime",new Date());//回复时间
+				params.put("CheckReturnContent",answerStr.trim());//回复内容
+				params.put("isResult",1);//回复状态
+				params.put("CheckingNo",msg[2]);//查岗消息流水号
+				this.commandRepository.getMonitorCenterServices().updateHighLevelPatrolLog(params);//查询查岗回复
+			}catch(Exception ex){
+				log.error("---------查岗应答状态更新失败！----------"+ex.getMessage());
+				return;
+			}
+			
+			// 指令发送日志
+			try {
+				SessionUser user = UserContext.getLoginUser();
+				
+				 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+			     TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+			     sdf.setTimeZone(timeZoneChina);
+			     
+				Map<String,Object> setParamMap=new HashMap<String, Object>();
+				setParamMap.put("CommContent", command);
+			    setParamMap.put("CommName", CommandCode.COMMAND_7004);
+			    setParamMap.put("IsBs", "true");
+			    setParamMap.put("SendTime",sdf.format(new Date()));
+			    String userId="0";
+			    if(!user.getIsSuperUser()){
+			    	userId=String.valueOf(user.getUserID());
+			    }
+			    setParamMap.put("UserID", userId);
+			    setParamMap.put("UserName", user.getUserName());
+		    	setParamMap.put("VehicleID", "0");
+			   
+			    this.commandServices.addClientCommandSendLog(setParamMap);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return;
+			}
+		
+		Struts2Utils.renderText("true");
+	}
+	
+	
+	/**
+	 * 主动上报报警
+	 * @throws Exception 
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value="shangbaoAlarmCommand")
+	public void shangbaoAlarmCommand() throws Exception{
+//‘##seq,7006,cmdseq,base64(800,1232,……)’
+//		800,1224,123456,1
+//		（解释：
+//		终端通讯类型：800
+//		车辆ID：1224
+//		报警信息ID：123456
+//		报警处理结果：已处理完毕
+//		)
+		String commandTarget = getParameter("commandTarget");
+		String result = getParameter("result").trim();//报警处理结果
+		String handleConent=getParameter("handleConent").trim();//处理内容
+		String alarmInfoIdStr = getParameter("alarmInfoIdStr").trim();//外部报警信息ID
+		String beginTimeStr = getParameter("beginTimeStr").trim();//开始报警时间
+		String startTimeStr = getParameter("startTimeStr").trim();//报警本段开始报警时间
+		String alarmTypeStr = getParameter("alarmTypeStr").trim();//报警类型
+		String alarmTimeStr = getParameter("alarmTimeStr").trim();//报警时间
+		
+		if(StringUtils.isEmpty(commandTarget) 
+				|| StringUtils.isEmpty(alarmInfoIdStr)
+				|| StringUtils.isEmpty(beginTimeStr)
+				|| StringUtils.isEmpty(startTimeStr)
+				|| StringUtils.isEmpty(alarmTypeStr)
+				|| StringUtils.isEmpty(result)
+				||StringUtils.isEmpty(alarmTimeStr)){
+			return;
+		}
+		
+			String[] commandTargetArr = commandTarget.split(",");
+			String[] alarmInfoIdArr = alarmInfoIdStr.split(",");
+			String[] beginTimeArr = beginTimeStr.split(",");
+			String[] startTimeArr = startTimeStr.split(",");
+			String[] alarmTypeArr = alarmTypeStr.split(",");
+			String[] alarmTimeArr=alarmTimeStr.split(",");
+			
+			/**保存处理过后的报警标识到session的map  ljy*/
+			Map<String, String> alermMap = (Map<String, String>)Struts2Utils.getSessionAttribute(Constants.ALARMDEL);
+			
+			for(int i=0;i<commandTargetArr.length;i++){
+				try{
+					StringBuffer sendMessage = new StringBuffer("");
+					sendMessage.append("")
+								.append("800")//终端通讯类型
+								.append(","+commandTargetArr[i])//车辆ID
+								.append(","+alarmInfoIdArr[i])//报警外部信息ID
+								.append(","+result);//报警处理结果
+					String encoder = Base64.encoderMessage(sendMessage.toString());
+					encoder = encoder.replaceAll("\\n", "").replaceAll("\\r", "");
+					
+					this.commandServices.insertPlatFormCommandSendQueue(getCommandHeader(CommandCode.COMMAND_7014+"")+encoder);
+				
+					/**保存处理过后的报警标识到session【车辆ID-报警时间-报警类型】begin**/
+					if(alermMap==null){
+						alermMap =new HashMap<String, String>();
+					}
+					String alermStr = commandTargetArr[i]+"-"+alarmTimeArr[i]+"-"+alarmTypeArr[i];
+					alermMap.put(alermStr, alermStr);
+					/**保存处理过后的报警标识到session【车辆ID-报警时间-报警类型】end**/
+				}catch(Exception e){
+					e.printStackTrace();
+					return;
+				}
+				
+				//插入报警处理记录
+				try {
+					SessionUser user= UserContext.getLoginUser();
+					Map<String, Object> setParamMap = new HashMap<String, Object>();
+					setParamMap.put("transactMan",user.getUserID());
+					setParamMap.put("content", handleConent);
+					setParamMap.put("vehicleId", commandTargetArr[i]);
+					setParamMap.put("beginTime", beginTimeArr[i]);
+					setParamMap.put("startTime", startTimeArr[i]);
+					setParamMap.put("alarmKindID", alarmTypeArr[i]);
+					setParamMap.put("alarmCount", 0);
+					this.commandServices.addDealAlarmInfo(setParamMap);
+					
+					this.renderJSON("true");
+					
+					} catch (Exception e) {
+						e.printStackTrace();
+						return;
+					}
+					
+					// 指令发送日志
+					try {
+						SessionUser user = UserContext.getLoginUser();
+						
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+						TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+						sdf.setTimeZone(timeZoneChina);
+						
+						Map<String,Object> setParamMap=new HashMap<String, Object>();
+						setParamMap.put("CommContent", result);
+						setParamMap.put("CommName", CommandCode.COMMAND_7014);
+						setParamMap.put("IsBs", "true");
+						setParamMap.put("SendTime",sdf.format(new Date()));
+						String userId="0";
+						if(!user.getIsSuperUser()){
+							userId=String.valueOf(user.getUserID());
+						}
+						setParamMap.put("UserID", userId);
+						setParamMap.put("UserName", user.getUserName());
+						setParamMap.put("VehicleID", commandTargetArr[i]);
+						
+						this.commandServices.addClientCommandSendLog(setParamMap);
+					} catch (Exception e) {
+						e.printStackTrace();
+						return;
+					}
+			}
+			/**保存到session*/
+			UserContext.setAlarmDel(alermMap);
+		
+	}
+	
+	/**
+	 * 督办回复
+	 * @throws Exception 
+	 */
+	@Action(value="dubanBackCommand")
+	public void dubanBackCommand() throws Exception{
+		//‘##seq,7006,cmdseq,base64(800,1232,……)’
+		//流水号,业务类型,0,终端通讯类型,车辆ID,报警督办ID,报警处理结果(16进制)
+		String commandContentStr = getParameter("commandContentStr");
+		String result = getParameter("result").trim();//报警处理结果
+//		String id = getParameter("id").trim();//督办报警记录Id
+		String getTimeDuBan = getParameter("getTimeDuBan").trim();//督办接收时间
+		
+		if(StringUtils.isEmpty(commandContentStr) 
+				||StringUtils.isEmpty(result)){
+			return;
+		}
+		String[] msg = commandContentStr.split("#");
+		
+		//发送指令
+		try{
+			
+			StringBuffer sendMessage = new StringBuffer("");
+			sendMessage.append("")
+						.append(msg[0])//终端通讯类型
+						.append(","+msg[1])//车辆ID
+						.append(","+msg[2])//报警督办ID
+						.append(","+result);
+			String encoder = Base64.encoderMessage(sendMessage.toString());
+			encoder = encoder.replaceAll("\\n", "").replaceAll("\\r", "");
+			
+			this.commandServices.insertPlatFormCommandSendQueue(getCommandHeader(CommandCode.COMMAND_7006+"")+encoder);
+			
+			if(!getTimeDuBan.equals("no")){ //保存处理过后的信息
+				/**保存处理过后的 “报警督办回复”信息到session 【BEGIN】 ljy 【（车辆id-报警督办id-督办接收时间） 作为唯一标示的key】*/
+				Map<String, String> cGOrDbMap =Constants.cGOrDbMap;
+				if(cGOrDbMap==null){
+					cGOrDbMap =new HashMap<String, String>();
+				}
+				String st = msg[1]+"-"+msg[2]+"-"+getTimeDuBan;//信息id-报警督办id-督办接收时间
+				cGOrDbMap.put(st, st);
+				/**保存处理过后的 “报警督办回复”信息到session 【END】 ljy*/
+			}
+			
+			
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "督办回复", "", "督办回复");
+		}catch(Exception e){
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "督办回复", "", "督办回复");
+			e.printStackTrace();
+			return;
+		}
+		
+		//更新回复状态
+		try{
+			Map<String,Object> params=new  HashMap<String,Object>();
+			params.put("OverSeeingBackDate",new Date());//回复时间
+			params.put("OverSeeingType",result);//回复
+			params.put("vehicleId",msg[2]);// 车辆ID
+			params.put("alarmType",msg[3]);// 报警类型ID
+			params.put("alarmDate",CommandTools.formatStr2Date(msg[4]));// 报警时间
+			this.commandRepository.getMonitorCenterServices().updateAlarmOverseeing(params);//督办报警回复
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "督办报警", "", "修改督办报警");
+		}catch(Exception ex){
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "督办报警", "", "修改督办报警");
+			log.error("--------督办报警状态更新失败！----------"+ex.getMessage());
+			return;
+		}
+		
+		// 指令发送日志
+		try {
+			SessionUser user = UserContext.getLoginUser();
+			
+			 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		     TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		     sdf.setTimeZone(timeZoneChina);
+		     
+			Map<String,Object> setParamMap=new HashMap<String, Object>();
+			setParamMap.put("CommContent", result);
+		    setParamMap.put("CommName", CommandCode.COMMAND_7006);
+		    setParamMap.put("IsBs", "true");
+		    setParamMap.put("SendTime",sdf.format(new Date()));
+		    String userId="0";
+		    if(!user.getIsSuperUser()){
+		    	userId=String.valueOf(user.getUserID());
+		    }
+		    setParamMap.put("UserID", userId);
+		    setParamMap.put("UserName", user.getUserName());
+	    	setParamMap.put("VehicleID", msg[2]==null?"0":msg[2]);
+		   
+		    this.commandServices.addClientCommandSendLog(setParamMap);
+		    LogUtil.insertLog(LogActionTypes.INSERT, "成功", "指令发送日志", "", "指令发送日志");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "指令发送日志", "", "指令发送日志");
+			e.printStackTrace();
+			return;
+		}
+		
+		
+		Struts2Utils.renderText("true");
+	}
+	
+	public String getCommandHeader(String commandConde) throws Exception{
+		int seqNum = this.commandServices.getSendSequence(); // 取系列号
+		String header = "##"+seqNum+","+commandConde+",0,";
+		return header;
+	}
+	
+	/**
+	 * 描述：发送指令(处理督办报警、查岗、报警指令)
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-10
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "sendCommand")
+	public void sendCommand() {
+		String commandCode=getParameter("commandCode");
+		String commandTarget=getParameter("commandTarget");
+		String paramMeassage=getParameter("paramMeassage");
+		String receData=getParameter("receData");
+		String checkingNo=getParameter("checkingNo");
+		if (StringUtils.isEmpty(commandCode) || StringUtils.isEmpty(commandTarget))
+			return;
+		try {
+			SessionUser user = UserContext.getLoginUser();
+			Integer mId = 0;
+			String msgId = null;
+			String command = "##sendSequence,20,gnssCenterId:commonNo,DATA";// 流水号,20,平台接入码:终端号,DATA
+			int sendSequence = 0;
+			String[] targets = StringUtils.split(commandTarget, ","); // 分割平台接入码
+			
+			 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+		     TimeZone timeZoneChina = TimeZone.getTimeZone("Asia/Shanghai");// 获取中国的时区
+		     sdf.setTimeZone(timeZoneChina);
+		     
+			for (String target : targets) {
+				String[] flatinfo = StringUtils.split(target, "_"); // 终端编号_接入码
+
+				String newParamMeassage = "";
+				if ("GuoBiao_PF_Down_REQ_VehicleText".equals(commandCode)) {// 发送报文
+					mId = Tools.getNum();
+					msgId = Integer.toHexString(mId).toUpperCase(); // Long(Tools.genRandomLongNum());
+					msgId = "00000000".substring(0, 8 - msgId.length()) + msgId;
+					newParamMeassage = msgId + "," + paramMeassage;
+				} else {
+					newParamMeassage = paramMeassage;
+				}
+				
+				String data = commandCode + "," + newParamMeassage;
+				String encoder = Base64.encoderMessage(data);
+				encoder = encoder.replaceAll("\\n", "").replaceAll("\\r", "");
+
+				sendSequence = this.commandServices.getSendSequence(); // 取系列号
+                String commonNoString=flatinfo[0];
+                commonNoString = "000000000000".substring(0, 12 - commonNoString.length()) + commonNoString;
+				String sendMessage = command.replace("sendSequence", sendSequence + "").replace("commonNo", commonNoString).replace("gnssCenterId", flatinfo[1]);
+				sendMessage = sendMessage.replace("DATA", encoder);
+				this.commandServices.insertCommandSendQueue(sendMessage);
+				
+                if("GuoBiao_PF_Up_ACK_PostQuery".equals(commandCode)){//上级查岗应答入库
+                	Map<String,Object> params=new  HashMap<String,Object>();
+					params.put("@checkReturnTime",new Date());
+					params.put("@checkReturnContent",receData);
+					params.put("@isResult",1);
+					params.put("@checkingNo",checkingNo);
+					this.commandRepository.getMonitorCenterServices().updateHighLevelPatrolLog(params);//查询查岗回复
+				}  
+				try {
+					// 指令发送日志
+					Map<String,Object> setParamMap=new HashMap<String, Object>();
+					setParamMap.put("CommContent", sendMessage);
+				    setParamMap.put("CommName", commandCode);
+				    setParamMap.put("IsBs", "true");
+				    setParamMap.put("SendTime",sdf.format(new Date()));
+				    String userId="0";
+				    if(!user.getIsSuperUser()){
+				    	userId=String.valueOf(user.getUserID());
+				    }
+				    setParamMap.put("UserID", userId);
+				    setParamMap.put("UserName", user.getUserName());
+//				    setParamMap.put("CommNO",  flatinfo[0]);
+				    String vehicleInfo = this.commandRepository.getVehicleMessage(flatinfo[0]);
+				  //车牌号|车牌颜色|所属行业|所属业户
+				    
+				    if(vehicleInfo!=null){
+				    	//
+					    setParamMap.put("VehicleID",flatinfo[0]);
+				    }else {
+				    	 setParamMap.put("VehicleID", "0");
+					}
+				   
+				    this.commandServices.addClientCommandSendLog(setParamMap);
+				} catch (Exception e) {
+
+				}
+
+			}
+
+			Struts2Utils.renderText("true");
+		}
+
+		catch (Exception e) {
+			Struts2Utils.renderText("false");
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Struts2Utils.renderText("false");
+
+	}
+	
+	/**
+	 * 描述：发送特殊
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-7-6
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "sendSpecialCommand")
+	public String sendSpecialCommand() throws Exception {
+		SessionUser user = UserContext.getLoginUser();
+		String sendResult = "false"; // 发送状态
+		String sendMessage = ""; // 要发送的字符
+		int sendSequence = 0; // 系列号
+		String encoderParam = ""; // 加密后的参数
+		String vehicleId=getParameter("commandTarget");
+		String paramMeassage=getParameter("paramMeassage");
+		String commandCode=getParameter("commandCode");
+		String commandName=getParameter("commandName");//pub_command指令名称
+		String commandId=getParameter("commandId");//pub_command指令ID
+		
+		try {
+			if (StringUtils.isNotEmpty(vehicleId)) {
+				String sendMsg =""; 
+					vehicleId = StringUtils.deleteWhitespace(vehicleId);
+					sendSequence = this.commandServices.getSendSequence(); // 取系列号
+					sendMsg = commandId + "," + commandCode + "," + commandName + "," + paramMeassage;
+					encoderParam = Base64.encoderMessage(sendMsg);
+					encoderParam = encoderParam.replaceAll("\\n", "").replaceAll("\\r", "");
+					sendMessage = "##" + sendSequence + ",14," + vehicleId + "," + encoderParam;//##序号, 数据类型,车辆ID, Enbase64数据
+					this.commandServices.insertCommandSendQueue(sendMessage);
+					
+					
+					String unSendMsg = new String(Base64.decoderMessage(encoderParam));
+					System.out.println("-------------------指令参数解密后的字符串"+unSendMsg);
+					
+					// 指令发送日志
+					Map<String,Object> setParamMap=new HashMap<String, Object>();
+					setParamMap.put("CommContent", sendMessage);
+				    setParamMap.put("CommName", commandCode);
+				    setParamMap.put("SendTime",new Date());
+				    String userId="0";
+				    if(!user.isWorkUnitSuperAdmin()){
+				    	userId=String.valueOf(user.getUserID());
+				    }
+				    setParamMap.put("UserID", userId);
+				    setParamMap.put("UserName", user.getUserName());
+				    setParamMap.put("VehicleID",vehicleId);
+				    this.commandServices.addClientCommandSendLog(setParamMap);
+				sendResult ="true";
+			}
+		} catch (Exception e) {
+			sendResult ="false";
+			e.printStackTrace();
+		}
+
+		Struts2Utils.renderText(sendResult);
+
+		return NONE;
+	}
+	/**
+	 * 描述：获取拍照指令id
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-10-15
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "getPhotoCommand")
+	public void getPhotoCommand(){
+		String commandKindID=getParameter("commandKindID");//pub_command指令名称
+		String terminalKindID=getParameter("terminalKindID");//pub_command指令ID
+		Map<String, Object> paramsMap=new HashMap<String, Object>();
+		paramsMap.put("terminalKindID", terminalKindID);
+		paramsMap.put("commandKindID", commandKindID);
+		List<Map<String, Object>> result=commandServices.findPhotoCommand(paramsMap);
+		if(result!=null&&result.size()>0){
+			this.renderJSON(result.get(0));
+		}
+	}
+	
+	
+	public CommandServices getCommandServices()
+	{
+		return commandServices;
+	}
+
+	public void setCommandServices(CommandServices commandServices)
+	{
+		this.commandServices = commandServices;
+	}
+
+	
+	public CommandRepository getCommandRepository()
+	{
+		return commandRepository;
+	}
+
+	public void setCommandRepository(CommandRepository commandRepository)
+	{
+		this.commandRepository = commandRepository;
+	}
+
+
+
+	public CustomMapServices getCustomMapServices()
+	{
+		return customMapServices;
+	}
+
+	public void setCustomMapServices(CustomMapServices customMapServices)
+	{
+		this.customMapServices = customMapServices;
+	}
+	
+	
+
+}

@@ -1,0 +1,151 @@
+package com.etrans.bubiao.action.sys;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.sys.VehicleTeamServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+
+
+/**
+ * 车队信息管理类
+ * 
+ * @author tjb
+ * @version 1.0
+ * @brief
+ */
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class VehicleTeamAction extends BaseAction{
+
+	private static final long serialVersionUID = 1L;
+	@Autowired
+	private VehicleTeamServices vehicleTeamServices;
+	public VehicleTeamServices getVehicleTeamServices() {
+		return vehicleTeamServices;
+	}
+
+	public void setVehicleTeamServices(VehicleTeamServices vehicleTeamServices) {
+		this.vehicleTeamServices = vehicleTeamServices;
+	}
+
+	/**
+	 * 机构分页查询
+	 */
+	@Action(value = "vehicleTeamList")
+	public void vehicleTeamList() {	
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(user!=null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", true);
+				}
+				else{
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+				}
+			}
+			this.renderJSON(JSONUtil.toJson(vehicleTeamServices.getVehicleTeams(params)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("查询出错！");
+		}
+		
+		
+	}
+	
+	/**
+	 **车队信息详细
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "createVehicleTeam")
+	public void createvehicleTeam() {
+			
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+
+		try {
+			this.renderJSON(vehicleTeamServices.createVehicleTeam(params));
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "车队信息管理", "", "新增车队信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "车队信息管理", "", "新增车队信息");
+			e.printStackTrace();
+			log.debug("新增出错！");
+		}
+	}
+	
+	/**
+	 * 根据ID查询车队信息详细
+	 */
+	@Action(value = "getVehicleTeamById")
+	public void getvehicleTeamById() {
+
+		String id = getParameter("id");
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("id", id);
+		try {
+			this.renderJSON(JSONUtil.toJson(vehicleTeamServices.getVehicleTeamById(whereMap)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("根据ID查询车队信息出错！");
+		}
+	}
+	
+	/**
+	 * 根据ID修改车队信息
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "updateVehicleTeam")
+	public void updatevehicleTeam() {
+		
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+		
+		try {
+			this.renderJSON(vehicleTeamServices.updateVehicleTeam(params));
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "车队信息管理", "", "修改车队信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "车队信息管理", "", "修改车队信息");
+			e.printStackTrace();
+			log.debug("根据ID修改车队信息出错！");
+		}
+	}
+	
+	
+	
+	/**
+	 * 根据ID删除车队信息
+	 */
+	@Action(value = "deleteVehicleTeam")
+	public void deletevehicleTeam() {
+
+		String ids= getParameter("ids");
+		
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("id", ids);
+		try {
+			//如果车队下面有车辆，先根据车队id更改车辆vehicleTeamId=-1，在删除车队
+			this.renderJSON(vehicleTeamServices.updateVehicle(whereMap));
+			this.renderJSON(vehicleTeamServices.deleteVehicleTeam(whereMap));
+			LogUtil.insertLog(LogActionTypes.DELETE, "成功", "车队信息管理", "", "删除车队信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.DELETE, "失败", "车队信息管理", "", "删除车队信息");
+			e.printStackTrace();
+			log.debug("根据ID删除车队信息出错！");
+		}
+	}
+}

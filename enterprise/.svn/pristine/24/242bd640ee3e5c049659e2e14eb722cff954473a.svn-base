@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:aop="http://www.springframework.org/schema/aop"
+		xmlns:tx="http://www.springframework.org/schema/tx"
+			xmlns:context="http://www.springframework.org/schema/context"
+		xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+			http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+			http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+			http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd"	>
+
+	<!-- 指令操作 ,底层配置-->
+
+	<!-- 定位数据接收队列 -->
+	<bean id="GpsInfoQueue" class="com.etrans.bubiao.repository.GpsInfoQueue" scope="singleton" />
+
+	<!-- 指令发送队列 -->
+	<bean id="CommandSendQueue" class="com.etrans.bubiao.repository.CommandSendQueue" scope="singleton" />
+
+	<!-- 业务数据接收队列 -->
+	<bean id="BusinessQueue" class="com.etrans.bubiao.repository.BusinessQueue" scope="singleton" />
+	
+	<!-- 指令数据接收队列 -->
+	<bean id="CommandResultQueue" class="com.etrans.bubiao.repository.CommandResultQueue" scope="singleton" />
+	
+	<!-- 报警数据接收队列 -->
+	<bean id="AlarmQueue" class="com.etrans.bubiao.repository.AlarmQueue" scope="singleton" />
+	
+	<!-- 附加数据接收队列 -->
+	<bean id="AffixationQueue" class="com.etrans.bubiao.repository.AffixationQueue" scope="singleton" />
+	
+
+	<!-- GPS信息存储Map -->
+	<bean id="GpsInfoHashMap" class="java.util.concurrent.ConcurrentHashMap" scope="singleton" />
+	
+
+	<!-- 指令数据数据存储Map -->
+	<bean id="CommandResultHashMap" class="java.util.HashMap" scope="singleton" />
+
+	<!-- 报警数据存储Map -->
+	<bean id="AlarmHashMap" class="java.util.HashMap" scope="singleton" />
+	
+	<!--  指令数据数据存储Map(摄像图片信息) -->
+	<bean id="SpecialCommandResultMap" class="java.util.HashMap" scope="singleton" />
+	
+	<!-- 附加数据存储map-->
+	<bean id="AffixationHashMap" class="java.util.HashMap" scope="singleton" />
+	
+
+
+	<!-- 消息发送线程池 -->
+	<bean id="TaskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="10" />
+		<property name="maxPoolSize" value="15" />
+		<property name="queueCapacity" value="25" />
+	</bean>
+
+	<!-- 连接socket -->
+	<bean id="SocketTemplate" class="com.etrans.bubiao.repository.SocketTemplate" scope="singleton">
+		<constructor-arg index="0" type="java.lang.String">
+			<value>${msc_host}</value>
+		</constructor-arg>
+		<constructor-arg index="1">
+			<value>${msc_port}</value>
+		</constructor-arg>
+		<constructor-arg index="2" type="java.lang.String">
+			<value>${msc_login}</value>
+		</constructor-arg>
+	</bean>
+
+	<!-- 指令处理 -->
+	<bean id="commandRepository" class="com.etrans.bubiao.repository.CommandRepositoryImpl" scope="singleton">
+		<constructor-arg ref="SocketTemplate" />
+		<constructor-arg ref="TaskExecutor" />
+		<constructor-arg ref="GpsInfoQueue" />
+		<constructor-arg ref="CommandSendQueue" />
+		<constructor-arg ref="BusinessQueue" />
+		<constructor-arg ref="CommandResultQueue" />
+		<constructor-arg ref="AlarmQueue" />
+		<constructor-arg ref="GpsInfoHashMap" />
+		<constructor-arg ref="CommandResultHashMap" />
+		<constructor-arg ref="AlarmHashMap" />
+		<constructor-arg ref="SpecialCommandResultMap" />
+		<constructor-arg ref="monitorCenterServices" />
+		<constructor-arg ref="AffixationQueue" />
+		<constructor-arg ref="AffixationHashMap" />
+	</bean>
+
+	
+	
+</beans>

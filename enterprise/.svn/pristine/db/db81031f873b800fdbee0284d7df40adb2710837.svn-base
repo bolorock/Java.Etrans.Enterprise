@@ -1,0 +1,170 @@
+/**
+ * UserContext.java
+ * Create on 2012-2-9下午03:46:19
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.sys;
+
+import java.util.Map;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.common.util.web.Struts2Utils;
+
+/**
+ * 获取和存储登录用户
+ * @author Ivan
+ * @version 1.0
+ */
+public class UserContext {
+
+	/**
+	 * 获取登录用户
+	 * @return
+	 */
+	public static SessionUser getLoginUser()
+	{
+
+		Object object = Struts2Utils.getSessionAttribute(Constants.LOGIN_USER);
+		return object == null ? null : (SessionUser) object;
+	}
+	
+
+	/**
+	 * 保存用户登录信息
+	 * @param user
+	 */
+	public static void setLoginUser(SessionUser user)
+	{
+		Struts2Utils.setSessionArrtibute(Constants.LOGIN_USER, user);
+	}
+	
+	/**
+	 * 保存处理过后的实时报警信息map
+	 * @param user
+	 */
+	public static void setAlarmDel(Map<String, String> alarmStr)
+	{
+		Struts2Utils.setSessionArrtibute(Constants.ALARMDEL, alarmStr);
+	}
+	
+	/**
+	 * 保存回复【处理】 上级查岗，报警督办信息 map
+	 * @param cgordb 
+	 */
+	public static void setCgOrDb(Map<String, String> cgordb){
+		Struts2Utils.setSessionArrtibute(Constants.CGORDB, cgordb);
+	}
+
+	/**
+	 * 清除用户登录信息
+	 * @param user
+	 */
+	public static void clearLoginUser()
+	{
+		Struts2Utils.clearSessionArrtibute(Constants.LOGIN_USER);
+	}
+
+	/**
+	 * 获取登录用户的ID
+	 * @return
+	 */
+	public static Long getLoginUserID()
+	{
+
+		SessionUser user = getLoginUser();
+		return user == null ? null : user.getUserID();
+	}
+
+	/**
+	 * 判断是否是超级用户
+	 * @return
+	 */
+	public static boolean isSuperUser()
+	{
+		SessionUser user = getLoginUser();
+		if (user == null) {
+			return false;
+		} else {
+			return user.isWorkUnitSuperAdmin();
+		}
+	}
+
+	/**
+	 * 判断是否是admin超级用户
+	 * @return
+	 */
+	public static boolean isBsRootUser()
+	{
+		SessionUser user = getLoginUser();
+		if (user == null) {
+			return false;
+		} else {
+			return user.getIsSuperUser();
+		}
+	}
+	
+	
+	
+	
+	
+	/**
+	 * 获取用户信息添加到查询条件中去【用作TA数据权限】
+	 * @param params
+	 * @return
+	 */
+	public static Map<String,Object> putUserParams(Map<String,Object> params) {
+		
+		SessionUser user = UserContext.getLoginUser();
+//		Long userId = UserContext.isSuperUser() ? 0 : UserContext.getLoginUserID();
+		Long userId = UserContext.getLoginUserID();
+		Long workUnitId = UserContext.getLoginUser() == null ? -1 : UserContext.getLoginUser().getWorkUnitID();
+		String userName = UserContext.getLoginUser() == null ? "" : UserContext.getLoginUser().getUserName();
+		
+		params.put("userId", userId);//用户id
+		params.put("workUnitId", workUnitId); //用户所属企业id
+		params.put("userName", userName);//用户名称
+		
+		
+		
+		//超级管理员
+		if(UserContext.isBsRootUser()){
+			params.remove("workUnitId");
+			params.remove("userId");
+		}
+		//企业管理员
+		else if(user != null&&user.isWorkUnitSuperAdmin()){
+			params.remove("userId");
+		}//普通用户
+		else{
+			params.remove("workUnitId");
+		}
+		
+		return params;
+	}
+	
+	
+	/**
+	 * 判断是否是普通用户
+	 * @return
+	 */
+	public static String isUser(){
+		
+		String flag="false";
+		SessionUser user = UserContext.getLoginUser();
+		//超级用户
+		if(UserContext.isBsRootUser()){
+			 flag="false";
+		}
+		//企业管理员
+		else if(user != null&&user.isWorkUnitSuperAdmin()){
+			 flag="false";
+		}
+		
+	    else{
+			 flag="true";
+		}
+		
+		return flag;
+	}
+
+}

@@ -1,0 +1,553 @@
+var CONST = {}; // 常量对象
+CONST.ROOT_NODE_ID = 1; // 默认根节点ID
+var parentNodeId = CONST.ROOT_NODE_ID; // 父节点(功能)ID
+
+function initTree() {
+	// 单位树
+	$('#workUnitMenulist').tree({
+		url : "sys/workUnitTree.action",
+		animate : true,
+		onClick : function(node) {
+			parentNodeId = node.id;
+			$("#workUnitName").val("");
+			var params = [{name : 'parentFullId',value : parentNodeId},{name: 'level',value : "subordinate"}];
+			gridReload(params);
+		}
+	});
+	
+}
+
+function gridReload(params){
+	$("#workUnitList").flexOptions({
+		newp : 1,// 设置起始页
+		params : params// 设置查询参数
+	}).flexReload();// 重新加载
+}
+
+
+function showArea(params) {
+	
+	//加载flexgrid控件
+	$("#workUnitList").flexigrid( {
+		url : 'sys/findWorkUnitList.action',
+		dataType : 'json',
+		colModel : [ {
+			display : '企业名称',// 表头
+			name : 'Name',// JSON数据中属性名
+			width : 150,// 得加上 要不IE报错
+			sortable : true,// 此字段是否能排序
+			align : 'center'// 对齐方式
+		}, {
+			display : '企业简称',
+			name : 'ShortName',
+			width : 100,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '联系人',
+			name : 'LinkMan',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '联系电话',
+			name : 'PhoneNO',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '其他电话',
+			name : 'BackupPhoneNO',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '企业地址',
+			name : 'Address',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '邮政编号',
+			name : 'PostCode',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '注册所在地',
+			name : 'RegAddress',
+			width : 80,
+			sortable : true,
+			align : 'center'
+		}, {
+			display : '操作',
+			name : 'Handler',
+			handlefunction : 'getHandleColumn',
+			paramcolnames : ['ID'],
+			width : 150,
+			sortable : false,//操作列不能排序
+			align : 'center'	
+		} ],
+		sortname : "ID",// 第一次加载数据时排序列
+		sortorder : "desc",// 第一次加载数据时排序类型
+		params : params,
+		usepager : true,// 是否分页，默认为true。
+		showTableToggleBtn : true,// 是否显示收起/打开按钮,默认不显示。
+		useRp : true,// 是否可以动态设置每页显示的结果数，默认为false。
+		rp : 8,// 每页记录数，默认为10
+		//checkbox : true,// 是否要多选框,默认为false。
+		//rowId : 'ID',// 多选框绑定行的id,只有checkbox : true时才有效。
+		singleSelect : false,
+		width : 'auto',// 表格宽度
+		height : 250
+	// 表格高度
+			});
+}
+
+$(function() {
+
+	//加载树
+	initTree();
+	
+	var params = [{
+	name : 'level',
+	value : '1'
+	} 
+	];
+	showArea(params);
+	
+	//区域下拉列表 2 表示查询区域第二级别也就是 市级
+//	initAjaxSelect_ByWhere("areaID","sys/initAreas.action",2);
+	//机构类型下拉列表
+	initAjaxSelect("organizationKindID","sys/initOrganzationKinds.action");
+	//行业下拉列表
+//	initAjaxSelect("tradeKindID","sys/initTradeKindes.action");
+
+	//初始化验证插件
+	$("#editWindow").validation();
+	
+	// 按钮绑定点击事件
+	$('#searchBtn').bind('click', toSearch);//查询
+	$('#createBtn').bind('click', toCreate);//新增
+	$('#exportBtn').bind('click', toExportExl);//导出
+	$('#cancelBtn').bind('click', hide);//取消
+	$('#reSetBtn').bind('click', reSetAddForm);//重置
+	$('#reBegin').bind('click', reBegin);//顶级
+
+});
+
+/**
+ * 得到查询条件
+ * @return
+ */
+function getParam() {
+	var workUnitName = $("#workUnitNameParam").val();
+	var parentId=parentNodeId;
+	// 查询参数
+	var params =null;
+	//第一级别
+	if(parentNodeId==1){
+		params =[ {
+			name : 'workUnitName',
+			value : workUnitName
+		} , {
+			name : 'level',
+			value : '1'
+		} 
+		];
+	}
+	//第一级别以下的级别
+	else {
+		
+		params =[ {
+			name : 'workUnitName',
+			value : workUnitName
+		}, {
+			name : 'parentFullId',
+			value : parentId
+		}, {
+			name : 'level',
+			value : "subordinate"
+		} 
+		];
+	}	 
+	return params;
+}
+
+/**
+ * 查询方法
+ */
+function toSearch() {
+	var params = getParam();
+
+	// 重置表格的某些参数
+	$("#workUnitList").flexOptions( {
+		newp : 1,// 设置起始页
+		params : params
+	// 设置查询参数
+			}).flexReload();// 重新加载
+}
+
+/**
+ * 组装操作列显示内容
+ * @param id
+ * @returns {String}
+ */
+function getHandleColumn(id){
+	var editStr = "";
+	var deleteStr = "";
+	var addSonUnit="";
+	//变量resources为用户的所有资源权限 格式：|findPlatFormList||createPlatForm||updatePlatForm||deletePlatForm|
+	if(resources!=null){
+		//判断ACTION的访问权限
+		 if(resources.indexOf("|workUnitManage_edit|")!=-1){
+			 editStr = '<a href="javascript:void(0)" onclick="doEdit(' + id + ')">编辑</a>';
+		 }
+		 if(resources.indexOf("|workUnitManage_delete|")!=-1){
+			 deleteStr = '<a href="javascript:void(0)" onclick="doDelete(' + id + ')">删除</a>';
+		 }
+		 //if(resources.indexOf("|workUnitManage_addSon|")!=-1){ 
+		 //如果是超级管理员或者是企业管理员
+		 //alert(isBsUnitAdmin);
+		 if(isBsRoot||isBsUnitAdmin){
+			 addSonUnit='<a href="javascript:void(0)" onclick="toAddUnit(' + id + ')">添加子单位</a>';
+		 }
+	}
+	return editStr + '&nbsp;&nbsp;' + deleteStr+'&nbsp;&nbsp;'+addSonUnit;
+}
+
+/**
+ * 新增加方法入口
+ */
+function toCreate() {
+	
+	$("#titleInfo").html("企业信息新增");
+	$("#submitBtn").unbind("click");	
+	//清空DIV中包含的所有表单的值
+	clearForm("editWindow");
+	//展开
+	showEditForm();
+	//区域下拉列表
+//	initAjaxSelect_ByWhere("areaID","sys/initAreas.action",2);
+	//机构类型下拉列表
+	initAjaxSelect("organizationKindID","sys/initOrganzationKinds.action");
+	//行业下拉列表
+//	initAjaxSelect("tradeKindID","sys/initTradeKindes.action");
+
+	$('#submitBtn').bind('click', doCreate);
+}
+
+
+
+/**
+ * 执行后台方法新增数据
+ */
+function doCreate() {
+	var flag = $("#editWindow").beforeSubmit();
+	if(flag){
+		var url = "sys/createWorkUnit.action";
+		var params = getAddForm();
+		jsUtil.useAjaxDefault(url, params, doCreateSucc);
+	}
+}
+
+function doCreateSucc(result) {
+	
+	if (result != null) {
+		hide();
+		$.messager.alert('提示信息','新增记录成功！','info');
+		//加载树
+		initTree();
+		$("#workUnitList").flexReload();
+	} else {
+		$.messager.alert('提示信息','新增失败！','info');
+	}
+}
+
+/**
+ * 重置
+ * @return
+ */
+function reSetAddForm(){
+	resetForm("editWindow");
+}
+
+/**
+ * 新增子单位
+ */
+function toAddUnit(id){
+
+	$("#titleInfo").html("子企业信息新增");
+	$("#submitBtn").unbind("click");	
+	//清空DIV中包含的所有表单的值
+	clearForm("editWindow");
+	//展开
+	showEditForm();
+	//给隐藏域id赋值
+	$("#id").val(id);
+	//区域下拉列表
+//	initAjaxSelect_ByWhere("areaID","sys/initAreas.action",2);
+	//机构类型下拉列表
+	initAjaxSelect("organizationKindID","sys/initOrganzationKinds.action");
+	//行业下拉列表
+//	initAjaxSelect("tradeKindID","sys/initTradeKindes.action");
+	$('#submitBtn').bind('click', doAddUnit);
+}
+
+/**
+ * 执行后台方法新增子单位数据
+ */
+function doAddUnit(){
+	var flag = $("#editWindow").beforeSubmit();
+	if(flag){
+		var url = "sys/addWorkUnit.action";
+		var params = getAddForm();
+		jsUtil.useAjaxDefault(url, params, doAddUnitSucc);
+	}
+}
+
+function doAddUnitSucc(result){
+	if (result != null) {
+		//隐藏编辑层
+		hide();
+		$.messager.alert('提示信息','新增子单位成功！','info');
+		//加载树
+		initTree();
+		$("#workUnitList").flexReload();
+	} else {
+		$.messager.alert('提示信息','新增子单位失败！','info');
+	}
+}
+
+/**
+ * 获得数据信息
+ */
+function getAddForm() {
+	
+	var id = $("#id").val();//id
+	var name = $("#Name").val();//企业名称
+	var code = $("#code").val();//企业代码 
+	var shortName = $("#shortName").val();//单位简称
+	var areaID = $("#areaId").val();//所属区域id
+	var regAddress = $("#regAddress").val();//单位注册地
+	var linkMan = $("#linkMan").val();//联系人
+	var phoneNO = $("#phoneNO").val();//联系电话 
+	var backupPhoneNO = $("#backupPhoneNO").val();//备用电话
+	var organizationKindID = $("#organizationKindID").val();//机构类别id
+	var tradeKindID = $("#tradeKindId").val();//行业类型id
+	var businessScope = $("#businessScope").val();//经营范围
+	var artificialPerson = $("#artificialPerson").val();//企业法人
+	var licenseNO = $("#licenseNO").val();//道路运输许可证号
+	var licenseOrgan = $("#licenseOrgan").val();//发证机关
+	var postCode = $("#postCode").val();//邮政编码
+	var vehicleSum = $("#vehicleSum").val();//车辆总数
+	var address = $("#address").val();//地址 
+	var memo = $("#memo").val();//备注
+	var businessLicense = $("#businessLicense").val();//经营许可证号
+	// 查询参数
+	var params = [ {
+		name : '@_id',
+		value : id
+	}, {
+		name : '@_name',
+		value : name
+	}, {
+		name : '@_code',
+		value : code
+	}, {
+		name : '@_shortName',
+		value : shortName
+	}, {
+		name : '@_areaID',
+		value : areaID
+	}, {
+		name : '@_regAddress',
+		value : regAddress
+	}, {
+		name : '@_linkMan',
+		value : linkMan
+	}, {
+		name : '@_phoneNO',
+		value : phoneNO
+	}, {
+		name : '@_backupPhoneNO',
+		value : backupPhoneNO
+	}, {
+		name : '@_organizationKindID',
+		value : organizationKindID
+	}, {
+		name : '@_tradeKindID',
+		value : tradeKindID
+	}, {
+		name : '@_businessScope',
+		value : businessScope
+	}, {
+		name : '@_artificialPerson',
+		value : artificialPerson
+	}, {
+		name : '@_licenseNO',
+		value : licenseNO
+	}, {
+		name : '@_licenseOrgan',
+		value : licenseOrgan
+	}, {
+		name : '@_postCode',
+		value : postCode
+	}, {
+		name : '@_vehicleSum',
+		value : vehicleSum
+	}, {
+		name : '@_address',
+		value : address
+	}, {
+		name : '@_memo',
+		value : memo
+	}, {
+		name : '@_businessLicense',
+		value : businessLicense
+	}];
+	return params;
+}
+
+/**
+ * 查询工作企业信息显示在编辑窗口
+ * 
+ * @param id
+ */
+function doEdit(id) {
+
+	if (id != null && id != '') {
+		showEditForm();
+		$("#submitBtn").unbind("click");
+		var params = {
+			"id" : id
+		};
+		var url = "sys/getWorkUnitById.action";
+		//false表示不是异步操作
+		jsUtil.useAjaxDef(url, params, false, toEditSucc);
+	}
+}
+
+
+/**
+ * 查询工作企业信息显示在编辑窗口(成功返回)
+ * 
+ * @param id
+ */
+function toEditSucc(result) {
+	if (result != null && result["code"] == '0') {
+		var recordInfo = result.data;
+		if (recordInfo.length > 0) {
+			//设置input
+			$("#editWindow input:not(:button)").each(function(i) {
+				$(this).val(recordInfo[0][$(this).attr("name")]);
+			});
+			//设置下拉列表
+			$("#editWindow select").each(function(i) {
+				//alert(recordInfo[0][$(this).attr("name")]);
+				$(this).val(recordInfo[0][$(this).attr("name")]);
+			});
+			$('#submitBtn').bind('click', doUpdate);
+		}
+	} else {
+		$.messager.alert('提示信息','服务器忙，请重试！','info');
+	}
+}
+
+/**
+ * 执行后台方法更新数据
+ */
+function doUpdate() {
+	var flag = $("#editWindow").beforeSubmit();
+	if(flag){
+		var url = "sys/updateWorkUnit.action";
+		jsUtil.useAjaxDef(url, getAddForm(), false, doUpdateSucc);
+	}
+}
+function doUpdateSucc(result) {
+	if (result != null && result["code"] == '0') {
+		hide();
+		$.messager.alert('提示信息','更新记录成功！','info');
+		//加载树
+		initTree();
+		$("#workUnitList").flexReload();
+	} else {
+		$.messager.alert('提示信息','更新记录失败！','info');
+	}
+}
+
+
+/**
+ * 执行后台方法删除数据
+ * 
+ * @param ids
+ * @returns {Boolean}
+ */
+function doDelete(ids) {
+
+	if (id != null && id != '') {
+		if (confirm("确定删除企业?")) {
+			var url = "sys/deleteWorkUnit.action";
+			var params = {
+				ids : ids.toString()
+			};
+			jsUtil.useAjaxDef(url, params, false, doDeleteSucc);
+		}
+	}
+}
+
+function doDeleteSucc(result) {
+	if (result != null && result["code"] == '0') {
+			$.messager.alert('提示信息','删除记录成功！','info');
+			//加载树
+			initTree();
+			//加载数据列表
+			$("#workUnitList").flexReload();
+		
+	} else {
+		$.messager.alert('提示信息','删除记录失败！','info');
+	}
+	//清空DIV中包含的所有表单的值
+	clearForm("editWindow");
+}
+
+/**
+ * 导出方法入口
+ */
+function toExportExl() {
+	exportExl('workUnitList', 'sys/upWorkUnitManageExportExl.action');
+}
+
+
+/**
+ * 回到顶级
+ * @return
+ */
+function reBegin(){
+	parentNodeId=1;
+	var params = [{
+	name : 'level',
+	value : '1'
+	} 
+	];
+	//加载树
+	initTree();
+	$("#workUnitNameParam").val("");
+	$("#workUnitList").flexOptions({
+		newp : 1,// 设置起始页
+		params : params// 设置查询参数
+	}).flexReload();// 重新加载
+}
+
+
+/**
+ * 打开编辑窗口
+*/
+function showEditForm(){
+		show();
+		$("#editWindow .errorMsg").closeMessage();
+	}
+
+
+
+

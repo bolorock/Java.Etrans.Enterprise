@@ -1,0 +1,158 @@
+/**    
+ * SocketTemplate.java
+ * Create on 2010-8-16
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.common.util.Base64;
+
+/**
+ * socket管理
+ * @author lihaiyan
+ * @version 1.0
+ */
+
+public class SocketTemplate {
+	private Socket socket = null; // socket通道
+	private String host; // 服务器IP
+	private int port; // 服务器端口
+	private String loginCommand; // MSC登陆指令
+	private PrintWriter printWriter; // 输出
+	private BufferedReader bufferedReader; // 输入
+	private final Log logger = LogFactory.getLog(SocketChannel.class.getName());
+	public SocketTemplate(String host, int port, String loginCommand) {
+		    this.host = host;
+			this.port = port;
+			this.loginCommand = loginCommand;
+			sokectInit();
+		}
+
+		/**
+		 * 初始化连接
+		 * */
+		public void sokectInit() {
+			try {
+				 closeSocket();// 关闭连接
+				 socket = new Socket(host, port);
+				 logger.info("新建MSC的socket连接");
+			     printWriter = getWriter();
+				 printWriter.println(loginCommand);// 登录MSC
+				 /**发送订阅模式
+				  * 征收者模式：1,16,-1,-1：5^
+                                                      征收者模式例子 ：1，16，-1，base64（-1：5，6，8，10，12，13^）
+                  */
+                                                
+				 String subType="##1,16,-1,"+Base64.encoderMessage("-1:5,6,8,10,12,13^");
+				 printWriter.println(subType);// 发送订阅模式
+			} catch (Exception e) {
+				closeSocket();// 关闭连接
+				socket = null;
+				logger.info("新建MSC的socket连接失败 " + e);
+			}
+		}
+
+		/**
+		 * 取socket连接
+		 * */
+		public Socket getSocket() {
+			if (socket != null) {
+				return socket;
+			} else {
+				return null;
+			}
+		}
+
+		/**
+		 * 输出流
+		 * */
+		public PrintWriter getWriter() throws IOException {
+			try {
+				OutputStream socketOut = socket.getOutputStream();
+				printWriter = new PrintWriter(socketOut, true);
+			} catch (Exception e) {
+				printWriter = null;
+			}
+			return printWriter;
+		}
+
+		/**
+		 * 输入流
+		 * */
+		public BufferedReader getReader() {
+			try {
+				InputStream socketIn = socket.getInputStream();
+				bufferedReader = new BufferedReader(new InputStreamReader(socketIn));
+			} catch (Exception e) {
+				bufferedReader = null;
+			}
+			return bufferedReader;
+		}
+
+		/**
+		 * MSC重连
+		 * */
+		public void reloadSocket() {
+			try {
+				sokectInit();// 重新初始化
+				Thread.sleep(1000);
+			} catch (Exception e) {
+				logger.error("MSC的socket重连失败" + e);
+			}
+		}
+
+		/**
+		 * 关闭连接
+		 * */
+		public void closeSocket() {
+			if (socket != null) {
+				try {
+					socket.close();
+					socket = null;
+				} catch (Exception s) {
+					logger.error("808通道关闭连接失败！");
+				}
+			}
+			//logger.error("关闭MSC连接");
+		}
+
+		/**
+		 * 判断是否连接
+		 */
+		public boolean isConnect(){
+			try {
+				return this.socket.isConnected();
+			} catch (Exception e) {
+				logger.error("判断808通道连接失败" + e);
+				return false;
+			}
+		}
+		
+		
+		public static void main(String[] args){
+			 try
+			{
+				String subType="##1,16,-1,"+Base64.encoderMessage("-1:5,6,8,10,12,13^");
+				System.out.println(subType);
+			} catch (Exception e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+	
+	
+}

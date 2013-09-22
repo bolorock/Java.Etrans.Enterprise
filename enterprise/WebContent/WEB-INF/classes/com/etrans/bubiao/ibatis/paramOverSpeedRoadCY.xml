@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <select id="findANA_ParamOverSpeedRoad_CYSQL" resultClass="java.util.HashMap">
+  	  
+ SELECT * FROM (
+						SELECT    ROW_NUMBER() OVER ( order by
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>	
+							) RowNo,A.* from (
+		      select A.ID as id
+				      ,A.Name
+				      ,A.AnalyseID
+				      ,B.name as AnalyseName
+				      ,A.BounceOverSpeed
+				      ,A.BounceOverSpeedTime
+				      ,A.ForewarnSpeed
+                      ,ayp.groupid as groupid
+				  FROM ANA_ParamOverSpeedRoad_CY A
+				  left join ANA_AnalyserOverSpeedRoad_CY B on A.AnalyseID=B.id
+				  left join ANA_AnalyseGroups ayp on B.AnalyseGroupID=ayp.id
+				  left join Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+				    ) A where 1=1
+        
+        	 <dynamic prepend="and">	
+			 <isNotNull property="name" >
+	           A.Name like '%$name$%'
+	         </isNotNull>
+	         <!--企业管理员权限-->
+             <isNotEmpty property="workUnitId">
+				AND A.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+			 
+	         </dynamic>	   
+		)X
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				X.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+   </select>
+   
+   <select id="findANA_ParamOverSpeedRoad_CYCountSQL" resultClass="java.lang.Long">
+      select count(1) 
+                  FROM ANA_ParamOverSpeedRoad_CY A
+				  left join ANA_AnalyserOverSpeedRoad_CY B on A.AnalyseID=B.id
+				  left join ANA_AnalyseGroups ayp on B.AnalyseGroupID=ayp.id
+				  left join Ent_AnalyseGroupsIDAddUserID as au on ayp.id=au.AnalyseGroupsID
+      where   A.Name like '%$name$%'
+             <!--企业管理员权限-->
+            <isNotEmpty property="workUnitId">
+				AND ayp.groupid = #workUnitId# 
+			 </isNotEmpty>
+			 
+			 <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+			 
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_ParamOverSpeedRoad_CYByIdSQL"  resultClass="java.util.HashMap">
+      SELECT [id]
+      ,[name]
+      ,[analyseID]
+      ,[bounceOverSpeed]
+      ,[bounceOverSpeedTime]
+      ,[forewarnSpeed]
+  FROM [ANA_ParamOverSpeedRoad_CY]
+   where id=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkANA_ParamOverSpeedRoad_CYByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_ParamOverSpeedRoad_CY
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+ </sqlMap>

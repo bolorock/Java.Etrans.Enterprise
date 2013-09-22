@@ -1,0 +1,986 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	<typeAlias alias="vehicle" type="com.etrans.bubiao.entities.Vehicle"/>
+  	<typeAlias alias="vehicleGroup" type="com.etrans.bubiao.entities.VehicleGroup"/>
+  	<typeAlias alias="vehicleGroupBean" type="com.etrans.bubiao.entities.VehicleGroupBean"/>
+  	
+  	<!-- 企业管理员用户查询车辆 start -->
+	<select id="getVehiclesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		select mv.id,
+			mv.registrationNo,
+			pctk.name as customerTrade,
+			pvk.name as kindName,
+			ptk.name as tradeName,
+			ppf.name as platformName,
+			ptlk.name as terminalTypeName,
+			pwu.name as workUnitName,
+			pfv.name as firstDriver,
+			renc.name as noColor,
+			pvc.name as vColor,
+			mv.transportPermits,
+			pt.commNo,
+			psim.Code as simNo,
+			mv.workStatus,
+			pvts.isBlind,
+			pvt.name as vehicleTeamName,
+			prk.name as registrationNoKindName,
+			pa.name as areaName,
+			mv.licenseNo
+		from Pub_Vehicle mv
+		left join Pub_Area pa on pa.id=mv.AreaId
+		left join Pub_RegistrationNOKind prk on prk.id=mv.RegistrationNOKindId
+		left join Pub_CustomTradeKind pctk on pctk.id=mv.CustomTradeKindID
+		left join Pub_VehicleKind pvk on pvk.id=mv.KindID
+		left join Pub_TradeKind ptk on ptk.id=mv.TradeKindID
+		left join Pub_Platform ppf on ppf.id=mv.platformId
+		left join Pub_WorkUnit pwu on pwu.id=mv.WorkUnitId
+		left join (select pd.id,pvd.vehicleId,pd.name from Pub_VehicleDriver pvd,Pub_Driver pd
+			where pvd.DriverID=pd.id and pvd.sequence=1) pfv on pfv.vehicleId=mv.id
+		left join Pub_Terminal pt on pt.id=mv.TerminalID
+		left join Pub_TerminalKind ptlk on ptlk.id=pt.TerminalKindID
+		left join Pub_RegistrationNOColor renc on renc.id=mv.RegistrationNOColorID
+		left join Pub_VehicleColor pvc on pvc.id=mv.ColorID 
+		left join Pub_SIMCard psim on psim.id=pt.SimID
+		left join Pub_VehicleTeam pvt on pvt.id=mv.vehicleTeamId
+		left join Pub_Vehicle_Transport pvts on pvts.vehicleId=mv.id
+		
+		<dynamic prepend="where">
+			<![CDATA[mv.isDeleted <> 1]]>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+			<isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and mv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and mv.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+          
+            <isNotEmpty property="commNo">
+      			and pt.commNo like '%$commNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="simNo">
+      			and psim.Code like '%$simNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName">
+      			and pwu.name like '%$unitName$%'
+            </isNotEmpty>
+            <isNotEmpty property="firstDriver">
+      			and pfv.name like '%$firstDriver$%'
+            </isNotEmpty>
+            
+           
+		</dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getVehiclesCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select COUNT(*) from Pub_Vehicle mv
+		left join Pub_Terminal pt on pt.id=mv.TerminalID
+		left join Pub_SIMCard psim on psim.id=pt.SimID
+		left join Pub_WorkUnit pwu on pwu.id=mv.WorkUnitId
+		<dynamic>
+	        <isNotEmpty property="firstDriver">
+	  			left join 
+	  			(select pd.id,pvd.vehicleId,pd.name from Pub_VehicleDriver pvd,Pub_Driver pd
+					where pvd.DriverID=pd.id and pvd.sequence=1) pfv on pfv.vehicleId=mv.id
+	        </isNotEmpty>
+		</dynamic>
+		<dynamic prepend="where">
+			<![CDATA[mv.isDeleted <> 1]]>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and mv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and mv.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			
+            <isNotEmpty property="commNo">
+      			and pt.commNo like '%$commNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="simNo">
+      			and psim.Code like '%$simNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName">
+      			and pwu.name like '%$unitName$%'
+            </isNotEmpty>
+            <isNotEmpty property="firstDriver">
+      			and pfv.name like '%$firstDriver$%'
+            </isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 企业管理员用户查询车辆 end -->
+	
+	<!-- 普通用户查询车辆 start -->
+	<select id="getUserVehiclesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		select pvi.* from (
+		select mv.id,
+			mv.registrationNo,
+			pctk.name as customerTrade,
+			pvk.name as kindName,
+			ptk.name as tradeName,
+			ppf.name as platformName,
+			ptlk.name as terminalTypeName,
+			pwu.name as workUnitName,
+			pfv.name as firstDriver,
+			renc.name as noColor,
+			pvc.name as vColor,
+			mv.transportPermits,
+			pt.commNo,
+			psim.Code as simNo,
+			mv.workStatus,
+			pvts.isBlind,
+			pvt.name as vehicleTeamName,
+			prk.name as registrationNoKindName,
+			pa.name as areaName,
+			mv.licenseNo
+		from Pub_Vehicle mv
+		left join Pub_Area pa on pa.id=mv.AreaId
+		left join Pub_RegistrationNOKind prk on prk.id=mv.RegistrationNOKindId
+		left join Pub_CustomTradeKind pctk on pctk.id=mv.CustomTradeKindID
+		left join Pub_VehicleKind pvk on pvk.id=mv.KindID
+		left join Pub_TradeKind ptk on ptk.id=mv.TradeKindID
+		left join Pub_Platform ppf on ppf.id=mv.platformId
+		left join Pub_WorkUnit pwu on pwu.id=mv.WorkUnitId
+		left join (select pd.id,pvd.vehicleId,pd.name from Pub_VehicleDriver pvd,Pub_Driver pd
+			where pvd.DriverID=pd.id and pvd.sequence=1) pfv on pfv.vehicleId=mv.id
+		left join Pub_Terminal pt on pt.id=mv.TerminalID
+		left join Pub_TerminalKind ptlk on ptlk.id=pt.TerminalKindID
+		left join Pub_RegistrationNOColor renc on renc.id=mv.RegistrationNOColorID
+		left join Pub_VehicleColor pvc on pvc.id=mv.ColorID 
+		left join Pub_SIMCard psim on psim.id=pt.SimID
+		left join Pub_VehicleTeam pvt on pvt.id=mv.vehicleTeamId
+		left join Pub_Vehicle_Transport pvts on pvts.vehicleId=mv.id
+		
+		<dynamic prepend="where">
+			<![CDATA[mv.isDeleted <> 1]]>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+           
+           <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and mv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and mv.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+           
+            <isNotEmpty property="commNo">
+      			and pt.commNo like '%$commNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="simNo">
+      			and psim.Code like '%$simNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName">
+      			and pwu.name like '%$unitName$%'
+            </isNotEmpty>
+            <isNotEmpty property="firstDriver">
+      			and pfv.name like '%$firstDriver$%'
+            </isNotEmpty>
+             
+		</dynamic>
+		) pvi,Ent_UserVehicle euv where pvi.ID=euv.VehicleId and euv.UserId=#userId#
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getUserVehiclesCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from (
+		select mv.id from Pub_Vehicle mv
+		left join Pub_Terminal pt on pt.id=mv.TerminalID
+		left join Pub_SIMCard psim on psim.id=pt.SimID
+		left join Pub_WorkUnit pwu on pwu.id=mv.WorkUnitId
+		<dynamic>
+	        <isNotEmpty property="firstDriver">
+	  			left join 
+	  			(select pd.id,pvd.vehicleId,pd.name from Pub_VehicleDriver pvd,Pub_Driver pd
+					where pvd.DriverID=pd.id and pvd.sequence=1) pfv on pfv.vehicleId=mv.id
+	        </isNotEmpty>
+		</dynamic>
+		<dynamic prepend="where">
+			<![CDATA[mv.isDeleted <> 1]]>
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+           <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and mv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			
+			  <isEmpty property="vehicleIds">
+			    and mv.registrationNo like '%$registrationNo$%'
+			  </isEmpty>
+			
+            <isNotEmpty property="commNo">
+      			and pt.commNo like '%$commNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="simNo">
+      			and psim.Code like '%$simNo$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName">
+      			and pwu.name like '%$unitName$%'
+            </isNotEmpty>
+            <isNotEmpty property="firstDriver">
+      			and pfv.name like '%$firstDriver$%'
+            </isNotEmpty>
+            
+		</dynamic>
+		) pvi,Ent_UserVehicle euv where pvi.ID=euv.VehicleId and euv.UserId=#userId#
+	</select>
+	<!-- 普通用户查询车辆 end -->
+	
+	<!-- 同名验证 start -->
+	<select id="checkRegistrationNoSQL" resultClass="java.util.HashMap">
+      select ID,RegistrationNO from Pub_Vehicle  where   IsDeleted = 0
+     
+	     	<isNotNull property="id" >
+	     		<isNotEmpty property="id" prepend="AND">
+	     			<![CDATA[id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+     		<isNotNull property="name" >
+	     		<isNotEmpty property="name" prepend="AND">
+	     			registrationNo=#name#
+	     		</isNotEmpty>
+     		</isNotNull>
+    </select>
+    
+ 
+   <!-- 同名验证 end -->
+    	
+    <!-- 新增车辆 start -->
+    <insert id="insertVehicleSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [Pub_Vehicle]
+           ([RegistrationNO]
+           ,[WorkUnitID]
+           ,[RegistrationNOKindID]
+           ,[RegistrationNOColorID]
+           ,[KindID]
+           ,[ColorID]
+           ,[UsageID]
+           ,[BandID]
+           ,[ManufactoryID]
+           ,[Vin]
+           ,[Memo]
+           ,[CreateDatetime]
+           ,[CreateUserID]
+           ,[ModifyDatetime]
+           ,[ModifyUserID]
+          
+           ,[WorkStatus]
+           ,[TransportPermits]
+           ,[TradeKindID]
+           ,[TerminalID]
+         
+           ,[AreaID]
+		   ,[RegAddress]
+		   ,[LicenseNo]
+		   ,[LoadingCapacity]
+		   ,[BusinessScope]
+		   ,[SeatCount]
+		   ,[vehicleTeamId])
+     	VALUES
+           (#registrationNo#
+           ,#workUnitId#
+           ,#registrationNoKindId#
+           ,#registrationNoColorId#
+           ,#kindId#
+           ,#colorId#
+           ,#usageId#
+           ,#bandId#
+           ,#manufactoryId#
+           ,#vin#
+           ,#memo#
+           ,#createDateTime#
+           ,#createUserId#
+           ,#modifyDateTime#
+           ,#modifyUserId#
+         
+           ,#workStatus#
+           ,#transportPermits#
+           ,#tradeKindId#
+           ,#terminalId#
+          
+           ,#areaId#
+		   ,#regAddress#
+		   ,#licenseNo#
+		   ,#loadingCapacity#
+		   ,#businessScope#
+		   ,#seatCount#
+		   ,#vehicleTeamId#)
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	
+	<insert id="insertVehicleServiceSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_VehicleService]
+	           ([VehicleID]
+	           <isNotEmpty property="setupDate">,[SetupDateTime]</isNotEmpty>
+	           ,[SetupWorker])
+	     VALUES
+	           (#vehicleId#
+	           <isNotEmpty property="setupDate">,#setupDate#</isNotEmpty>
+	           ,#setupWorker#)
+	</insert>
+	
+	<insert id="insertVehicleTransportSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_Vehicle_Transport]
+           ([VehicleID]
+           	,[IsBlind]
+           	,[DriverInfo]
+			,[GuardsInfo]
+			,[Tonnage]
+			,[Origin]
+			,[Destination]
+			<isNotEmpty property="startTime">,[StartTime]</isNotEmpty>
+			<isNotEmpty property="endTime">,[EndTime]</isNotEmpty>
+			,[BanlineType]
+			,[Traction]
+			,[OriginStop]
+			,[TerminalStation]
+			,[OrgVehNo]
+			,[TrailerVehNo])
+     	VALUES
+           (#vehicleId#
+           	,#isBlind#
+           	,#driverInfo#
+			,#guardsInfo#
+			,#tonnage#
+			,#origin#
+			,#destination#
+			<isNotEmpty property="startTime">,#startTime#</isNotEmpty>
+			<isNotEmpty property="endTime">,#endTime#</isNotEmpty>
+			,#banlineType#
+			,#traction#
+			,#originStop#
+			,#terminalStation#
+			,#orgVehNo#
+			,#trailerVehNo#)
+	</insert>
+	
+	<insert id="insertVehicleDriverSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_VehicleDriver]
+           ([VehicleID]
+           ,[DriverID]
+           ,[Sequence])
+     	VALUES
+           (#vehicleId#
+           ,#driverId#
+           ,#driverSequence#)
+	</insert>
+	
+<!--用户车辆表	-->
+	<insert id="insertEntUserVehicleSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Ent_UserVehicle]
+           ([VehicleID]
+           ,[UserId])
+     	VALUES
+           (#vehicleId#
+           ,#userId#)
+	</insert>
+	
+<!--车辆与车组关系表	-->
+	<insert id="insertGroupVehicleSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_GroupVehicle]
+           ([VehicleGroupID]
+           ,[VehicleID])
+     	VALUES
+           (#VehicleGroupID#
+           ,#vehicleId#)
+	</insert>
+	
+<!--	-->
+<select id="getVehicleGroupIDByUserIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+  select pvg.VehicleGroupID from Pub_VehicleGroupPurview pvg where pvg.UserGroupID in (
+  select pug.UserGroupID from Pub_UserAndGroup pug where pug.userId=#userId#)
+</select>
+	
+	<!-- 新增车辆 end -->
+	
+	<!-- 车辆终端开/销户  -->
+	<update id="updateTerminalStatusSQL" parameterClass="java.util.HashMap">
+		update Pub_Terminal set useFlag=#useFlag# where id=#terminalId#
+	</update>
+	
+	<!-- 编辑车辆 start -->
+	<select id="getVehicleByIdSQL" resultClass="java.util.HashMap">
+    	select pv.*,
+    		pt.commNo,
+			pvs.setupWorker,
+			convert(varchar(10), pvs.setupDateTime,120) AS setupDateTime,
+			pvdf.driverId as firstDriverId,
+			pd.name as firstDriverName,
+			pvds.driverId as secondDriverId,
+			pdvs.name as secondDriverName,
+			prc.name as registrationNoColorName,
+			prk.name as registrationNoKindName,
+			pa.name as areaName,
+			pvk.name as kindName,
+			pvc.name as colorName,
+			pvt.name as vehicleTeamName,
+			pvu.name as usageName,
+			pvb.name as bandName,
+			pvm.name as manufactoryName,
+			ptk.name+'('+ptk.code+')' as tradeKindName,
+			pw.name  as workUnitIDName
+		from Pub_Vehicle pv 
+		left join Pub_WorkUnit pw on pw.id=pv.workUnitId
+		left join Pub_RegistrationNOColor prc on prc.id=pv.RegistrationNOColorId 
+		left join Pub_RegistrationNOKind prk on prk.id=pv.RegistrationNOKindId
+		left join Pub_Area pa on pa.id=pv.AreaId
+		left join Pub_VehicleKind pvk on pvk.id=pv.KindId
+		left join Pub_VehicleColor pvc on pvc.id=pv.ColorId
+		left join Pub_VehicleTeam pvt on pvt.id=pv.VehicleTeamId
+		left join Pub_VehicleUsage pvu on pvu.id=pv.UsageId
+		left join Pub_VehicleBand pvb on pvb.id=pv.BandId
+		left join Pub_VehicleManufactory pvm on pvm.id=pv.ManufactoryId
+		left join Pub_TradeKind ptk on ptk.id=pv.TradeKindId
+		left join Pub_Terminal pt on pt.id=pv.terminalId
+		left join Pub_VehicleService pvs on pvs.vehicleId=pv.id
+		left join Pub_VehicleDriver pvdf on pvdf.vehicleId=pv.id and pvdf.sequence=1
+		left join Pub_VehicleDriver pvds on pvds.vehicleId=pv.id and pvds.sequence=2
+		left join Pub_Driver pd on pd.id=pvdf.DriverId
+		left join Pub_Driver pdvs on pdvs.id=pvds.DriverId
+		where pv.id=#vehicleId#
+    </select>
+    
+	<select id="getVehicleTransportByIdSQL" resultClass="java.util.HashMap">
+		SELECT  top 1 
+			   [ID]
+		      ,[VehicleID]
+		      ,[IsBlind]
+		      ,[TransTypeCode]
+		      ,[Nationality]
+		      ,[OrgVehNo]
+		      ,[DriverInfo]
+		      ,[GuardsInfo]
+		      ,[Tonnage]
+		      ,[Origin]
+		      ,[Destination]
+		      ,convert(varchar(10), [StartTime],120) AS StartTime
+		      ,convert(varchar(10), [EndTime],120) AS EndTime
+		      ,[BanlineType]
+		      ,[OriginStop]
+		      ,[TerminalStation]
+		      ,[Traction]
+		      ,[TrailerVehNo]
+		  FROM [Pub_Vehicle_Transport] where VehicleID=#vehicleId# order by StartTime desc
+	</select>
+	
+	<update id="updateVehicleSQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Vehicle]
+    	 SET 
+           [RegistrationNO] = #registrationNo#
+           ,[WorkUnitID] = #workUnitId#
+           ,[RegistrationNOKindID] = #registrationNoKindId#
+           ,[RegistrationNOColorID] = #registrationNoColorId#
+           ,[KindID] = #kindId#
+           ,[ColorID] = #colorId#
+           ,[UsageID] = #usageId#
+           ,[BandID] = #bandId#
+           ,[ManufactoryID] = #manufactoryId#
+           ,[Vin] = #vin#
+           ,[Memo] = #memo#
+           ,[ModifyDatetime] = #modifyDateTime#
+           ,[ModifyUserID] = #modifyUserId#
+           ,[WorkStatus] = #workStatus#
+           ,[TransportPermits] = #transportPermits#
+           ,[TradeKindID] = #tradeKindId#
+           ,[TerminalID] = #terminalId#
+           ,[AreaID] = #areaId#
+		   ,[RegAddress] = #regAddress#
+		   ,[LicenseNo] = #licenseNo#
+		   ,[LoadingCapacity] = #loadingCapacity#
+		   ,[BusinessScope] = #businessScope#
+		   ,[SeatCount] = #seatCount#
+		   ,[vehicleTeamId] = #vehicleTeamId#
+     	WHERE
+     		[ID] = #vehicleId#
+	</update>
+	
+	<update id="updateVehicleServiceSQL" parameterClass="java.util.HashMap">
+		UPDATE [Pub_VehicleService]
+	     SET 
+	     		[SetupWorker] = #setupWorker#
+	            <isNotEmpty property="setupDate">,[SetupDateTime] = #setupDate#</isNotEmpty>
+	     WHERE
+	           [VehicleID] = #vehicleId#
+	</update>
+	
+	<update id="updateVehicleTransportSQL" parameterClass="java.util.HashMap">
+		UPDATE [Pub_Vehicle_Transport]
+           SET [IsBlind] = #isBlind#
+           	,[DriverInfo] = #driverInfo#
+			,[GuardsInfo] = #guardsInfo#
+			,[Tonnage] = #tonnage#
+			,[Origin] = #origin#
+			,[Destination] = #destination#
+			<isNotEmpty property="startTime">,[StartTime] = #startTime#</isNotEmpty>
+			<isNotEmpty property="endTime">,[EndTime] = #endTime#</isNotEmpty>
+			,[BanlineType] = #banlineType#
+			,[Traction] = #traction#
+			,[OriginStop] = #originStop#
+			,[TerminalStation] = #terminalStation#
+			,[OrgVehNo] = #orgVehNo#
+			,[TrailerVehNo] = #trailerVehNo#
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</update>
+	
+	<update id="updateVehicleDriverSQL" parameterClass="java.util.HashMap">
+		UPDATE [Pub_VehicleDriver] 
+			SET [DriverID] = #driverId#
+		WHERE
+           [VehicleID] = #vehicleId#
+           and [Sequence] = #driverSequence#
+	</update>
+	<!-- 编辑车辆 end -->
+	
+	<!-- 删除车辆 start -->
+	<delete id="delVehicleSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_Vehicle]
+     	WHERE isdeleted=1 
+              and registrationNo= #registrationNo#
+	</delete>
+	
+	<update id="deleteVehicleSQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Vehicle]
+    	 SET 
+            [IsDeleted] = 1,
+            [RegistrationNO] = '['+registrationNo+']'
+           ,[ModifyDatetime] = #modifyDateTime#
+           ,[ModifyUserID] = #modifyUserId#
+     	WHERE
+     		[ID] = #vehicleId#
+	</update>
+	
+	<delete id="deleteVehicleServiceSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_VehicleService]
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</delete>
+	
+	<delete id="deleteVehicleTransportSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_Vehicle_Transport]
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</delete>
+	
+	<delete id="deleteVehicleDriverSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_VehicleDriver]
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</delete>
+<!--删除用户车辆表Ent_UserVehicle	-->
+	<delete id="deleteEntUserVehicleSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Ent_UserVehicle]
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</delete>
+<!--删除车辆与车辆关系表Pub_GroupVehicle	-->
+	<delete id="deleteGroupVehicleSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_GroupVehicle]
+     	WHERE
+           [VehicleID] = #vehicleId#
+	</delete>
+	<!-- 删除车辆 end -->
+	
+	<!-- 更新车辆使用状态 -->
+	<update id="updateVehicleWorkStatusSQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Vehicle]
+    	 SET 
+           [WorkStatus] = #workStatus#
+           ,[ModifyDatetime] = #modifyDateTime#
+           ,[ModifyUserID] = #modifyUserId#
+     	WHERE
+     		[ID] = #vehicleId#
+	</update>
+		
+	<!-- 更新车辆终端 -->
+	<update id="updateVehicleTerminalSQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Vehicle]
+    	 SET 
+           [TerminalID] = #terminalId#
+           ,[ModifyDatetime] = #modifyDateTime#
+           ,[ModifyUserID] = #modifyUserId#
+     	WHERE
+     		[ID] = #vehicleId#
+	</update>
+	
+	<!-- 查看终端参数 start -->
+	<select id="getTerminalParamSQL" resultClass="java.util.HashMap">
+        select * from (
+		select ROW_NUMBER() OVER (order by 
+		ModifyDatetime asc
+		 )  RowNo,A.* FROM ( 
+		  select 
+            vts.ID
+			,vts.[VehicleID]
+           	,vts.[ParamName]
+           	,vts.[ParamValue]
+           	,convert(varchar, vts.[ModifyDatetime],120) AS ModifyDatetime
+		FROM Ent_TerminalParamSetting vts 
+		WHERE vts.vehicleId=#vehicleId# )A)B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getTerminalParamCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		SELECT count(*) 
+		FROM Ent_TerminalParamSetting vts 
+		WHERE vts.vehicleId=#vehicleId#
+	</select>
+	<!-- 查看终端参数 end -->
+	
+	
+	
+	<!-- feltky Star -->
+	<!-- 所属模块 平台管理-车辆组管理 -->
+	<!-- 公用语句 -->
+	<sql id="SelectVehicleSql">
+		SELECT 
+			ID, FullID, Name, 
+			ParentGroupID, WorkUnitID, 
+			AuthorizedGroupID, Kind,
+       		IsSourceVisible, PrivilegeFlag, 
+       		IsLeaf, [Level]
+  		FROM   Pub_VehicleGroup vg
+	</sql>
+ 	
+	
+	<!-- 新增车辆分组 -->
+	<insert id="addVehicleGroup" parameterClass="vehicleGroup">
+		INSERT   INTO  Pub_VehicleGroup
+	            (  
+	              <dynamic>
+	             	<isNotNull property="fullId">
+	             		FullID,
+	             	</isNotNull>
+	               </dynamic>
+	               Name,
+	               ParentGroupID,
+	               WorkUnitID,
+	               AuthorizedGroupID,
+	               Kind,
+	               IsSourceVisible,
+	               PrivilegeFlag,
+	               IsLeaf,
+	               [Level]
+	            )
+   		VALUES (
+		        <dynamic>
+	             <isNotNull property="fullId">
+	             	#fullId#,
+	             	</isNotNull>
+	             </dynamic>
+		          #name#,
+		          #parentGroupId#,
+		          #workUnitId#,
+		          #authorizedGroupId#,
+		          #kind#,
+		          #isSourceVisible#,
+		          #privilegeFlag#,
+		          #isLeaf#,
+		          #level#
+       		  )		
+       		  <selectKey resultClass="Long" keyProperty="id" type="post">    
+           		  <![CDATA[SELECT @@IDENTITY AS ID ]]>   
+          	 </selectKey>  
+
+	</insert>
+	<update id="updateVehicleGroup" parameterClass="vehicleGroup">
+			UPDATE Pub_VehicleGroup 
+		   		SET 	
+			   		Name = #name#
+		 		WHERE id=#id#
+	</update>
+	<!-- 检查默认车辆分组是否存在 -->
+	<select id="CheckDefaultGroupSQL" parameterClass="java.util.HashMap" resultClass="vehicleGroup">
+		<include refid="SelectVehicleSql"/> WHERE  vg.WorkUnitID=#workUnitId# and vg.IsLeaf=1 and vg.Level=1 
+	</select>
+	
+
+	<!-- 树查询 -->
+	<select id="GetVehicleGroupTree" resultClass="vehicleGroup" parameterClass="java.util.HashMap">
+		<include refid="SelectVehicleSql"/> WHERE 1=1 and vg.ParentGroupID=#ParentGroupID#
+	</select>
+	
+	<select id="GetVehicleGroupTreeById" resultClass="vehicleGroup" parameterClass="java.util.HashMap">
+		<include refid="SelectVehicleSql"/> WHERE 1=1 and vg.ID=#id#
+	</select>
+	<select id="getTreeVehicleGroup" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		SELECT * FROM ( 
+			SELECT wu.name as workUnitName, 
+			   vg.parentGroupId  parentID,
+					vg.*  FROM     
+				Pub_WorkUnit wu  LEFT JOIN Pub_VehicleGroup vg on  vg.WorkUnitID = wu.ID  		
+			 ) T WHERE 1=1 
+			<dynamic>
+				<isEqual property="level" compareValue="0">
+					and  T.parentID in( select ID from Pub_VehicleGroup t where t.kind=2 and t.workunitid=#id# and t.ParentGroupID=0)
+				</isEqual>
+				<isEqual property="level" compareValue="1">
+					and T.parentID=#id#  
+				</isEqual>				 
+			</dynamic>
+			order by T.kind asc  
+	</select>
+	<select id="getVehicleByWorkUnitId" parameterClass="java.util.HashMap" resultClass="vehicle">
+		 SELECT     id, registrationNo        FROM Pub_Vehicle t           
+ WHERE IsDeleted=0 and t.workunitid in(select t.id from pub_workunit t where t.fullid like '%'+
+ (select a.fullId from pub_workunit a,(SELECT WORKUNITID FROM Pub_VehicleGroup WHERE ID=#id#) b 
+ where a.id=b.WORKUNITID) +'%')
+	</select>
+	<select id="getVehicleByGroupId" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,T.NAME registrationNo,id as workUnitId,'1' isVehicle,Null As isSelected,
+		(datalength(t.fullId)%8+1) as Level from pub_workunit t where t.isdeleted=0 and t.fullId like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%' 
+		 union select t.*,b.id isSelected,-1 Level from (
+			SELECT id, registrationNo,workUnitId,'0' isVehicle FROM Pub_Vehicle t WHERE t.IsDeleted=0 and t.workunitid in(
+			select t.id from pub_workunit t 
+			where t.fullid like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%'
+		)) t
+ 		 left join(SELECT v.id,v.registrationNo FROM  pub_vehicle v,PUB_GROUPVEHICLE gv,pub_vehiclegroup vg 
+		 WHERE v.id=gv.vehicleid AND v.isDeleted=0 and gv.vehiclegroupid = vg.id AND  vg.id=#id#
+ 		) b on t.id=b.id order by isVehicle desc
+	</select>
+	
+	<!-- 普通管理车辆分组用 -->
+	<select id="getVehicleByGroupIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,T.NAME registrationNo,id as workUnitId,'1' isVehicle,Null As isSelected,
+		(datalength(t.fullId)%8+1) as Level from pub_workunit t where t.isdeleted=0 and t.fullId like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%' 
+		 union select t.*,b.id isSelected,-1 Level from (
+			SELECT id, registrationNo,workUnitId,'0' isVehicle FROM Pub_Vehicle t WHERE t.IsDeleted=0 and t.workunitid in(
+			select t.id from pub_workunit t 
+			where t.fullid like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%'
+		)) t
+ 		 left join(SELECT v.id,v.registrationNo FROM  pub_vehicle v,PUB_GROUPVEHICLE gv,pub_vehiclegroup vg 
+		 WHERE v.id=gv.vehicleid AND v.isDeleted=0 and gv.vehiclegroupid = vg.id   and  vg.id=-1
+ 		) b on t.id=b.id 
+ 		<isNotEqual property="id" compareValue="-1">
+ 		      left join 
+			   PUB_GROUPVEHICLE pgv
+			   on t.id=pgv.vehicleId 
+			  where pgv.vehiclegroupid=#id#
+		</isNotEqual>  
+ 		order by isVehicle desc
+	</select>
+	
+	<!-- 普通管理车辆分组用 -->
+	<select id="getVehicleByGroupIdsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    <!--
+		select id,T.NAME registrationNo,id as workUnitId,'1' isVehicle,Null As isSelected,
+		(datalength(t.fullId)%8+1) as Level from pub_workunit t where t.isdeleted=0 and t.fullId like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%' 
+		 union select t.*,b.id isSelected,-1 Level from (
+			SELECT id, registrationNo,workUnitId,'0' isVehicle FROM Pub_Vehicle t WHERE t.IsDeleted=0 and t.workunitid in(
+			select t.id from pub_workunit t 
+			where t.fullid like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%'
+		)) t
+ 		 left join(SELECT v.id,v.registrationNo FROM  pub_vehicle v,PUB_GROUPVEHICLE gv,pub_vehiclegroup vg 
+		 WHERE v.id=gv.vehicleid AND v.isDeleted=0 and gv.vehiclegroupid = vg.id   and  vg.id=#id#
+ 		) b on t.id=b.id 
+ 		order by isVehicle desc
+	    -->
+	
+		select 
+		id,
+		T.NAME registrationNo,
+		id as workUnitId,'1' 
+		isVehicle,
+		Null As isSelected,
+		(datalength(t.fullId)%8+1) as Level 
+		from pub_workunit t 
+		where t.isdeleted=0 and 
+		t.fullId like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%' 
+		union
+		select pv.id,pv.registrationNo,pv.workUnitId,'0' isVehicle,
+		
+		<isEqual property="IsShow" compareValue="0">
+		  Null As isSelected,
+		</isEqual>
+		
+		<isEqual property="IsShow" compareValue="1">
+		  vt.vehicleId As isSelected,
+		</isEqual>
+		
+		-1 Level
+		from 
+		pub_vehicle pv
+		
+		<isEqual property="IsSuperUser" compareValue="2">
+		left join 
+		Ent_UserVehicle uv on uv.vehicleId=pv.id
+		</isEqual>
+		
+		<isEqual property="IsShow" compareValue="1">
+		 left join 
+		 (
+		  select pvv.id,pvv.registrationNo,pvv.workUnitId, pgv.vehicleId
+			from 
+			pub_vehicle pvv
+			left join Pub_GroupVehicle pgv on pgv.vehicleId=pvv.id
+			where 
+			1=1 
+			and pgv.vehicleGroupID=#vehicleGroupID#
+			and pvv.isDeleted=0
+		  )vt on pv.id=vt.id
+		</isEqual>
+		
+		where 1=1 and pv.isDeleted=0
+		<isEqual property="IsSuperUser" compareValue="1">
+		 and pv.workUnitId in(
+		 select t.id from pub_workunit t 
+		 where t.fullid like '%'+(select a.fullId from pub_workunit a  where a.id=#workId#) +'%') 
+		</isEqual>
+		
+		<isEqual property="IsSuperUser" compareValue="2">
+		  and uv.userId=#userId#
+		</isEqual>
+		
+		
+		
+		
+		order by isVehicle desc
+		
+  
+	
+	</select>
+	
+	<select id="getWorkUnitVehicleGroupSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	     select top 1 id,name,workUnitId from pub_vehiclegroup  where workUNitid=#workId# and name='自编组'
+	</select>
+	
+	<!-- 删除车辆分组  先删分组表的分组和子分组 在删关系表 -->
+	<delete id="delVehicleGroup" parameterClass="java.util.HashMap">
+		 DELETE  FROM PUB_VEHICLEGROUP WHERE ID=#id# OR parentGroupId=#id#
+	</delete>
+	<delete id="delGroupVehicle" parameterClass="java.util.HashMap">
+		DELETE FROM PUB_GROUPVEHICLE WHERE VEHICLEGROUPID=#id#
+	</delete>
+  	<select id="getVehicleByVehicleGroupId"  resultClass="HashMap">
+		  SELECT  
+				distinct TOP  <![CDATA[ $pageSize$ ]]> 
+					*
+			FROM 
+				PUB_VEHICLE u
+			WHERE 
+				U.ID NOT IN
+				(
+				   SELECT  
+				   		TOP	(($page$ -1 ) * $pageSize$)
+				        U.ID
+				    FROM  
+				       pub_vehicle u where u.IsDeleted=0 and   1=1
+					 <isNotNull property="groupId" prepend="AND">
+				      	ID IN(SELECT vehicleid FROM PUB_GROUPVEHICLE WHERE VEHICLEGROUPID = #groupId#)
+				     </isNotNull>
+				     <isNotNull property="workUnitId" prepend="AND">
+						WORKUNITID=#workUnitId#
+					</isNotNull>
+					<isNotNull property="RegistrationNO" prepend="and"> 
+						RegistrationNO like '%$RegistrationNO$%'
+					</isNotNull>
+			   )
+			<isNotNull property="groupId" prepend="AND">
+			    ID IN(SELECT VEHICLEID FROM PUB_GROUPVEHICLE WHERE VEHICLEGROUPID = #groupId#)
+			</isNotNull>
+			<isNotNull property="workUnitId" prepend="AND">
+				WORKUNITID=#workUnitId#
+			</isNotNull>
+			<isNotNull property="RegistrationNO" prepend="and"> 
+				RegistrationNO like '%$RegistrationNO$%'
+			</isNotNull>			
+  	</select>
+	
+	<!-- 查找车辆数量   -->
+	<select id="findVehicleCount" resultClass="java.lang.Long" >
+		SELECT  
+		   COUNT(distinct RegistrationNO)
+		FROM 
+		  PUB_VEHICLE  
+		WHERE  1=1 
+		<dynamic>
+			<isNotNull prepend="and" property="groupId">
+				ID IN(
+					SELECT 
+						vehicleid 
+					FROM pub_groupVehicle 
+					WHERE vehiclegroupid = #groupId#
+				)
+			</isNotNull>
+			<isNotNull property="workUnitId" prepend="AND">
+				WORKUNITID=#workUnitId#
+			</isNotNull>
+			<isNotNull property="RegistrationNO" prepend="and"> 
+				RegistrationNO like '%$RegistrationNO$%'
+			</isNotNull>
+		</dynamic> 
+		 
+	</select>
+	<!-- feltky End -->
+	<select id="getVehicleById_forImage"  resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select registrationNO from Pub_Vehicle where id=#id#
+	</select>
+							<!-- 作用于报警设置模块begin -->
+							
+	<!-- 根据用户id（单位id）得到车辆列表 -->
+	<select id="getVehilceListByWorkUnitIDSql" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select id,registrationNO,WorkUnitID from Pub_Vehicle where 1=1
+		<![CDATA[ and isDeleted <> 1]]>
+		<dynamic>
+	     	<isNotEmpty property="workUnitID">
+	     			and workUnitID=#workUnitID#
+	     	</isNotEmpty>
+     		<isNotEmpty property="registrationNO">
+	     			and registrationNO like '%$registrationNO$%'
+	     		</isNotEmpty>
+      	</dynamic>
+		
+	</select>
+							<!-- 作用于报警设置模块end -->
+	
+</sqlMap>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+
+	
+<!--查询车辆速度 统计-->
+	<parameterMap id="VehicleSpeedMap" class="java.util.HashMap">
+        <parameter property="@year" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@month" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@day" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@week" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@vehicle_list" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+        <parameter property="@toRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@fromRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@registrationNo" mode="IN" jdbcType="varchar(4000)" javaType="java.lang.String"/>
+        <parameter property="@workunitid" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@workUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+        <parameter property="@SortName" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@SortOrder" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@IsExport" mode="IN" jdbcType="varchar" javaType="java.lang.String" /> 
+    </parameterMap>
+       
+    <!-- 车辆速度统计 -->   
+      <procedure id="getVehicleSpeedStatSQL" parameterMap="VehicleSpeedMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetSpeedData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+	
+	<!-- 企业车辆速度统计 -->   
+      <procedure id="getVehicleSpeedSactionStatSQL" parameterMap="VehicleSpeedMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetSpeedSectionData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure>
+</sqlMap>
+
+

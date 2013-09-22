@@ -1,0 +1,1017 @@
+var tip = true;
+var maplet = null; // 地图全局变量
+var leftlat="";
+var rightlat="";
+var carHashMap = new HashMap();
+var control=null;
+var showMarker;
+var showRegistrationNo;
+var showTextMarker;
+var showAlarmTime;
+var showAlarmName;
+var showLng;
+var showLat;
+var basePath="";
+var pointHashMap = new HashMap();//自定义信息map
+var lableHashMap = new HashMap();//自定义信息map
+
+
+
+function load() {
+	try {
+		var heads = document.getElementsByTagName("head")[0]
+	    var bases = heads.getElementsByTagName("base")[0];
+	   if (bases) {
+	        basePath=bases.href;
+	   } else {
+	         basePath="";
+	   }
+		$('#map').css("width", getMapWidth() + "px");
+		$('#map').css("height", getMapHeight() - 180 + "px");
+
+		maplet = new BMap.Map("map");            // 创建Map实例
+		var point = new BMap.Point(116.39885,39.96571);    // 创建点坐标
+		maplet.centerAndZoom(point,4);                     // 初始化地图,设置中心点坐标和地图级别。
+		maplet.enableScrollWheelZoom();                            // 启用滚轮放大缩小
+		maplet.addControl(new BMap.NavigationControl());
+		maplet.addControl(new BMap.ScaleControl());  
+		maplet.addControl(new BMap.OverviewMapControl());   
+		control = new BMapLib.RectangleZoom(maplet);
+		maplet.addControl(new BMap.MapTypeControl({
+			mapTypes: [BMAP_NORMAL_MAP, BMAP_SATELLITE_MAP, BMAP_HYBRID_MAP]
+			}));
+		var allScreen=$('#allScreen');
+		allScreen.unbind("click");
+		allScreen.bind("click",fullScreen);
+		$.messager.defaults={ok:"确定",cancel:"取消"};
+	} catch (e) {
+		// TODO: handle exception
+	}
+}
+
+window.onresize = resizeListener;
+function resizeListener() {
+	maplet.checkResize();
+}
+function resizeMap() {   
+	$('#map').css("width", getMapWidth() + "px");
+	$('#map').css("height", getMapHeight() - 180 + "px");
+	maplet.disableAutoResize();//禁用自动适应容器尺寸变化
+	var center = maplet.getCenter();//返回地图当前中心点
+	maplet.checkResize();    //通知地图容器尺寸发生变化
+//	maplet.setCenter(center); //设置中心点
+	maplet.enableAutoResize();//启用自动适应容器尺寸变化，默认启用。
+//	showPoint();
+}
+
+// 方向
+function getHead(head) {
+	head=head*2;
+	if ((head >= 0 && head < 22) || (head >= 336)){
+		return 3;
+		}else if (head >=22 && head <66){
+			return 7;
+		}else if (head >=66 && head <112){
+			return 1;
+	    }else if (head >=112 && head <=156){
+			return 8;
+	    }else if (head >=156 && head <202){
+			return 4;
+	    }else if (head >=202 && head <= 246){
+			return 5;
+	    }else if (head >=246 && head <292){
+			return 2;
+	    }else if (head >=292 && head <336){
+			return 6;
+	    }
+}
+
+function getHeadDes(head) {
+	head=head*2;
+	if ((head >= 0 && head < 22)||(head >= 336)){
+		return "北"+"("+head+")";
+	}else if(head >= 22 && head <66){
+		return "东北"+"("+head+")";
+	}else if(head>=66&&head<112){
+		return "东"+"("+head+")";
+	}else if(head>=112&&head<156){
+		return "东南"+"("+head+")";
+	}else if(head>=156&&head<202){
+		return "南"+"("+head+")";
+	}else if(head>=202&&head<246){
+		return "西南"+"("+head+")";
+	}else if(head>=246&&head<292){
+		return "西"+"("+head+")";
+	}else if(head>=292&&head<336){
+		return "西北"+"("+head+")";
+	}
+}
+function MakerNewCar(obCar,tableFlag){
+	var state = 0;
+	var head = getHead(obCar.hd);
+	//alert("GPS速度："+obCar.sd);
+	if (obCar.sd > 0) {
+		state = 1;
+	}
+	car = new MyObject(obCar.vehicleId);
+	var IconPath;
+	var IconInfo;
+	var icon,w,h,src;
+	var newMarker = "";
+	try {
+		if (!carHashMap.containsKey(car)) {
+			if (tableFlag) {
+				add_tables(obCar);
+			}
+		} else {
+			oneCar(obCar.vehicleId);//先删除车
+			if (tableFlag) {
+				updatetable(obCar);
+			}
+		}
+		if (state == 0) { //车辆停止了
+			src = "imgs/car/carYellow" + head + ".gif";
+		} else if (state == 1) {//车辆在行驶
+			src = "imgs/car/car" + head + ".gif";
+		} else if (state == 2) {
+			src = "imgs/car/carBlue" + head + ".gif";
+		} 
+		//报警状态字字符串
+		var alarmStateStr = (!obCar.alarmState?"":obCar.alarmState);
+		if(alarmStateStr!=""&&alarmStateStr!="当前没有报警"){//车辆报警了
+			src = "imgs/car/red" + head + ".gif";
+		}
+
+		try {
+			if (head == 1 || head == 2 || head == 3 || head == 4) {
+				w = 20;
+				h = 20;
+				icon = new BMap.Icon(src, new BMap.Size(w,h), {anchor: new BMap.Size(10,10)});
+			} else {
+				w = 22;
+				h = 22;
+				icon = new BMap.Icon(src, new BMap.Size(w,h), {anchor: new BMap.Size(10,10)});
+			}
+		} catch (e) {
+
+		}
+		var point = new BMap.Point(obCar.sHlon, obCar.sHlat);			
+		var newObCar = new Object();
+		var infowindow = createInfoWindow(obCar);
+		newMarker= new BMap.Marker(point, {icon: icon});
+		maplet.addOverlay(newMarker);
+		/**设置弹出框begin**/
+		var label = new BMap.Label(obCar.no,{offset:new BMap.Size(10,-10)});
+		label.setStyle({
+            borderColor:"#808080",
+            color:"#333",
+            cursor:"pointer"
+		});
+		newMarker.setLabel(label);
+		var opts = {  width : 395,height: 320     // 信息窗口大小  
+			}
+		newMarker.addEventListener("click", function(){
+			var infoWindow = new BMap.InfoWindow( createInfoWindow(obCar),opts);
+			/**设置快捷标题**/
+			infoWindow.setTitle(getTitleDiv(obCar.no,obCar.vehicleId,1));
+			this.openInfoWindow(infoWindow); 
+		});
+		/**设置弹出框end**/
+
+	} catch (e) {
+		newMarker = car;
+	}
+	carHashMap.put(car, newMarker);
+	// 清空
+	point = null;
+	car = null;
+	carMarker = null;
+	CollectGarbage();
+}
+
+
+//定位车辆
+function MakerCar(obCar, tableFlag,name) {
+	var ggPoint = new BMap.Point(obCar.sHlon, obCar.sHlat);
+	 // 将gps的经纬度转化为百度地图的经纬度
+   BMap.Convertor.translate(ggPoint, 0, function(point){
+	   obCar.sHlon=point.lng;
+	   obCar.sHlat=point.lat;
+	   if (name=="1"){ //列表
+		   if (parent.parent.leftFrame.IsCheck(obCar.vehicleId)){	//为了全选后马上取消而还是画图的bug
+				MakerNewOrUpdateCar(obCar,tableFlag);
+		   }
+	   }
+	   else{
+		   MakerNewOrUpdateCar(obCar,tableFlag);
+	   }
+   });
+}
+
+function MakerNewOrUpdateCar(obCar,tableFlag){
+	car = new MyObject(obCar.vehicleId);
+	if (!carHashMap.containsKey(car)) {
+		MakerNewCar(obCar,tableFlag);
+	}else{
+		var newMarker = carHashMap.get(car);
+		var oldPoint = newMarker.getPosition();
+		try {
+				updateCurrentCar(newMarker,obCar);
+		} catch (e) {
+			alert(e);
+		}			
+		newMarker = null;
+		oldPoint = null;
+	}
+	car = null;
+}
+
+/**
+ * 获取车辆图片
+ * 
+ * @param obCar
+ */
+function getCarImage(obCar){
+	var state = 0;
+	var src="";
+	var head = getHead(obCar.hd);
+	if (obCar.sd > 0) {
+		state = 1;
+	}
+ 
+if (state == 0) {//车辆停止的
+	src = "imgs/car/carYellow" + head + ".gif";
+} else if (state == 1) {//车辆在行驶
+	src = "imgs/car/car" + head + ".gif";
+} else if (state == 2) {
+	src = "imgs/car/carBlue" + head + ".gif";
+} 
+
+//报警状态字字符串
+var alarmStateStr = (!obCar.alarmState?"":obCar.alarmState);
+if(alarmStateStr!=""&&alarmStateStr!="当前没有报警"){//车辆报警了
+	src = "imgs/car/red" + head + ".gif";
+}	
+	return src;
+}
+
+/**
+ * 刷新当前跟踪的车辆
+ * @param currentCarMarker 地图上车辆图片对象
+ * @param obCar 实时定位数据
+ */
+function updateCurrentCar(currentCarMarker,obCar){
+	var point = new BMap.Point(obCar.sHlon, obCar.sHlat);
+	var icon = currentCarMarker.getIcon();
+	var oldIconUrl = getCarImage(obCar);
+	if(icon.imageUrl!=oldIconUrl){//图片不同
+		icon.setImageUrl(oldIconUrl); //修改图片
+		currentCarMarker.setIcon(icon);//修改提示
+	}
+	
+	/**设置弹出框begin【刷新弹出框】**/
+	var label = new BMap.Label(obCar.no,{offset:new BMap.Size(10,-10)});
+	label.setStyle({
+        borderColor:"#808080",
+        color:"#333",
+        cursor:"pointer"
+	});
+	currentCarMarker.setLabel(label);
+	var opts = {  width : 395,     // 信息窗口宽度 
+			height: 320     // 信息窗口高度  
+		}
+	/**点击弹出**/
+	currentCarMarker.addEventListener("click", function(){
+		var infoWindow = new BMap.InfoWindow( createInfoWindow(obCar),opts);
+		/**设置快捷标题**/
+		infoWindow.setTitle(getTitleDiv(obCar.no,obCar.vehicleId,1));
+		this.openInfoWindow(infoWindow); 
+	});
+	
+	/**自动弹出**/
+//	var oldPoint = currentCarMarker.getPosition();
+//	var point = new BMap.Point(oldPoint.lng, oldPoint.lat);
+//	var infoWindow = new BMap.InfoWindow( createInfoWindow(obCar),opts);
+//		/**设置快捷标题**/
+//		infoWindow.setTitle(getTitleDiv(obCar.no,obCar.vehicleId,1));
+////		maplet.openInfoWindow(infoWindow,point);
+//		currentCarMarker.openInfoWindow(infoWindow);
+	/**设置弹出框end**/
+	
+	
+	//currentCarMarker.closeInfoWindow();//关闭弹出窗口
+	currentCarMarker.setPosition(point);//刷新车辆位置
+	
+	updatetable(obCar); //刷新订阅列表
+}
+
+//表格开始
+function add_tables(obCar) {
+	//ljy
+	var newLine="<tr id='gps"+obCar.vehicleId+"' ondblclick='reloadMapCenter("+obCar.vehicleId+");'><td width='8%' align='center'><div id='cp" + obCar.vehicleId + "' width='8%'><a  href='javascript:void(0);' onclick='javascript:goGroup_attention_gis("+obCar.vehicleId+")' style='cursor:hand;font-size:9pt;'>" + obCar.no + "</a></div></td>"
+	+"<td width='5%' style='border:0px solid;' align='center'><div id='noColor" + obCar.vehicleId + "'>" + obCar.noColor + "</div></td>"
+	+"<td width='5%' style='border:0px solid;' align='center'><div id='sd" + obCar.vehicleId + "'>" + obCar.sd + "</div></td>"
+    +"<td width='5%' style='border:0px solid;' align='center'><div id='sd2" + obCar.vehicleId + "'>" + obCar.sd2 + "</div></td>"
+    +"<td width='7%' style='border:0px solid;' align='center'><div id='dw" + obCar.vehicleId + "'>" + (obCar.st == 1 ? '盲区' : '准确') + "</div></td>"
+    +"<td width='6%' style='border:0px solid;' align='left'><div id='sh" + obCar.vehicleId + "'>" + obCar.sh + "</div></td>"
+    +"<td width='15%' style='border:0px solid;' style='border:15px solid red; padding-right:15px;' align='center'><div id='gs" + obCar.vehicleId + "' title='"+obCar.gs +","+obCar.alarmState+"'>" + (!obCar.gs?'':obCar.gs.substr(0,10)+"……") + "</div></td>"
+    
+    +"<td width='15%' style='border:0px solid;' align='center'><div id='areaInfo" + obCar.vehicleId + "'>"  + (!obCar.areaInfo?'':obCar.areaInfo) + "</div></td>"
+    
+    +"<td width='15%' style='border:0px solid;' align='center'><div id='fjInfo" + obCar.vehicleId + "' title='"+(!obCar.fjInfo?'':obCar.fjInfo) +"'>"  + (!obCar.fjInfo?'':obCar.fjInfo.substr(0,10)+"……") + "</div></td>"
+    
+    +'<td width=\'12%\' style=\'border:0px solid;\' align=\'right\'><table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td width="25" style=\'border:0px solid red;padding-left:0px;\' nowrap="nowrap" align=\'center\'><div id="lo' + obCar.vehicleId + '"><div id="vehicleId' + obCar.vehicleId + '" lat="' + obCar.lat + '" lon="'
+	   + obCar.lon + '"><a href="javascript:getLocation('+obCar.vehicleId+')">查看</a></div></div></td><td><div id="' + "Location" + obCar.vehicleId + '"></div></td></tr></table></td>'
+	   +"<td width='8%' style='border:0px solid;' align='center'><div id='gt" + obCar.vehicleId + "'>" + obCar.gt + "</div></td>"
+	   +"<td width='4%' style='border:0px solid;' align='right'><div id='de" + obCar.vehicleId + "'>" + "<a style='cursor:hand;font-size:9pt;' onclick=deleteCar('" + obCar.vehicleId + "');><img src='imgs/remove.gif' border='0'/></a></div></td>"
+	   +"</tr>";
+$('#mytable').append(newLine);
+	setColor('mytable');
+}
+
+function updatetable(obCar) {
+	//ljy
+	var newLine="<td width='8%' style='border:0px solid;' align='center'><div id='cp" + obCar.vehicleId + "'><a  href='javascript:void(0);' onclick='javascript:goGroup_attention_gis("+obCar.vehicleId+")' style='cursor:hand;font-size:9pt;'>" + obCar.no + "</a></div></td>"
+	+"<td width='5%' style='border:0px solid;' align='center'><div id='noColor" + obCar.vehicleId + "'>" + obCar.noColor + "</div></td>"
+	+"<td width='5%' style='border:0px solid;' align='center'><div id='sd" + obCar.vehicleId + "'>" + obCar.sd + "</div></td>"
+    +"<td width='5%' style='border:0px solid;' align='center'><div id='sd2" + obCar.vehicleId + "'>" + obCar.sd2 + "</div></td>"
+    +"<td width='7%' style='border:0px solid;' align='center'> <div id='dw" + obCar.vehicleId + "'>" + (obCar.st == 0 ? '盲区' : '准确') + "</div></td>"
+    +"<td width='6%' style='border:0px solid;' align='left'><div id='sh" + obCar.vehicleId + "'>" + obCar.sh + "</div></td>"
+    +"<td width='15%' style='border:0px solid;' style='border:15px solid red; padding-right:15px;' align='center'><div id='gs" + obCar.vehicleId + "' title='"+obCar.gs +","+obCar.alarmState+"'>" + (!obCar.gs?'':obCar.gs.substr(0,10)+"……") + "</div></td>"
+   
+    +"<td width='15%' style='border:0px solid;' align='center'><div id='areaInfo" + obCar.vehicleId + "'>"  +(!obCar.areaInfo?'':obCar.areaInfo) + "</div></td>"
+    
+    +"<td width='15%' style='border:0px solid;' align='center'><div id='fjInfo" + obCar.vehicleId + "' title='"+(!obCar.fjInfo?'':obCar.fjInfo) +"'>"  + (!obCar.fjInfo?'':obCar.fjInfo.substr(0,10)+"……") + "</div></td>"
+    
+    +'<td width=\'12%\' style=\'border:0px solid;\' align=\'right\'><table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td width="25" style=\'border:0px solid red;padding-left:0px;\' nowrap="nowrap"><div id="lo' + obCar.vehicleId + '"><div id="vehicleId' + obCar.vehicleId + '" lat="' + obCar.lat + '" lon="'
+	   + obCar.lon + '"><a href="javascript:getLocation('+obCar.vehicleId+')">查看</a></div></div></td><td align=\'center\'><div id="' + "Location" + obCar.vehicleId + '"></div></td></tr></table></td>'
+	   +"<td width='8%' style='border:0px solid;' align='center'><div id='gt" + obCar.vehicleId + "'>" + obCar.gt + "</div></td>"
+	   +"<td width='4%' style='border:0px solid;' align='right'><div id='de" + obCar.vehicleId + "'>" + "<a style='cursor:hand;font-size:9pt;' onclick=deleteCar('" + obCar.vehicleId + "');><img src='imgs/remove.gif' border='0'/></a></div></td>";
+	 $('#gps'+obCar.vehicleId).html(newLine);  
+}
+// 删除表格行
+
+function deleteCar(ObjectID) {
+	try { // 删除表格
+		var id = $("#sd" + ObjectID);
+		id.parents("tr").remove();
+	} catch (e) {
+	}
+	try {// 删除车
+		oneCar(ObjectID.toString());
+	} catch (e) {
+	}
+	try { // 删除复选框
+		parent.parent.leftFrame.deleteCheckBox(ObjectID.toString());
+	} catch (e) {
+	}
+	setColor('mytable');// 删除行后重新设置交叉色
+}
+
+// 删车
+function oneCar(carsim) {
+	car = new MyObject(carsim);
+	var newMarker = carHashMap.get(car);
+	try {
+		// 清空地图图标
+		if (newMarker != null) {
+			maplet.removeOverlay(newMarker);// 删除车
+		}
+	} catch (e) {
+	}
+	carHashMap.remove(car); // 删除车
+	newMarker=null;
+	car=null;
+	CollectGarbage();
+}
+
+function createInfoWindow(obCar) {
+	var div = '<div><table width="385" border="0" cellspacing="0" cellpadding="0"><tr bgcolor="#e6eaea">';
+	div += '<td colspan="3" height="20">' + obCar.gs + '</td></tr>' 
+    + '<tr><td colspan="3" height="20">报警状态：'+obCar.alarmState+'</td></tr>'
+    + '<tr bgcolor="#e6eaea"><td width="105" height="18">高度：' + obCar.gd + 'm</td>' + '<td width="150" >SIM卡：' +obCar.sim + '</td><td width="110">方向：' + getHeadDes(obCar.hd) + '</td></tr>'
+    + '<tr bgcolor="#e6eaea"><td height="18">经度：' + obCar.lon+ '</td>' + '<td width="150" >纬度：' + obCar.lat + '</td><td width="110" height="18">速度：' + obCar.sd + 'km/h</td></tr>' 
+	+ '<tr><td height="18" colspan="3"> <table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td>所属行业：' + obCar.kindName+ '</td><td>所属业户：' + obCar.workunitName + '</td></tr> </table></td></tr>' 
+	+ '<tr bgcolor="#e6eaea"><td width="105" height="18" colspan="3" >电子运单：' + obCar.bill+ '</td></tr>' 
+	+ '<tr><td  colspan="3" ><table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td><a href="javascript:void(0)" onclick=getDriverMessage("'+obCar.vehicleId+ '")> 查看司机信息</a></td><td><a href="javascript:void(0)" onclick=doReverse("' + obCar.lon + '","' + obCar.lat + '")>显示位置</a></td><td>定位时间:' + obCar.gt + '</td></tr></table></td></tr>'
+	+ '<tr bgcolor="#e6eaea"><td colspan="3"  height="35" id="message">&nbsp;</td></tr></table></div>';
+	return div;
+}
+
+// 放大
+function mZoom(switchid) {
+	control.close();
+	if (switchid == 0) {
+		control = new BMapLib.RectangleZoom(maplet);
+		control.open();  // 开启拉框放大
+	} else if (switchid == 1) {
+		control.close();  // 关闭拉框放大
+		maplet.setZoom(maplet.getZoom() - 1);
+	}
+
+}
+// 打印
+function printMap() {
+	control.close();
+	window.print();
+}
+
+function print_Map(maplet) {
+	var html = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n";
+	html += (document.all) ? "<html xmlns:v=\"urn:schemeas-microsoft-com:vml\">" : "<html>";
+	html += "\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=gb2312\">\n<title>Print Maps<\/title>\n";
+	html += "<style type=\"text\/css\">\nbody {margin: 0px;}\n";
+	html += (document.all) ? "v\\:*{ Behavior:url(#default#VML);}" : "";
+	html += "\n</style>\n";
+	html += "<\/head>\n";
+	html += "<body><center>\n";
+	html += "<a href='#' onclick='javascript:window.print()'>打印</a>\n";
+
+	html += maplet.getMapContent(0);
+	html += "\n<\/center><\/body>\n<\/html>";
+	var win = document.open("about:blank", "win", "menubar=1,width=" + maplet.container.offsetWidth + ",height=" + (maplet.container.offsetHeight + 20));
+	win.document.writeln(html);
+	win.document.close();
+}
+// 测面、线工具0、为面1为线
+function measure() {
+	var myDis = new BMapLib.DistanceTool(maplet);
+	 myDis.open();  // 开启鼠标测距
+	
+}
+
+//全国
+function AllMap() {
+	control.close();
+	maplet.centerAndZoom(new BMap.Point(108.635191,35.70723),4);
+}
+
+// 删除所有
+function mapClearAll() {
+	maplet.clearOverlays(true);
+}
+// 定位车辆的地图中心点
+function toMapCenter(lng, lat) {
+	maplet.centerAndZoom(new BMap.Point(lng, lat), 14);
+}
+
+// 重新定位地图中心点
+function reloadMapCenter(o) {
+	var d = $('#vehicleId' + o);
+	var point = new BMap.Point(d.attr("lon"), d.attr("lat"));    // 创建点坐标
+	maplet.centerAndZoom(point, 14);
+}
+// 漫游
+function manyou() {
+	control.close();
+}
+
+// 车辆列表中,取中文地址
+function getLocation(o) {
+	$("#Location" + o).html('<img src="imgs/load.gif" />正在加载数据......');
+	var d = $('#vehicleId' + o);
+	var gc = new BMap.Geocoder();    
+	var pt= new BMap.Point(d.attr("lon") , d.attr("lat"));
+	gc.getLocation(pt, function(rs){
+        var addComp = rs.addressComponents;
+        $("#Location" + o).html(addComp.province + ", " + addComp.city + ", " + addComp.district + ", " + addComp.street + ", " + addComp.streetNumber);
+    });  
+	//百度取地址http接口
+//	$("#Location" + o).html('<img src="imgs/load.gif" />正在加载数据......');
+//	var d = $('#vehicleId' + o);
+//	var url = "monitorCenter/getBaiduAddressSH.action";
+//	var param = {
+//		date : new Date(),
+//		lnglat : d.attr("lon") + "," + d.attr("lat")
+//	};
+//	url = encodeURI(url);
+//	$.ajax( {
+//		url : url,
+//		type : "POST",
+//		dataType : "json",
+//		data : param,
+//		success : function(data) {
+//			try {
+//				
+//				if(data.status=="ok"){
+//					$("#Location" + o).html(data.result.formatted_address);
+//				}else{
+//					$("#Location" + o).html(data.result.error);
+//				}
+//			} catch (exception) {
+//				$("#Location" + o).html('因网络不畅，数据加载未完成,请稍后再试！');
+//			}
+//		},
+//		error:function(){
+//			$("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+//		}
+//	});
+
+}
+// 弹出窗口,取中文地址
+function getLocationInfoForAlarm(vehicleId, lon, lat) {
+	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+	var gc = new BMap.Geocoder();    
+	var pt= new BMap.Point(lon , lat);
+	gc.getLocation(pt, function(rs){
+        var addComp = rs.addressComponents;
+        $("#message").html(addComp.province + ", " + addComp.city + ", " + addComp.district + ", " + addComp.street + ", " + addComp.streetNumber);
+     });   
+
+	//百度取地址的http接口
+//	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+//	var url = "monitorCenter/getBaiduAddressSH.action";
+//	var param = {
+//		date : new Date(),
+//		lnglat : lon + "," + lat
+//	}
+//	url = encodeURI(url);
+//	$.ajax( {
+//		url : url,
+//		type : "POST",
+//		dataType : "json",
+//		data : param,
+//		success : function(data) {
+//			try {
+//				if(data.status=="OK"){
+//					$("#message").html(data.result.formatted_address);
+//				}else{
+//					$("#message").html(data.result.error);
+//				}
+//			} catch (exception) {
+//				$("#message").html('因网络不畅，数据加载未完成,请稍后再试！');
+//			}
+//		},
+//		error:function(){
+//			$("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+//		}
+//
+//	});
+}
+
+// 弹出窗口,取中文地址
+function getLocationInfo2(vehicleId, lon, lat) {
+	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+	var gc = new BMap.Geocoder();    
+	var pt= new BMap.Point(lon , lat);
+	gc.getLocation(pt, function(rs){
+        var addComp = rs.addressComponents;
+        $("#message").html(addComp.province + ", " + addComp.city + ", " + addComp.district + ", " + addComp.street + ", " + addComp.streetNumber);
+     });  
+
+	//百度取地址的http接口
+//	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+//	var url = "monitorCenter/getBaiduAddressSH.action";
+//	var param = {
+//		date : new Date(),
+//		lnglat : lon + "," + lat
+//	};
+//	url = encodeURI(url);
+//	$.ajax( {
+//		url : url,
+//		type : "POST",
+//		dataType : "json",
+//		data : param,
+//		success : function(data) {
+//			try {
+//				if(data.status=="OK"){
+//					$("#message").html(data.result.formatted_address);
+//				}else{
+//					$("#message").html(data.result.error);
+//				}
+//			} catch (exception) {
+//				$("#message").html('因网络不畅，数据加载未完成,请稍后再试！');
+//			}
+//		},
+//		error:function(){
+//			$("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+//		}
+//
+//	});
+}
+
+/**
+ * 获取车辆最新驾驶员信息
+ * 
+ * @param {}
+ *            vehicleId
+ */
+function getDriverMessage(vehicleId){
+		$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+   var jsonParams = {
+		vehicleId : vehicleId,
+		de : new Date()
+	};
+	
+	 	$.ajax({
+		url:"monitorCenter/getNewestDriverMessage.action",
+		type:"POST",
+		data: jsonParams,
+		success: function(data){
+		    if (data != ''&&data!='null'&& data!=null) {
+		    	var name=data.name;//司机姓名
+		    	var driverIC=data.driverIC;//司机IC卡号
+		    	var drivingLicence=data.drivingLicence;//驾驶证号码
+		    	var zdDriverCode=data.zdDriverCode;//司机编号
+                //var zdWhetherIC=data.zdWhetherIC;//终端是否插入IC卡
+		    	
+		    	var message="姓名:"+(!data.name?"":data.name);
+		    	if(drivingLicence!=''){
+				    	message+="&nbsp;驾驶证号码:"+(!drivingLicence?"":drivingLicence);
+				}
+		    	
+			    if(driverIC!=''){
+			    	message+="&nbsp;IC卡号:"+(!driverIC?"":driverIC);
+			    }
+			   
+			    if(zdDriverCode!=''){
+			    	message+="&nbsp;司机编号:"+(!zdDriverCode?"":zdDriverCode);
+			    }
+//			    if(zdWhetherIC!=''){
+//				    message+="&nbsp;终端是否插入IC卡:"+zdWhetherIC;
+//				}
+		        $("#message").html(message);
+		}else{
+			$("#message").html("当前没有司机信息");
+		  }
+		}
+		
+	});
+	
+} 
+var Row_bgColor1 = "#ffffff";
+var Row_bgColor2 = "#fdfaf0";
+var ActiveRow_bgColor = "#F9F8CB"
+var MouseOverRow_bgColor = "#daf6fb";
+
+// 设置交叉色和鼠标变色
+function setColor(tableID) {
+	var objTable = document.getElementById(tableID);
+	for ( var i = 0; i < objTable.rows.length; i++) {
+		if (i % 2 == 0) {
+			objTable.rows[i].bgColor = Row_bgColor1;// 设置背景色
+			// 设置鼠标变色
+			objTable.rows[i].onmouseover = function() {
+				this.bgColor = MouseOverRow_bgColor;
+			};
+			objTable.rows[i].onmouseout = function() {
+				this.bgColor = Row_bgColor1;
+			};
+		} else {
+			objTable.rows[i].bgColor = Row_bgColor2;// 设置背景色
+			// 设置鼠标变色
+			objTable.rows[i].onmouseover = function() {
+				this.bgColor = MouseOverRow_bgColor;
+			};
+			objTable.rows[i].onmouseout = function() {
+				this.bgColor = Row_bgColor2;
+			};
+		}
+	}
+}
+
+
+// 报警处理动画开始
+function gifPoint(latlng) {
+	var icon;
+	var w;
+	var h;
+	var src = "imgs/car/red1.gif";
+
+	w = 20;
+	h = 20;
+	icon = new BMap.Icon(src, new BMap.Size(w,h), {anchor: new BMap.Size(16,16)});
+	var newMarker = new BMap.Marker(latlng, {icon: icon});
+	maplet.setCenter(latlng, 13);
+	return newMarker;
+}
+
+//实时报警页面显示车辆功能
+function AlertGif(x, y,registrationNo,alarmTime,alarmName,mapType) {
+	showRegistrationNo=registrationNo;
+	showAlarmTime=alarmTime;
+	showAlarmName=alarmName;
+	showLng=x;
+	showLat=y;
+	var param = {
+		date : new Date(),
+		lnglat : x + "," + y,
+		mapType:mapType
+	}
+	/**获取偏移过后的经纬度**/
+//	var url = "monitorCenter/getRealLngLat.action";
+	var url = "monitorCenter/getRSHLngLatRealTimeAlarm.action";
+	$.ajax( {
+		url : url,
+		type : "POST",
+		dataType : "json",
+		data : param,
+		success : getRealLngLatBack
+	})
+
+}
+
+// 获取反偏移经纬度返回方法【ljy】
+function getRealLngLatBack(req) {
+	try {
+		var result = req;
+		var lngArray = result.split(",");
+		//alert("精度："+lngArray[0]+" 纬度："+lngArray[1]);
+		var lng = lngArray[0];
+		var lat=lngArray[1];
+		var latlng = new BMap.Point(lng, lat);//偏移过后的经纬度显示在百度地图上
+		var newMarker = gifPoint(latlng); //标注图层
+		maplet.addOverlay(newMarker);
+		var label = new BMap.Label(showRegistrationNo,{offset:new BMap.Size(20,-10)});
+		newMarker.setLabel(label);	//文字标注	
+		//创建信息窗口
+		var infowindow = new BMap.InfoWindow(createAlarmInfoWindow(showLng,showLat,lng,lat,showAlarmTime,showAlarmName));// 创建信息窗口对象
+		newMarker.addEventListener("click", function(){   
+			this.openInfoWindow(infowindow);   
+		});
+		showMarker = newMarker;
+		setTimeout("moveone()", 50000);
+	} catch (exception) {
+
+	}
+
+}
+
+/**showLng,showLat 是原始没有偏移过得经纬度【用作调用泰瑞的转换中文地址接口返回中文地址】
+ * lng,lat 是偏移过的经纬度
+ **/
+function createAlarmInfoWindow(showLng,showLat,lng,lat,alarmTime,alarmName) {
+	var div = '<div><table width="260" border="0" cellspacing="2" cellpadding="0">';
+	div += '<tr><td colspan="2" height="30">报警类型：' +alarmName + '</td></tr>' 
+	    + '<tr bgcolor="#e6eaea"><td height="18" >经度：' +lng+ '</td>' + '<td >纬度：' + lat + '</td></tr>' 
+	    +'<tr><td><a href="javascript:void(0)" onclick=getLocationInfoForAlarm("' + lng + '","' + showLng + '","' + showLat+ '")>查看报警地址</a></td></tr>'
+	   +'<tr bgcolor="#e6eaea"><td colspan="2"  height="50" id="message">&nbsp;</td></tr></table></div>';
+			
+	div = div
+			+ "<table width='250px' height='12px' cellspacing='0' cellpadding='0'><tr><td><span style='color:#0000cc;cursor:pointer;text-decoration:underline;font-size:12px;' onclick='javascript:map.closeInfoWindow();'></span></td>";
+	div = div + "<td style='font-size:12px;' align='right'>报警时间:" + alarmTime+ "</td></tr></table>";
+	
+	//var div ="<div>nihao6</div>"
+	
+	return div;
+}
+
+function moveone() {
+	maplet.removeOverlay(showMarker);
+	showLng="";
+	showLat="";
+	showRegistrationNo="";
+    showAlarmTime="";
+	showAlarmName="";
+	newMarker=null;
+	CollectGarbage();
+}
+// 报警处理动画结束
+
+
+
+// 区域查车
+function findRectangleAreaCar(){
+ var zoom=maplet.getZoom();
+ if(zoom<11){
+	 maplet.setZoom(9);
+ }
+	PaintingMap();	
+}
+
+function addCallGps(vehicleId){
+	parent.parent.leftFrame.addVehicle(vehicleId);
+	parent.parent.leftFrame.vehicleCallTrack(vehicleId);// 订阅
+	parent.parent.leftFrame.addCheckBox(vehicleId);
+}
+
+function getMapWidth() {
+	var width;
+	width =document.body.clientWidth;
+	return width;
+}
+function getMapHeight() {
+	var height;
+	height = document.body.clientHeight;
+	return height;
+}
+// 全屏
+function fullScreen(){
+	var parentparentFrame=$("#frame", window.parent.parent.parent.document);
+	parentparentFrame.attr("rows","0,*,0");
+
+	// ljy加了parent
+	var parentFrame=$("#frame", window.parent.parent.document)
+	parentFrame.attr("cols","0,10,*");
+	/** ljy* */
+	$('#title', parent.document).hide();// 隐藏tab头部
+	var parentFrame2=$("#frame", window.parent.frames["monitorFrame"].document)
+	parentFrame2.attr("cols","0,*");
+	
+    $('.mon_cont2').css("height","100%");
+    $('#map').css("width", getMapWidth() + "px");
+	$('#map').css("height", getMapHeight()-45+"px");
+	var allScreen=$('#allScreen');
+	allScreen.removeClass().addClass("map_g_10");
+	allScreen.attr("title","缩小");
+	allScreen.unbind("click");
+	allScreen.bind("click",smallScreen);
+	allScreen.html("缩小");
+	   
+	maplet.checkResize();   
+}
+
+// 小屏
+function smallScreen(){
+	$('#title', parent.document).show();// 显示tab头部
+	// ljy加了parent
+	var parentparentFrame=$("#frame", window.parent.parent.parent.document);
+	parentparentFrame.attr("rows","100,*,30");
+	// ljy加了parent
+	var parentFrame=$("#frame", window.parent.parent.document);
+	parentFrame.attr("cols","245,10,*");
+	$('.mon_cont').css("height","96%");
+	$('#map').css("width", getMapWidth() + "px");
+	$('#map').css("height", getMapHeight() - 180 + "px");
+	var allScreen=$('#allScreen');
+	allScreen.removeClass().addClass("map_g_09");
+	allScreen.attr("title","全屏");	
+	allScreen.unbind("click");
+	allScreen.bind("click",fullScreen);
+	allScreen.html("全屏");
+	maplet.checkResize();
+}
+
+
+
+//显示标注
+function showPoint(){
+		 var jsonParams = {
+					datetimes : new Date()
+		 };
+		 $.post("customMapPoint/getEntCustomMapByUserList.action", jsonParams, function(data) {
+			 if (data != 'false') {
+					var arrlist = data ;
+					for ( var a = 0; a < arrlist.length; a++) {
+						var id =arrlist[a].id;
+						var name =arrlist[a].name;
+						var LonLat =arrlist[a].LonLat;
+						var CustomType =arrlist[a].CustomType;
+						var Radius =arrlist[a].Radius;
+						var imageURL =arrlist[a].imageURL;
+						var nameType=arrlist[a].nameType;
+						if(CustomType=="1"){
+					    	var LonLats=LonLat.split(",");
+							var lng=LonLats[0];
+							var lat=LonLats[1];
+							addMarkerList(lng,lat,imageURL,id,name,nameType);
+					    }else{
+					    	showAreaList(id,name,LonLat,CustomType,Radius);
+					    }
+					}
+			  }
+		 });
+	 }	
+
+
+function addMarkerList(lng,lat,imageURL,id,name){  // 创建图标对象    
+	var point = new BMap.Point(lng,lat); 
+	
+	var basePath = getRootPath();
+	var url= basePath+imageURL;
+	var myIcon = new BMap.Icon(url, new BMap.Size(32, 42), {     
+		// 指定定位位置。    
+		// 当标注显示在地图上时，其所指向的地理位置距离图标左上     
+		// 角各偏移10像素和25像素。您可以看到在本例中该位置即是    
+	   // 图标中央下端的尖角位置。     
+	   offset: new BMap.Size(10, 25),     
+	   // 设置图片偏移。    
+	   // 当您需要从一幅较大的图片中截取某部分作为标注图标时，您    
+	   // 需要指定大图的偏移位置，此做法与css sprites技术类似。     
+	   imageOffset: new BMap.Size(0, 0 * 25)   // 设置图片偏移     
+	 });  
+	
+	// 创建标注对象并添加到地图    
+	 var marker = new BMap.Marker(point, {icon: myIcon});     
+	 maplet.addOverlay(marker); 
+	 
+	 var label = new BMap.Label(name,{offset:new BMap.Size(10,-10)});
+		label.setStyle({
+         borderColor:"#808080",
+         color:"#333",
+         cursor:"pointer"
+		});
+	 marker.setLabel(label);
+    
+	pointHashMap.put(id,marker);
+
+}
+
+function showAreaList(id,name,LonLat,CustomType,Radius){
+	 var pointList = LonLat.split(',');
+    var pointArray = [];
+    var i = 0;
+    while (i < pointList.length) {
+        pointArray.push(new BMap.Point(pointList[i], pointList[i + 1]));
+        i += 2;
+    }
+	var overLay;
+	switch (CustomType) {
+   case 2:
+   	overLay = new BMap.Circle(pointArray[0], Radius, styleOptions);
+	    addLabelList(pointArray[0],id,name);
+       break;
+   case 4:
+   	overLay = new BMap.Polygon(pointArray, styleOptions);
+   	addLabelList(pointArray[0],id,name);
+       break;
+   case 5:
+   	overLay = new BMap.Polygon(pointArray, styleOptions);
+   	addLabelList(pointArray[0],id,name);
+       break;
+   }
+	 maplet.addOverlay(overLay);
+	 pointHashMap.put(id,overLay);
+}
+
+function addLabelList(point,id,name){
+	var opts = {
+			  position : point,    // 指定文本标注所在的地理位置
+			  offset   : new BMap.Size(8, 8)    //设置文本偏移量
+			};
+	var label = new BMap.Label(name, opts);  // 创建文本标注对象
+	label.setStyle({
+		 borderColor:"#808080",
+		 color:"#333",
+		 fontSize : "12px",
+		 height : "20px",
+		 lineHeight : "20px",
+		 fontFamily:"微软雅黑"
+	 });
+	maplet.addOverlay(label); 
+   
+   lableHashMap.put(id,label);
+}
+
+
+
+function doReverse(longitude,latitude) {	
+	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+	var gc = new BMap.Geocoder();    
+	var pt= new BMap.Point(longitude,latitude);
+	gc.getLocation(pt, function(rs){
+        var addComp = rs.addressComponents;
+        $("#message").html(addComp.province + ", " + addComp.city + ", " + addComp.district + ", " + addComp.street + ", " + addComp.streetNumber);
+     }); 
+	
+	//百度取地址的http接口
+//	$("#message").html('<img src="imgs/load.gif" />正在加载数据......');
+//	var url = "monitorCenter/getBaiduAddressSH.action";
+//	var param = {
+//		date : new Date(),
+//		lnglat : lon + "," + lat
+//	};
+//	url = encodeURI(url);
+//	$.ajax( {
+//		url : url,
+//		type : "POST",
+//		dataType : "json",
+//		data : param,
+//		success : function(data) {
+//			try {
+//				if(data.status=="OK"){
+//					$("#message").html(data.result.formatted_address);
+//				}else{
+//					$("#message").html(data.result.error);
+//				}
+//			} catch (exception) {
+//				$("#message").html('因网络不畅，数据加载未完成,请稍后再试！');
+//			}
+//		},
+//		error:function(){
+//			$("#message").html("因网络不畅，数据加载未完成,请稍后再试！");
+//		}
+//
+//	});
+}
+
+function getRootPath(){    
+	//获取当前网址，如： http://192.168.2.133:8080/bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp    
+	var curWwwPath=window.document.location.href;    
+	//获取主机地址之后的目录，如：bubiaoQdn/sys/vehicle/vehicleModifyHistory.jsp
+	var pathName=window.document.location.pathname;   
+	var pos=curWwwPath.indexOf(pathName);    
+	//获取主机地址，如：http://192.168.2.133:8080 
+	var localhostPaht=curWwwPath.substring(0,pos);    
+	//获取带"/"的项目名，如：/bubiaoQdn    
+	var projectName=pathName.substring(0,pathName.substr(1).indexOf('/')+1);    
+	return(localhostPaht+projectName);
+	
+}
+
+
+
+
+
+
+

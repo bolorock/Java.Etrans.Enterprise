@@ -1,0 +1,290 @@
+
+ // 定位车辆
+ function MakerCar(obCar, tableFlag,name) {
+	 //window.frames["monitorFrame"].document
+	 document.getElementById('monitorFrame').contentWindow.MakerCar(obCar,tableFlag,name); 
+ }
+ //删除表格行
+ function deleteCar(ObjectID) {
+	 document.getElementById('monitorFrame').contentWindow.deleteCar(ObjectID); 
+	 if(!parent.leftFrame.checkboxSetting.checkboxCurrentState){
+		if (parent.leftFrame.nodeMap.get(ObjectID).checked)
+		 parent.leftFrame.nodeMap.get(ObjectID).checked=false;
+	 }
+ }
+ 
+ //实时报警页面的显“示车辆”功能
+ function AlertGif(x, y,registrationNo,alarmTime,alarmName) {
+	 document.getElementById('monitorFrame').contentWindow.AlertGif(x, y,registrationNo,alarmTime,alarmName,getMapType()); 
+ }
+ 
+ //实时报警页面的显“车辆跟踪”功能
+ function addCallGps(vehicleId){
+	 document.getElementById('monitorFrame').contentWindow.addCallGps(vehicleId);
+ }
+ 
+ /**
+  * 获取地图类型
+  * @return
+  */
+ function getMapType(){
+	 var mapType=jQuery('#mapselect').val();
+	 return mapType;
+ }
+ 
+ 
+ /**初始化方法**/
+ function tabs(tabTit,on,tabCon,index){
+	/**隐藏掉其他两个选项卡**/
+	hidTab(tabTit,1);
+	hidTab(tabTit,2);
+ 
+	/**默认显示第一个选项卡类容**/
+	jQuery(tabCon).each(function(){
+	jQuery(this).children().eq(0).show();
+	});
+	/**默认选中第一个选项卡**/
+	jQuery(tabTit).each(function(){
+	jQuery(this).children().eq(0).addClass(on);
+	});
+	
+	//先解除点击事件
+	jQuery(tabTit).children().attr('onClick', '').unbind('click'); 
+	/**鼠标移到选项卡标题的时候触发*hover是进入和出去都触发，mouseenter进入摸个元素触发click*/
+	jQuery(tabTit).children().click(function(){
+		//应用选中当前的选项卡的样式，并且把on这个样式在原来的应用中移除
+		jQuery(this).addClass(on).siblings().removeClass(on);
+		//当前在选项卡中的索引
+		var index = jQuery(tabTit).children().index(this);
+		//显示当前选中的选项卡的内容，并且把原来显示的类容给隐藏
+		jQuery(tabCon).children().eq(index).show().siblings().hide();
+		
+		if(index==2){//点击单车跟踪
+			document.getElementById('scoutFrame').contentWindow.closTitleWin();
+		}else if(index==0){//点击主监控
+			document.getElementById('monitorFrame').contentWindow.closTitleWin();
+		}
+	}
+  );
+	
+	
+	
+
+  }
+ 
+ /**加载页面就执行**/
+ jQuery(function(){
+
+		/**初始化**/
+		tabs(".tab-hd","active",".tab-bd",0);
+		
+		/**默认加载百度地图**/
+		if(jQuery('#mapselect').val()==1){
+			/**加载车辆监控**/
+			//加载车辆监控【加载百度地图】
+	    	var str ="<iframe src=\"monitorCenter/b_map.jsp\" id=\"monitorFrame\" width=100% style=\"border: 0px;\" height=100% marginwidth=0 frameborder=0></iframe>";
+			jQuery("#monitor").html(str);
+		}
+		
+		/**默认加载泰瑞地图【过检】**/
+		if(jQuery('#mapselect').val()==2){
+			/**加载车辆监控**/
+			//加载车辆监控【加载百度地图】
+			var str="<iframe src=\"monitorCenter/map.jsp\" id=\"monitorFrame\" width=100% style=\"border: 0px;\" height=100% marginwidth=0></iframe>";
+	    	jQuery("#monitor").html(str);
+		}
+		
+		/**设置高度**/
+		var h = getHeight()+23;
+		jQuery('#monitor').css("height", h+ "px");
+		jQuery('#contrail').css("height", h+ "px");
+		jQuery('#scout').css("height", h+ "px");
+ });
+ 
+ 
+ 
+ 
+ 
+ /**
+  *添加一个选项卡【显示一个选项卡】
+  *tabTit tab选项卡标题样式名称
+  *tabIndex 需要显示的选项卡的索引
+  *tabCon tab选项卡内容样式名称
+  *on 选中样式名称
+  *tabConId 类容id
+  *vehicleId 参数1
+  *registrationNo 参数2
+  */
+  function showTab2(tabTit,tabIndex,tabCon,on,tabConId,vehicleId,registrationNo){
+//	   alert("lujunyong2");
+  		//出现选项卡头部
+  		jQuery(tabTit).children().eq(tabIndex).show();
+		//出现选项卡内容
+		jQuery(tabCon).children().eq(tabIndex).show().siblings().hide();
+		//选项卡头部选中样式/
+		jQuery(tabTit).each(function(){
+		  jQuery(this).children().eq(tabIndex).addClass(on).siblings().removeClass(on);
+		  });
+		  
+		  //////////////////////修改内容////////////////////////////////////////
+		  var vehicleIds = vehicleId;
+		  var registrationNos = registrationNo;
+		  var mapType=jQuery('#mapselect').val();//地图类型
+		  //主监控
+		  if(tabIndex==0){
+			  var str="";
+			  if(mapType==1){//百度地图
+				  str="<iframe src=\"monitorCenter/b_map.jsp\" id=\"monitorFrame\" width=100% style=\"border: 0px;\" height=100% marginwidth=0></iframe>";
+			  }else if(mapType==2){//泰瑞地图
+				  str="<iframe src=\"monitorCenter/map.jsp\" id=\"monitorFrame\" width=100% style=\"border: 0px;\" height=100% marginwidth=0></iframe>";
+			  }
+			  jQuery("#"+tabConId).html(str);
+		  }
+		  //轨迹回放
+		  else if(tabIndex==1){
+			  var str="";
+			  if(mapType==1){//百度地图
+				  str ="<iframe src=\"monitorCenter/b_trackMap.jsp?vehicleId="+vehicleIds+"&registrationNo="+registrationNos
+				  +"\" id=\"contrailFrame\" style=\"border: 0px;\" width=100% height=100% marginwidth=0></iframe>";
+			  }else if(mapType==2){//泰瑞地图
+				  str ="<iframe src=\"monitorCenter/trackMap.jsp?vehicleId="+vehicleIds+"&registrationNo="+registrationNos
+				  +"\" id=\"contrailFrame\" style=\"border: 0px;\" width=100% height=100% marginwidth=0></iframe>";
+			  	  /**修改类容**/
+			  }
+			  jQuery("#"+tabConId).html(str);
+		  }
+		  //实时监控[单车跟踪]
+		  else if(tabIndex==2){
+			  var str="";
+			  if(mapType==1){//百度地图
+				  str ="<iframe src=\"monitorCenter/b_attention.jsp?vehicleId="+vehicleIds
+				  +"\" id=\"scoutFrame\" style=\"border: 0px;\" width=100% height=100% marginwidth=0></iframe>";
+			  }else if(mapType==2){//泰瑞地图
+				  str ="<iframe src=\"monitorCenter/attention.jsp?vehicleId="+vehicleIds
+				  +"\" id=\"scoutFrame\" style=\"border: 0px;\" width=100% height=100% marginwidth=0></iframe>";
+				  /**修改类容**/
+			  }
+			  jQuery("#"+tabConId).html(str);
+		  }
+		  
+		  
+  }
+  
+  /**
+   *删除选项卡
+   *onIndex 需要显示的选项卡的索引
+   *outIndex 需要删除的选项卡索引
+   *on 选项卡选中的样式名称
+   *tabTit tab选项卡标题样式名称
+   *tabCon tab选项卡内容样式名称
+   **/
+   function deleteTab(onIndex,outIndex,on,tabTit,tabCon){
+		//隐选项卡onIndex标题
+		hidTab(tabTit,outIndex);
+		//显示选项卡onIndex的内容
+   		jQuery(tabCon).children().eq(onIndex).show().siblings().hide();
+		/**默认选中一个选项卡**/
+		jQuery(tabTit).each(function(){
+		  jQuery(this).children().eq(onIndex).addClass(on);
+		  });
+		
+   }
+   
+   /***
+    *隐藏选项卡
+    *tabTit tab选项卡标题样式名称
+    *tabIndex 需要隐藏的选项卡的索引
+    */
+    function hidTab(tabTit,tabIndex){
+    		//隐选项卡onIndex标题
+ 		jQuery(tabTit).children().eq(tabIndex).hide();
+
+    }
+ 
+ 
+/******设置高度begin******/
+  function getHeight() {
+		var height;
+		var height;
+		height =document.documentElement.clientHeight;//window.screen.availHeight;
+		 var sys=getExplorerType();
+		 if(sys.ie){
+//			 height=height-100;
+			 height=height-42;
+		 }else if(sys.firefox){
+//			 height=height-100;
+			 height=height-42;
+		 }else if(sys.chrome){
+//			 height=height-100;
+			 height=height-42;
+		 }
+		return height;
+	}
+	function getExplorerType(){
+		  var Sys = {};
+	    var ua = navigator.userAgent.toLowerCase();
+	    if (window.ActiveXObject)
+	        Sys.ie =true;
+	    else if (navigator.userAgent.indexOf("Firefox")>0)
+	        Sys.firefox =true;
+	    else if (window.MessageEvent && !document.getBoxObjectFor)
+	        Sys.chrome =true
+	    else if (window.opera)
+	        Sys.opera =true
+	    else if (window.openDatabase)
+	        Sys.safari = true
+		return Sys;
+	}
+/******设置高度end******/
+
+/**
+ * 下拉框改变切换地图
+ * 保留0，1默认百度，2标示泰瑞地图
+ */
+function changeForm()
+{
+//	alert(jQuery('#mapselect').val());
+	/**重新初始化**/
+	tabs(".tab-hd","active",".tab-bd",0);
+	
+	/**加载默认选项卡【主监控】**/
+	var mapType=jQuery('#mapselect').val();
+	if(mapType=="1"){//百度地图
+		jQuery("#monitorFrame",document.body).attr("src","monitorCenter/b_map.jsp"); 
+	}else if(mapType=="2")//泰瑞地图
+	{
+		jQuery("#monitorFrame",document.body).attr("src","monitorCenter/map.jsp");
+	}
+	
+
+
+}
+
+
+
+/******测试Pgis【海南jquery限制解决方案】******/
+function a(){
+	   jQuery.noConflict();
+//<%--			alert(223);--%>
+//<%--			var d = jQuery('#vehicleId');--%>
+//<%--			var url = "monitorCenter/getAddressRepeat_P.action";--%>
+//<%--			var param = {--%>
+//<%--				date : new Date(),--%>
+//<%--				lnglat : "113.415383,22.679167"--%>
+//<%--			}--%>
+//<%--			url = encodeURI(url);--%>
+//<%--			alert(url);--%>
+//<%--			jQuery.post(url,param,function (data){--%>
+//<%--				alert(data);--%>
+//<%--			},"json");--%>
+
+var url = 'monitorCenter/getAddressRepeat_P.action';
+var pars = "lnglat=113.415383,22.679167";
+alert("2url:"+url);
+		new Ajax.Request(
+			url,{method: "post", parameters: pars, onSuccess: function(data){
+					alert(data.responseText);
+				}
+			}
+			);
+	   }

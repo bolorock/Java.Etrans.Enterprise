@@ -1,0 +1,73 @@
+$(function() {
+	/**设置高度**/
+	var height = $("#count").height();
+	var mainjspHeigth = parseFloat(height)-90-30;
+	$("#mainjsp").height(mainjspHeigth+"px");
+});
+
+
+/**
+ * 显示模块
+ * @return
+ */
+function blackIframe(name){
+	$('#mainjsp div').each(function(i){
+		var id  = $(this).attr("id");
+//		alert("ss:"+id+" bb:"+name);
+		if(id==name){
+			$(this).show();//显示
+		}else{
+			$(this).hide();//隐藏
+		}
+	}
+	);
+}
+
+/**
+ * 删除模块
+ * @return
+ */
+function deleteIframe(name){
+	$('#mainjsp div').each(function(i){
+		var id  = $(this).attr("id");
+//		alert("id:"+id+" name:"+name);
+		if(id==name){
+			$(this).remove();
+		}
+	}
+	);
+}
+
+/**模块总数**/
+function ModuleSize(){
+	var countSize = $("#mainjsp div").size();
+	return countSize;
+}
+
+/**显示最后一个模块**/
+function lastlyModule(){
+	var number = ModuleSize();
+	$('#mainjsp div').each(function(i){
+		if(i+1==number){
+			$(this).show();
+		}else{
+			$(this).hide();
+		}
+	}
+	);
+	
+}
+
+
+
+
+function aa(){
+	$('#mainFrame').show();
+}
+
+function bb(){
+	$('#mainFrame').hide();
+}
+
+
+

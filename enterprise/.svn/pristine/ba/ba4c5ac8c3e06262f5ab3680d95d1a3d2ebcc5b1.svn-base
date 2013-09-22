@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 车辆上线率统计 -->
+<select id="uplinePercentSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+SELECT * FROM(
+		 			SELECT ROW_NUMBER() OVER (
+						<dynamic prepend="order by">
+						  	<isNotNull property="platFormIdOrder" prepend=",">
+								pp.id $platFormIdOrder$
+							</isNotNull>
+						  	<isNotNull property="platformNameOrder" prepend=",">
+								pp.name $platformNameOrder$
+							</isNotNull>
+						  	<isNotNull property="workUnitNameOrder" prepend=",">
+								pw.name $workUnitNameOrder$
+							</isNotNull>
+						  	<isNotNull property="customKindNameOrder" prepend=",">
+								pc.name $customKindNameOrder$
+							</isNotNull>
+						  	<isNotNull property="AreaNameOrder" prepend=",">
+								pa.name $AreaNameOrder$
+							</isNotNull>
+						  	<isNotNull property="TotalQtyOrder" prepend=",">
+								mv.[TotalQty] $TotalQtyOrder$
+							</isNotNull>
+						  	<isNotNull property="UplineQtyOrder" prepend=",">
+								mv.[UplineQty] $UplineQtyOrder$
+							</isNotNull>
+						  	<isNotNull property="UplinePercentOrder" prepend=",">
+								mv.[UplinePercent] $UplinePercentOrder$
+							</isNotNull>
+				   </dynamic>
+		 			) RowNo
+				   ,isnull(pp.name,' ') AS platformName
+			      ,isnull(pw.name,' ') AS workUnitName
+			      ,isnull(pc.name,' ') AS customKindName
+			      ,isnull(pa.name,' ') AS AreaName
+			      ,mv.[TotalQty]
+			      ,mv.[UplineQty]
+			      ,mv.[UplinePercent]
+      FROM(
+		    SELECT platFormId,workUnitId,customTradeKindId,AreaId
+		    ,Count(1)[TotalQty],sum(isnull(Upline,0))[UplineQty]
+		    ,(dbo.F_additionToPercent(sum(isnull(Upline,0)),Count(1))) as UplinePercent
+		    from 
+		 	      ( 
+		 	      	SELECT
+		 	        platFormId,workUnitId,customTradeKindId,AreaId
+		        ,(case when isnull(ea.onLineCnt,0)>0 then 1 else 0 end)[Upline]  
+		        FROM pub_Vehicle mv WITH(nolock)
+		        
+		        <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  mv.id=ev.vehicleID
+		        </isEqual>
+		        
+		        LEFT OUTER JOIN 
+		        (SELECT vehicleID,sum(dayOlCount)onLineCnt from TDailyRecord ea WITH(nolock)
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				RecDay>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=RecDay
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ea ON ea.VehicleID=mv.ID 
+		            
+		        <dynamic prepend="where"> 
+			         <![CDATA[mv.workStatus&2<>2]]> 
+			         and mv.platFormId>1 and mv.workUnitId>1
+		             <isEqual property="isSuper" compareValue="0">
+		             	AND ev.UserId=#userId#
+		             </isEqual>
+	             
+	                <isEqual property="isSuper" compareValue="1">
+			        	and mv.workUnitId=#workUnitId#
+			      	</isEqual>
+	             </dynamic>
+          
+           )mv
+        group by platFormId,workUnitId,customTradeKindId,AreaId
+      )mv 
+      		LEFT OUTER JOIN pub_platform AS pp  ON mv.platformID=pp.Id
+		 	LEFT OUTER JOIN pub_Area AS pa  ON mv.AreaID=pa.id
+		 	LEFT OUTER JOIN pub_customTradeKind AS pc  ON mv.customTradeKindID=pc.ID
+		 	LEFT OUTER JOIN pub_workUnit AS pw ON mv.workUnitID=pw.id
+		 	<dynamic prepend="where">
+				<isNotNull property="workUnitNameWhere">
+					 pw.name LIKE '%$workUnitNameWhere$%' 
+				</isNotNull>
+			</dynamic>
+		)A  
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				A.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+	</select>
+  
+  
+  <select id="uplinePercentCountSQL" parameterClass="java.util.HashMap" resultClass="Long">
+
+		SELECT count(*)
+      FROM(
+		    SELECT platFormId,workUnitId,customTradeKindId,AreaId
+		    ,Count(1)[TotalQty],sum(isnull(Upline,0))[UplineQty]
+		    ,(dbo.F_additionToPercent(sum(isnull(Upline,0)),Count(1))) as UplinePercent
+		    from 
+		 	      ( 
+		 	      	SELECT
+		 	        platFormId,workUnitId,customTradeKindId,AreaId
+		        ,(case when isnull(ea.onLineCnt,0)>0 then 1 else 0 end)[Upline]  
+		        FROM pub_Vehicle mv WITH(nolock)
+		        
+		        <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  mv.id=ev.vehicleID
+		        </isEqual>
+		        
+		        LEFT OUTER JOIN 
+		        (SELECT vehicleID,sum(dayOlCount)onLineCnt from TDailyRecord ea WITH(nolock)
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				RecDay>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=RecDay
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ea ON ea.VehicleID=mv.ID 
+		            
+		        <dynamic prepend="where"> 
+			         <![CDATA[mv.workStatus&2<>2]]> 
+			         and mv.platFormId>1 and mv.workUnitId>1
+		             <isEqual property="isSuper" compareValue="0">
+		             	AND ev.UserId=#userId#
+		             </isEqual>
+	             
+	                <isEqual property="isSuper" compareValue="1">
+			        	and mv.workUnitId=#workUnitId#
+			      	</isEqual>
+	             </dynamic>
+          
+           )mv
+        group by platFormId,workUnitId,customTradeKindId,AreaId
+      )mv 
+		 	LEFT OUTER JOIN pub_workUnit AS pw ON mv.workUnitID=pw.id
+		 	<dynamic prepend="where">
+				<isNotNull property="workUnitNameWhere">
+					pw.name LIKE '%$workUnitNameWhere$%' 
+				</isNotNull>
+			</dynamic>
+	</select>
+	
+	  <select id="uplinePercentChartSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+			SELECT 
+			ROW_NUMBER() OVER (
+						order by pw.name desc
+		 			) RowNo
+		      ,isnull(pw.name,' ') AS workUnitName
+		      ,mv.[UplinePercent]
+      FROM(
+		    SELECT workUnitId
+		    ,Count(1)[TotalQty],sum(isnull(Upline,0))[UplineQty]
+		    ,(dbo.F_additionToPercent(sum(isnull(Upline,0)),Count(1))) as UplinePercent
+		    from 
+		 	      ( 
+		 	      	SELECT
+		 	        platFormId,workUnitId,customTradeKindId,AreaId
+		        ,(case when isnull(ea.onLineCnt,0)>0 then 1 else 0 end)[Upline]  
+		        FROM pub_Vehicle mv WITH(nolock)
+		        
+		        <isEqual property="isSuper" compareValue="0">
+		        LEFT OUTER JOIN Ent_userVehicle ev WITH(nolock) ON  mv.id=ev.vehicleID
+		        </isEqual>
+		        
+		        LEFT OUTER JOIN 
+		        (SELECT vehicleID,sum(dayOlCount)onLineCnt from TDailyRecord ea WITH(nolock)
+		         <dynamic prepend="where">
+
+  				  <isNotEmpty property="startDate" prepend="AND">
+      				RecDay>=cast(#startDate#  AS dateTime)
+	              </isNotEmpty>
+	              <isNotEmpty property="endDate" prepend="AND">
+	      			cast(#endDate# AS dateTime)>=RecDay
+	              </isNotEmpty>
+	              
+	              </dynamic>
+	              GROUP BY VehicleID
+		        )ea ON ea.VehicleID=mv.ID 
+		            
+		        <dynamic prepend="where"> 
+			          <![CDATA[mv.workStatus&2<>2]]> 
+			         and mv.platFormId>1 and mv.workUnitId>1
+		             <isEqual property="isSuper" compareValue="0">
+		             	AND ev.UserId=#userId#
+		             </isEqual>
+	             
+	                <isEqual property="isSuper" compareValue="1">
+			        	and mv.workUnitId=#workUnitId#
+			      	</isEqual>
+	             </dynamic>
+          
+           )mv
+        group by workUnitId
+      	)mv 
+		 	LEFT OUTER JOIN pub_workUnit AS pw ON mv.workUnitID=pw.id
+		 	<dynamic prepend="where">
+				<isNotNull property="workUnitNameWhere">
+					pw.name LIKE '%$workUnitNameWhere$%' 
+				</isNotNull>
+			</dynamic>
+	</select>
+  
+</sqlMap>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	<!--查询司机休息区报警设置列表-->
+	<select id="findAnalyserLiveListSQL" resultClass="java.util.HashMap">
+		select * from ( 
+		select ROW_NUMBER() OVER (order by
+				<dynamic>
+				  	<isNotEmpty property="sortname">
+						$sortname$ $sortorder$
+					</isNotEmpty>
+				</dynamic>
+		 ) RowNo,
+		<!--查询的字段-->
+		b.ID id,
+		b.Name name,
+		(case b.IsAlert when '1' then '报警' else '只记录' end) as isAlert,
+		b.CheckTimeValue checkTimeValue,
+		CONVERT(varchar(10),b.CheckTimeBegin,24) checkTimeBegin,
+		CONVERT(varchar(10),b.CheckTimeEnd,24)  checkTimeEnd,
+		(case b.IsWarn when '0' then '是' else '否' end) as isWarn,
+		b.Longitude longitude,
+		b.Latitude latitude,
+		b.BreakTimeLen breakTimeLen,
+		b.RangeValue rangeValue,
+		b.HintVoice hintVoice,
+		b.Coss coss,
+		b.typeName typeName,
+		b.groupName groupName,
+		b.checkTimeTypeName checkTimeTypeName
+		from (
+			select a.*,t.name typeName,g.name groupName,ty.name checkTimeTypeName
+			from ANA_AnalyserLive a
+			left join ANA_BasePlaceTypes t on a.PlaceTypeID = t.id <!--点类型父表-->
+			left join ANA_AnalyseGroups g on a.AnalyseGroupID = g.id <!--分析组表-->
+			left join ANA_BaseCheckTimeTypes ty on a.CheckTimeTypeID = ty.id<!--检测类型表-->
+			LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on g.id=au.AnalyseGroupsID<!--轨迹分析组和用户关系表-->
+			where 1=1 
+			<!--企业管理员权限-->
+			<isNotEmpty property="workUnitId">
+				AND g.groupid = #workUnitId# 
+			</isNotEmpty>
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+			<!--休息区名称-->
+		 	<isNotEmpty property="name">
+      			AND a.name like '%$name$%'
+            </isNotEmpty>
+		)b
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	</select>
+	
+	<!--总条数-->
+	<select id="findAnalyserLiveListCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) 
+		from ANA_AnalyserLive a
+		left join ANA_BasePlaceTypes t on a.PlaceTypeID = t.id <!--点类型父表-->
+		left join ANA_AnalyseGroups g on a.AnalyseGroupID = g.id <!--分析组表-->
+		left join ANA_BaseCheckTimeTypes ty on a.CheckTimeTypeID = ty.id<!--检测类型表-->
+		LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on g.id=au.AnalyseGroupsID<!--轨迹分析组和用户关系表-->
+		where 1=1 
+		<!--企业管理员权限-->
+		<isNotEmpty property="workUnitId">
+			AND g.groupid = #workUnitId# 
+		</isNotEmpty>
+		<!--普通用户权限-->
+		<isNotEmpty property="userId">
+		 and au.UserID = #userId#
+		</isNotEmpty>
+		<!--休息区名称-->
+	 	<isNotEmpty property="name">
+     		AND a.name like '%$name$%'
+        </isNotEmpty>
+	</select>
+	
+	
+   <!-- 验证名称是否重复 -->
+   <select id="checkName_analyserLiveSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+   	select * from ANA_AnalyserLive  where 1=1
+   	<!-- 动态查询条件 -->
+	<dynamic>
+		<isNotEmpty property="id">
+			and <![CDATA[id<>#id#]]>
+		</isNotEmpty>
+		<isNotEmpty property="name">
+			and name like '$name$'
+		</isNotEmpty>
+	</dynamic>
+   </select>
+   
+   
+  	 <!--新增点类型父表-->
+	 <insert id="addBasePlaceTypesSQL_AnalyserLive" parameterClass="java.util.HashMap">
+	 		INSERT INTO [ANA_BasePlaceTypes]
+	       	([GroupID]
+          	,[Name]
+           	,[Description])
+	   	VALUES
+	         (
+	          #workUnitID#
+	         ,#typeName#
+	         ,#description#
+	         )
+	     	<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+			</selectKey>
+		</insert>
+		
+	 <!--新增点详细信息表-->
+	 <insert id="addParamPlacesSQL_TA" parameterClass="java.util.HashMap">
+	 		INSERT INTO [ANA_ParamPlaces]
+	       ([GroupID]
+           ,[TypeID]
+           ,[Name]
+           ,[Longitude]
+           ,[Latitude]
+           ,[AutoTime]
+           ,[Description])
+	   	VALUES
+	         (
+	          #workUnitID#
+	         ,#typesID#
+	         ,#typeName#
+	         ,#longitude#
+	         ,#latitude#
+	         ,#autoTime#
+	         ,#description#
+	         )
+	     	<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+			</selectKey>
+		</insert>
+   
+	<!--根据id查询关键点信息-->
+	<select id="getCustomMapPointInfoById_TA" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from Pub_CustomMapPoint where id=#id#
+	</select>
+	
+	<!--新增司机休息区报警设置-->
+	 <insert id="addAnalyserLiveSQL_TA" parameterClass="java.util.HashMap">
+	 		INSERT INTO [ANA_AnalyserLive]
+	       ([AnalyseGroupID]
+           ,[Name]
+           ,[IsAlert]
+           ,[CheckTimeTypeID]
+           ,[CheckTimeValue]
+           ,[CheckTimeBegin]
+           ,[CheckTimeEnd]
+           ,[PlaceTypeID]
+           ,[Longitude]
+           ,[Latitude]
+           ,[BreakTimeLen]
+           ,[RangeValue]
+           ,[HintVoice]
+           ,[Coss])
+	   	VALUES
+	         (
+	          #analyseGroupID#
+	         ,#name#
+	         ,#isAlert#
+	         ,#checkTimeTypeId#
+	         ,#checkTimeValue#
+	         ,#checkTimeBegin#
+	         ,#checkTimeEnd#
+	         ,#typesID#
+	         ,#longitude#
+	         ,#latitude#
+	         ,#breakTimeLen#
+	         ,#rangeValue#
+	         ,#hintVoice#
+	         ,#coss#
+	         )
+		</insert>
+	
+	  <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+	  <select id="getANA_AnalyserLiveByIdSQL"  resultClass="java.util.HashMap">
+		 SELECT a.id as [id]
+	      	   ,a.analyseGroupID as [analyseGroupID]
+	           ,a.name as [name]
+	           ,ltrim(rtrim(str(a.isAlert))) [isAlert]
+	           ,a.checkTimeTypeID as checkTimeTypeId
+	           ,a.checkTimeValue as checkTimeValue
+	           ,CONVERT(varchar(10),a.checkTimeBegin,24)  as [checkTimeBegin]
+	           ,CONVERT(varchar(10),a.checkTimeEnd,24)  as  [checkTimeEnd]
+	           ,t.name as typeName
+	           ,a.longitude as [longitude]
+	           ,a.latitude as [latitude]
+	           ,a.breakTimeLen as [breakTimeLen]
+	           ,a.rangeValue as [rangeValue]
+	           ,a.hintVoice as [hintVoice]
+	           ,a.coss as [coss]
+			from ANA_AnalyserLive a
+        left join ANA_BasePlaceTypes t  on a.PlaceTypeID = t.id 
+			where 1=1 
+			and a.id=#id#
+	  </select>
+	  
+	  
+	<!-- 同名检查 【编辑功能】-->
+   <select id="checkANA_AnalyserLiveByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserLive
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+   
+   	<!--删除司机休息区报警设置-->
+	<delete id="delANA_AnalyserLive_TA" parameterClass="java.util.HashMap">
+		delete [ANA_AnalyserLive]
+        WHERE [id]=#id#
+	</delete>
+	
+	
+   	<!--根据id查询信息-->
+	<select id="getANA_AnalyserLiveByID_TA" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ANA_AnalyserLive where id=#id#
+	</select>
+   
+   
+	  
+</sqlMap>

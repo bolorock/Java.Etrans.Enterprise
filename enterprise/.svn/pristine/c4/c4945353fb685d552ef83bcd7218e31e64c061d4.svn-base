@@ -1,0 +1,136 @@
+/**
+ * AbstractHttpClient.java
+ * Create on 2012-1-14上午09:28:03
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.http;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author Ivan
+ * @version 1.0
+ * @brief 网络请求抽象类
+ */
+public abstract class AbstractHttpClient implements HttpInterface
+{
+
+ 
+ /**
+  * 增加
+  * @param tableName 表名
+  * @param paramMap 参数集合
+  * @return
+  */
+ public abstract  Response insert(String tableName,Map<String, Object> paramMap) throws HttpException;
+ 
+ /**
+  * 增加车辆 
+  * @param tableName 表名
+  * @param paramMap 参数集合
+  * @return
+  */
+ public abstract  Response insertVehicleByIbatis(String tableName,Map<String, Object> paramMap) throws HttpException;
+ 
+  /**
+  * 更新车辆信息 
+  * @param tableName 表名
+  * @param paramMap 参数集合
+  * @return
+  */
+public abstract Response updateVehicleByIbatis(String tableName, Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException;
+ 
+ 
+ /**
+  * 批量插入
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public abstract  Response insertBatch(String tableName,List<Map<String, Object> > paramMap) throws HttpException;
+ 
+ 
+ 
+ /**
+  * 修改
+  * @param tableName 表名
+  * @param setParam Set参数集合
+  * @param whereParam 条件参数集合
+  * @return
+  */
+ public abstract Response update(String tableName,Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException;
+ 
+ 
+ /**
+  * 删除
+  * @param tableName 表名
+  * @param paramMap 参数集合
+  * @return
+  */
+ public abstract Response delete(String tableName,Map<String, Object> whereParam) throws HttpException;
+ 
+ /**
+  * 修改(使用IBATIS)
+  * @param tableName 表名
+  * @param setParam Set参数集合
+  * @param whereParam 条件参数集合
+  * @return
+  */
+ public abstract Response updateByIbatis(String tableName,Map<String, Object> setParam,Map<String, Object> whereParam) throws HttpException;
+ 
+ 
+ /**
+  * 删除(使用IBatis)
+  * @param tableName 表名
+  * @param paramMap 参数集合
+  * @return
+  */
+ public abstract Response deleteByIbatis(String tableName,Map<String, Object> whereParam) throws HttpException;
+ 
+ 
+ /**
+  *  查询
+  * @param tableName 表名
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  */
+ public abstract Response query(String tableName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException;
+ 
+ 
+ 
+ 
+ /**
+  *  查询
+  * @param paramMap 查询参数，包含TableName，TotalName，Where条件集合，Order排序集合
+  * @return
+  */
+ public abstract Response query(ParamMap paramMap) throws HttpException;
+ 
+ 
+ 
+ 
+ 
+ 
+ /**
+  *  查询
+  * @param tableName 表名
+  * @param totalName 查询总数量的名称
+  * @param whereParam 参数集合
+  * @param orderParam 排序参数集合
+  * @return
+  */
+ public abstract Response query(String tableName,String totalName,Map<String, Object> whereParam,Map<String, String> orderParam) throws HttpException;
+ 
+ /**
+  * 调用存储过程
+  * @param tableName
+  * @param paramMap
+  * @return
+  * @throws HttpException
+  */
+ public abstract Response callProcedure(String tableName,Map<String, Object> paramMap) throws HttpException;
+ 
+}

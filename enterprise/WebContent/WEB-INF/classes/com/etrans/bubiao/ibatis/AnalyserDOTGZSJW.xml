@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 疲劳驾驶报警（交委） -->
+  <select id="findANA_AnalyserDOTGZSJWSQL" resultClass="java.util.HashMap">
+  	  SELECT * FROM (
+						SELECT    ROW_NUMBER() OVER ( order by
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>	
+							) RowNo,A.* from (
+		      select A.ID as id
+		      ,A.Name
+		      ,A.AnalyseGroupID
+		      ,C.Name as AnalyseGroupName 
+		      ,B.Name as checkTimeTypeName
+		      ,A.CheckTimeTypeID
+		      ,A.CheckTimeValue
+		      ,CONVERT(varchar(10),A.CheckTimeBegin,24) as CheckTimeBegin
+		      ,CONVERT(varchar(10),A.CheckTimeEnd,24) as CheckTimeEnd
+		      ,(case A.IsAlert when '1' then '报警' else '只记录' end) as IsAlert
+		      ,A.AlertInterval
+		      ,(case A.IsWarn when '0' then '是' else '否' end) as IsWarn
+		      ,A.SoundContent
+		      ,(case A.IsRecordResult when '0' then '记录' else '不记录' end) as IsRecordResult
+		      ,A.RecordInterval
+		      ,A.ContinuousRestTime
+		      ,A.SumOfRestTime
+		      ,A.DrivingOverTime
+		      ,A.DrivingMinMileage
+		      ,A.EarlyWarningLimit
+		      ,A.MinValidRestTime
+		      ,C.groupid as groupid
+		      ,au.UserID as UserID
+        FROM      ANA_AnalyserDOTGZSJW as A
+                  LEFT JOIN ANA_BaseCheckTimeTypes B on A.checkTimeTypeId=B.id
+                  left join ANA_AnalyseGroups C on A.AnalyseGroupID=C.id  
+                  LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on C.id=au.AnalyseGroupsID
+                  ) A where 1=1
+        	
+			 <isNotNull property="name" >
+	           and A.Name like '%$name$%'
+	         </isNotNull>
+	         
+	         <!--企业管理员权限-->
+			<isNotEmpty property="workUnitId">
+				and	A.groupid = #workUnitId#
+			</isNotEmpty>
+			
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and A.UserID = #userId#
+			</isNotEmpty>
+	         
+		)X
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				X.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+   </select>
+   
+   <select id="findANA_AnalyserDOTGZSJWCountSQL" resultClass="java.lang.Long">
+      select count(1) from  ANA_AnalyserDOTGZSJW as A
+       LEFT JOIN ANA_BaseCheckTimeTypes B on A.checkTimeTypeId=B.id
+        LEFT JOIN ANA_AnalyseGroups C on A.AnalyseGroupID=C.id 
+        LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on C.id=au.AnalyseGroupsID
+      where   A.Name like '%$name$%'
+       		<!--企业管理员权限-->
+			<isNotEmpty property="workUnitId">
+				and	C.groupid = #workUnitId#
+			</isNotEmpty>
+			
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_AnalyserDOTGZSJWByIdSQL"  resultClass="java.util.HashMap">
+ SELECT [ID] as id
+      ,[name]
+      ,[analyseGroupID]
+      ,[checkTimeTypeId]
+      ,[checkTimeValue]
+      ,CONVERT(varchar(10),[checkTimeBegin],24)  as [checkTimeBegin]
+      ,CONVERT(varchar(10),[checkTimeEnd],24)  as  [checkTimeEnd]
+      ,ltrim(rtrim(str(isAlert))) [isAlert]
+      ,[alertInterval]
+      ,ltrim(rtrim(str(IsWarn))) as [isWarn]
+      ,[soundContent]
+      ,ltrim(rtrim(str(isRecordResult))) [isRecordResult]
+      ,[recordInterval]
+      ,[continuousRestTime]
+      ,[sumOfRestTime]
+      ,[drivingOverTime]
+      ,[drivingMinMileage]
+      ,[earlyWarningLimit]
+      ,[minValidRestTime]
+  FROM [ANA_AnalyserDOTGZSJW]
+   where id=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkANA_AnalyserDOTGZSJWByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserDOTGZSJW
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>#id#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+ </sqlMap>

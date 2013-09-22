@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:aop="http://www.springframework.org/schema/aop"
+		xmlns:tx="http://www.springframework.org/schema/tx"
+			xmlns:context="http://www.springframework.org/schema/context"
+		xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+			http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+			http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+			http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd"	>
+
+	<!-- 指令操作 ,底层配置-->
+
+	<!-- 指令数据接收队列 -->
+	<bean id="Parent_CommandResultQueue" class="com.etrans.bubiao.repository.parent.CommandResultQueue" scope="singleton" />
+	
+	<bean id="Parent_CommandSendQueue" class="com.etrans.bubiao.repository.parent.CommandSendQueue" scope="singleton" />
+	
+	<bean id="Parent_BusinessQueue" class="com.etrans.bubiao.repository.parent.BusinessQueue" scope="singleton" />
+	
+	
+
+	<!-- 指令数据数据存储Map -->
+	<bean id="Parent_CommandResultHashMap" class="java.util.HashMap" scope="singleton" />
+
+
+	<!-- 消息发送线程池 -->
+	<bean id="Parent_TaskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="10" />
+		<property name="maxPoolSize" value="15" />
+		<property name="queueCapacity" value="25" />
+	</bean>
+
+	<!-- 连接socket -->
+	<bean id="Parent_SocketTemplate" class="com.etrans.bubiao.repository.parent.SocketTemplate" scope="singleton">
+		<constructor-arg index="0" type="java.lang.String">
+			<value>${msc_host2}</value>
+		</constructor-arg>
+		<constructor-arg index="1">
+			<value>${msc_port2}</value>
+		</constructor-arg>
+		<constructor-arg index="2" type="java.lang.String">
+			<value>${msc_login}</value>
+		</constructor-arg>
+	</bean>
+	
+	<!-- 连接socket ljy PGIS-->
+	<bean id="SocketUtils_PGIS" class="com.etrans.common.util.web.SocketUtils" scope="singleton">
+		<constructor-arg index="0" type="java.lang.String">
+			<value>${chinese_host}</value>
+		</constructor-arg>
+		<constructor-arg index="1">
+			<value>${chinese_port}</value>
+		</constructor-arg>
+	</bean>
+	
+	<!-- 连接http ljy net报警设置-->
+	<bean id="httpNet" class="com.etrans.common.util.web.NetUtils" scope="singleton">
+		<constructor-arg index="0" type="java.lang.String">
+			<value>${neturl}</value>
+		</constructor-arg>
+	</bean>
+
+	<!-- 指令处理 -->
+	<bean id="Parent_CommandRepository" class="com.etrans.bubiao.repository.parent.ParentCommandRepositoryImpl" scope="singleton">
+		<constructor-arg ref="Parent_SocketTemplate" />
+		<constructor-arg ref="Parent_TaskExecutor" />
+		<constructor-arg ref="Parent_CommandSendQueue" />
+		<constructor-arg ref="Parent_CommandResultQueue" />
+		<constructor-arg ref="Parent_CommandResultHashMap" />
+		<constructor-arg ref="Parent_BusinessQueue" />
+		<constructor-arg ref="monitorCenterServices" />
+	</bean>
+
+	
+	
+</beans>

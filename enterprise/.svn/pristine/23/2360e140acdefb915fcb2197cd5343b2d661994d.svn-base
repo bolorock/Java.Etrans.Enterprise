@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<!--namespace="anaryse"-->
+<sqlMap>
+	<!--查询分析组列表sql-->
+	<select id="findAnalyseGroupListSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ( 
+		select ROW_NUMBER() OVER ( order by 
+				<dynamic>
+				  	<isNotNull property="sortname">
+						$sortname$ $sortorder$
+					</isNotNull>
+				</dynamic>
+		) RowNo,
+		b.id as id,b.groupid,b.name,b.description,b.workUnitName as workUnitName
+		from (
+		select a.id as id,a.groupid,a.name,a.description,w.name as workUnitName
+		from ANA_AnalyseGroups as a,Pub_WorkUnit as w,Ent_AnalyseGroupsIDAddUserID as  au
+		where 1=1 
+		AND a.groupid=w.id and a.id=au.AnalyseGroupsID
+			<!--a.groupid 新权限（企业平台）保存的是企业id,老权限保存的是车组id-->
+			<isNotNull property="workUnitId">
+				AND a.groupid = #workUnitId# 
+			</isNotNull>
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+      			and au.UserID = #userId#
+            </isNotEmpty>
+			
+			<!--分析组名称-->
+		 	<isNotEmpty property="name">
+      			AND a.name like '%$name$%'
+            </isNotEmpty>
+		)b
+		) r
+		 where r.RowNo BETWEEN $fromRow$ AND $toRow$
+	</select>
+	
+	<!--根据企业id查询企业信息-->
+	<select id="getworkUnitNameByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select name as workUnitName from dbo.Pub_WorkUnit where id =#workUnitId#
+	</select>
+	
+	<!--根据id查询信息-->
+	<select id="getanalyesGroupInfoByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from ANA_AnalyseGroups where id=#id#
+	</select>
+	
+	<!--查询车车牌显示-->
+	<select id="getAnalyesGroupByIdS_vehiclesQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select p.id,p.registrationNo from 
+		(
+		select * from dbo.ANA_AnalyseGroupVehicles where 1=1
+			<isNotEmpty property="analyseGroupid">
+				and	analyseGroupid = #analyseGroupid#
+			</isNotEmpty>
+		 )
+		a left join pub_vehicle p  on a.vehicleid = p.id 
+		where 1=1
+	</select>
+	
+	<!--查询数据总条数-->
+	<select id="findAnalyseGroupListCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select  COUNT(*)
+		from ANA_AnalyseGroups as a,Pub_WorkUnit as w ,Ent_AnalyseGroupsIDAddUserID as  au
+		where 1=1 
+		and  a.groupid=w.id and a.id=au.AnalyseGroupsID
+			<!--a.groupid 新权限（企业平台）保存的是企业id,老权限保存的是车组id-->
+			<isNotNull property="workUnitId">
+				 a.groupid = #workUnitId# 
+			</isNotNull>
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+      			and au.UserID = #userId#
+            </isNotEmpty>
+			
+			<!--分析组名称-->
+		 	<isNotEmpty property="name">
+      			AND a.name like '%$name$%'
+            </isNotEmpty>
+	</select>
+  
+	 <!--新增分析组-->
+  	 <insert id="addAnalyesGroupSQL" parameterClass="java.util.HashMap">
+  	 		INSERT INTO [ANA_AnalyseGroups]
+           ([GroupID]
+           ,[Name]
+           ,[Description])
+	     VALUES
+	           (
+	            #workUnitID#
+	           ,#name#
+	           ,#description#
+	           )
+        <selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+  	</insert>
+  	
+  	<!-- 新增分析组和用户关系【用作权限控制，这是后来加的表】 -->
+  	<insert id="add_Ent_AnalyseGroupsIDAddUserID" parameterClass="java.util.HashMap">
+  		 INSERT INTO [Ent_AnalyseGroupsIDAddUserID]
+           ([AnalyseGroupsID]
+           ,[UserID])
+	     VALUES
+	           (#analyseGroupID#
+	           ,#userId#)
+  	</insert>
+  	
+  	<!-- 新增分析组和车辆关系 -->
+	<insert id="addAnalyseGroupVehiclesSQL" parameterClass="java.util.HashMap">
+	     INSERT INTO [ANA_AnalyseGroupVehicles]
+           ([VehicleID]
+           ,[AnalyseGroupID])
+	     VALUES
+	           (#vehicleId#
+	           ,#analyseGroupID#)
+	</insert>
+  
+  
+    <!-- 验证分析组名称是否重复 -->
+   <select id="checkNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap"> 
+   	select * from ANA_AnalyseGroups where 1=1
+   	<!-- 动态查询条件 -->
+	<dynamic>
+		<isNotEmpty property="id">
+			and <![CDATA[id<>#id#]]>
+		</isNotEmpty>
+		<isNotEmpty property="name">
+			and name like '$name$'
+		</isNotEmpty>
+<!--		<isNotEmpty property="workUnitId">-->
+<!--			and GroupID = $workUnitId$-->
+<!--		</isNotEmpty>-->
+	</dynamic>
+   </select>
+   
+	<!--删除分析组和车辆关系表数据-->
+	<delete id="delAnalyesGroup_analyseGroupVehicles" parameterClass="java.util.HashMap">
+		delete [ANA_AnalyseGroupVehicles]
+        WHERE [AnalyseGroupID]=#id#
+	</delete>
+	
+	<!--删除分析组和车辆关系表数据-->
+	<delete id="del_Ent_AnalyseGroupsIDAddUserIDByID" parameterClass="java.util.HashMap">
+		delete [Ent_AnalyseGroupsIDAddUserID]
+        WHERE [AnalyseGroupsID]=#id#
+	</delete>
+	
+	<!--删除分析组表数据-->
+	<delete id="delAnalyesGroup_analyseGroups" parameterClass="java.util.HashMap">
+		delete [ANA_AnalyseGroups]
+        WHERE [id]=#id#
+	</delete>
+  
+  <!-- ////////////////////////////////////////////查询车辆begin///////////////////////////////////////////////-->
+  
+  <!--调用公共查询【车辆】的sql-->
+  <sql id="findVehilceListByUserTypeSqlCommonSql">
+  	select b.id,b.registrationNO,b.WorkUnitID from (
+			 <include refid="CommonSql.findVehilceListByUserTypeSqlTA"/>
+		) b where 1=1
+		<dynamic>
+			<!--车牌号码-->
+     		<isNotEmpty property="registrationNO">
+	     			and registrationNO like '%$registrationNO$%'
+	     		</isNotEmpty>
+      	</dynamic>
+  </sql>
+  
+  <!--  根据用户类型获取当前用户下面的【车辆】sql【分页查询】 -->
+  <select id="findVehilceListByUserTypeSql"
+   resultClass="java.util.HashMap" parameterClass="java.util.HashMap"
+   remapResults="true">
+		 <include refid="CommonSql.pageQueryStarTA"/>
+		 <include refid="findVehilceListByUserTypeSqlCommonSql"/>
+		 <include refid="CommonSql.pageQueryEndTA"/>
+	</select>
+	
+   <!--  根据用户类型获取当前用户下面的【车辆】sql 【总条数】 -->
+  <select id="findVehilceListByUserTypeSqlCount" 
+  parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+  	select count(*) from (
+  	<include refid="CommonSql.findVehilceListByUserTypeSqlTA"/>
+  	) a where 1=1
+  		<dynamic>
+			<!--车牌号码-->
+     		<isNotEmpty property="registrationNO">
+	     			and registrationNO like '%$registrationNO$%'
+	     		</isNotEmpty>
+      	</dynamic>
+  </select>
+  
+  
+<!-- 车辆选择【树】 begin-->
+  
+  <!-- 查询所有企业信息 【第一级别的企业】 -->
+  <select id="getAllWorkUnit_anaryseGroup" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+  	  	SELECT 
+		  	   [ID]
+		      ,[shortName]
+		      ,[code]
+		      ,[Name]
+		      ,[createDatetime]
+		      ,[createUserId]
+		      ,[modifyDatetime]
+		      ,[modifyUserId]
+		      ,[fullId]
+		      ,[isLeaf]
+		      ,[level]
+		      ,[organizationKindId]
+		      ,[tradeKindId]
+		      ,[linkMan]
+		      ,[phoneNo]
+		      ,[backupPhoneNo]
+		      ,[address]
+		      ,[postCode]
+		      ,[regAddress]
+		      ,[adminUserId]
+		      ,[isDeleted]
+		      ,[artificialPerson]
+		      ,[licenseNo]
+		      ,[licenseOrgan]
+		      ,[areaId]
+		      ,[vehicleSum]
+		      ,[businessScope]
+		      ,[memo]
+  		FROM  Pub_WorkUnit wu
+  			WHERE wu.shortName is not null 
+  			and wu.IsDeleted!=1
+			<!--完整id-->
+			<!--企业管理员-->
+  			<isNotEmpty property="fullId">
+				and  len(wu.FullID)=LEN('$fullId$')
+				and wu.fullId like '%$fullId$%'
+			</isNotEmpty>
+			<!--超级管理员-->
+			<isNotEmpty property="lengths">
+				and  len(wu.FullID)=#lengths#
+				and wu.level=1
+			</isNotEmpty>
+		order by wu.id desc
+  </select> 
+  
+  <!-- 根据父完整id查询下级企业信息【下级企业】 -->
+  <select id="getAllWorkUnit_anaryseGroupBy_ParentFullId" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+	  SELECT 
+		  	   [ID]
+		      ,[shortName]
+		      ,[code]
+		      ,[Name]
+		      ,[createDatetime]
+		      ,[createUserId]
+		      ,[modifyDatetime]
+		      ,[modifyUserId]
+		      ,[fullId]
+		      ,[isLeaf]
+		      ,[level]
+		      ,[organizationKindId]
+		      ,[tradeKindId]
+		      ,[linkMan]
+		      ,[phoneNo]
+		      ,[backupPhoneNo]
+		      ,[address]
+		      ,[postCode]
+		      ,[regAddress]
+		      ,[adminUserId]
+		      ,[isDeleted]
+		      ,[artificialPerson]
+		      ,[licenseNo]
+		      ,[licenseOrgan]
+		      ,[areaId]
+		      ,[vehicleSum]
+		      ,[businessScope]
+		      ,[memo]
+  		FROM  Pub_WorkUnit wu
+  			WHERE wu.shortName is not null 
+  			and wu.IsDeleted!=1
+			<!--父完整id-->
+  			<isNotEmpty property="parentFullId">
+				and wu.fullId like '%$parentFullId$%'
+				and len(wu.FullID) = LEN('$parentFullId$') + 9
+			</isNotEmpty>
+		order by wu.id desc
+  </select>
+  
+  
+   <!--调用公共查询【车辆】的sql【树】-->
+  <select id="findVehilceListByUserTypeSqlCommonSql_Tree" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+  	select b.id as ID,b.registrationNO as Name,b.WorkUnitID as workUnitId,gv.id as checkOKORNO from (
+			 <include refid="CommonSql.findVehilceListByUserTypeSqlTA"/>
+		) b 
+		left join 
+			(select * from ANA_AnalyseGroupVehicles gvon  where 1=1 
+				and gvon.AnalyseGroupID=#analyseGroupid#
+			) gv on b.id=gv.vehicleid
+		where 1=1		
+		<dynamic>
+			<!--企业id-->
+     		<isNotEmpty property="workUnitId3">
+	     			and b.WorkUnitID=#workUnitId3#
+	     		</isNotEmpty>
+      	</dynamic>
+  </select>
+  
+
+<!-- 车辆选择【树】 end-->
+  
+  
+  
+  <!-- ////////////////////////////////////////////查询车辆end///////////////////////////////////////////////////--> 
+  
+  
+  
+  
+  
+</sqlMap>

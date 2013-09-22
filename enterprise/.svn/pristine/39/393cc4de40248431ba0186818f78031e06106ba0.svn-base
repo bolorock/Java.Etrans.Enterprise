@@ -1,0 +1,74 @@
+$(function() {
+			$('.bxslider').bxSlider({
+				minSlides : 0,
+				maxSlides : 5,
+				moveSlides : 1,
+				slideWidth : '120px',
+				pager : false,
+				prevText : '',
+				nextText : ''
+			});
+
+			$(".bxslider li a").click(function() {
+				var $img=$(this).find("img");
+				$("#imgChoose").attr("src",$img.attr("src")).attr("iocId",$img.attr("iocId"));
+			});
+			
+			$("#btnCancle").click(function(){
+				window.parent.closeWin();
+			});
+			
+			//保存
+			$("#saveBtn").click(function(){
+				var selected = $('#fnctionAuthTree').tree('getSelected');
+				if (selected==null){
+					alert("请先选择菜单！");
+					return;
+				}
+				var menuId=selected.id;
+				var menuName=$("#menuName").val();
+				var menuIocId=$("#imgChoose").attr("iocId");
+				alert("menuID:"+menuId+" name:"+ menuName+"  IocID:"+menuIocId);
+
+				$.ajax({
+				    type : "POST",
+				    url : "sys/userMenu/addUserMenu.action",
+				    data : {functionMenuId:menuId,name:menuName,menuIocId:menuIocId},
+				    dataType : "JSON",
+				    success : function(data) {
+				    	if (data){
+				    		if (data==true)
+				    			alert("success");
+				    	}
+				    }
+			    });
+			});
+			
+			initTree();
+			
+		});
+		
+		/**
+		 * 初始化车辆组树形结构
+		 */
+		function initTree() {
+			try{
+				//车组权限
+
+				
+				$("#fnctionAuthTree").html('<img src="imgs/load.gif" />');
+				$.ajax({
+				    type : "POST",
+				    url : "sys/role/findMenusByParent.action",
+				    data : {roleId:0},
+				    dataType : "JSON",
+				    success : function(data) {
+				    	$('#fnctionAuthTree').tree({
+				    		data:data,
+				    		checkbox:true,
+				    		animate : true
+				    	});
+				    }
+			    });
+			}catch(e){}
+		}

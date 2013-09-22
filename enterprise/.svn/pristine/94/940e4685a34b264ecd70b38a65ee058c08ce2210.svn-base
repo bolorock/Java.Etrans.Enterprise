@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <select id="findANA_AnalyserMileagePerHourSQL" resultClass="java.util.HashMap">
+  	  select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+		      select 			
+				      T.ID as id			
+				      ,T.AnalyseGroupID  as analyseGroupID
+				      ,B.name as analyseGroupName
+				      ,T.Name as name
+		              ,(case T.IsAlert when '1' then '报警' else '只记录' end) as isAlert
+				      ,T.CheckTimeTypeID  as checkTimeTypeId
+					  ,C.Name as checkTimeTypeName
+				      ,T.CheckTimeValue as checkTimeValue
+				      ,CONVERT(varchar(10),T.CheckTimeBegin,24) as checkTimeBegin
+		              ,CONVERT(varchar(10),T.CheckTimeEnd,24) as checkTimeEnd
+		        FROM   dbo.ANA_AnalyserMileagePerHour  T
+               left join dbo.ANA_AnalyseGroups B on T.AnalyseGroupID=B.id
+               left join dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+               LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+               where 1=1 
+            <isNotEmpty property="name">
+      			and T.Name like '%$name$%'
+            </isNotEmpty>
+            
+            <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+
+			<!--企业管理员权限-->
+			<isNotEmpty property="workUnitId">
+				and	B.groupid = #workUnitId#
+			</isNotEmpty>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+   </select>
+  
+   
+   <select id="findANA_AnalyserMileagePerHourCountSQL" resultClass="java.lang.Long">
+      select count(1) from  ANA_AnalyserMileagePerHour as T
+       		   left join dbo.ANA_AnalyseGroups B on T.AnalyseGroupID=B.id
+               left join dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+               LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+      where   T.Name like '%$name$%'
+      	 	<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and au.UserID = #userId#
+			</isNotEmpty>
+
+			<!--企业管理员权限-->
+			<isNotEmpty property="workUnitId">
+				and	B.groupid = #workUnitId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_AnalyserMileagePerHourByIdSQL"  resultClass="java.util.HashMap">
+      SELECT 
+	       [id]		
+	      ,[analyseGroupID] 
+	      ,[name]
+	      ,ltrim(rtrim(str(isAlert))) [isAlert]
+	      ,[checkTimeTypeId]
+	      ,[checkTimeValue]
+	      ,CONVERT(varchar(10),[checkTimeBegin],24)  as [checkTimeBegin]
+          ,CONVERT(varchar(10),[checkTimeEnd],24)  as  [checkTimeEnd]
+  FROM ANA_AnalyserMileagePerHour
+   where id=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkANA_AnalyserMileagePerHourByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserMileagePerHour
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>'$id$']]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+ </sqlMap>
+

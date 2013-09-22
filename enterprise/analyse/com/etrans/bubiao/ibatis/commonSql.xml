@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+    
+<sqlMap namespace="CommonSql">
+
+	<!-- ///////////////////////////////////////查询车辆公共sql【超级管理员】begin///////////////////////////////////////-->
+	<!-- 获取超级管理员权限车辆 -->
+	<sql id="getVehicleByAdminBig">
+		SELECT 
+				pve.id,pve.registrationNO,pve.WorkUnitID,
+				pve.registrationNO+'|'+pvc.name +'|'+f.name+'|'+d.name + '|'+k.phoneNo AS NoColor
+		 	FROM 
+			 	Pub_Vehicle pve,
+			 	Pub_REGISTRATIONnOCOLOR pvc ,
+			 	pub_workUnit d,
+			 	Pub_TradeKind f,
+			 	Pub_Terminal j ,
+			 	pub_simcard k
+		 	WHERE 
+			 	pve.RegistrationNOColorID = pvc.id  AND 
+			 	pve.WorkUnitID = d.id AND
+	 		 	pve.TradeKindID=f.id  and 
+				(pve.isDeleted!=1 or pve.isdeleted is null) AND 
+				pve.TerminalID = j.id AND 
+				j.simID= k.id
+	</sql>
+	
+	<!-- ///////////////////////////////////////查询车辆公共sql【超级管理员】end///////////////////////////////////////-->
+	
+	<!-- ///////////////////////////////////////查询车辆公共sql【企业管理员】begin///////////////////////////////////////-->
+	<!-- 获取授权车组车辆-->
+	<sql id="getUserVehicleAuthorizationTA">
+			 SELECT 
+				c.id,c.registrationNO,c.WorkUnitID,
+				c.RegistrationNO +'|'+e.name+'|'+'|'+f.name+'|'+d.name + '|'+k.phoneNo AS NoColor
+			FROM (
+					SELECT 
+						AuthorizedGroupID 
+					FROM Pub_VehicleGroup b 
+					WHERE 
+						b.kind = 3 AND 
+						b.workUnitId=#workUnitId# AND 
+						b.parentGroupId in(
+							SELECT id  FROM Pub_VehicleGroup b WHERE  b.workUnitID=#workUnitId# AND b.kind =1) 
+			) 
+			a,
+			Pub_GroupVehicle b,
+			Pub_Vehicle c,
+			Pub_REGISTRATIONnOCOLOR e,
+			pub_workUnit d,
+			Pub_TradeKind f,
+			Pub_Terminal j,
+		 	pub_simcard k
+	 	WHERE 
+			a.AuthorizedGroupID = b.VehicleGroupID AND 
+			c.id=b.vehicleId AND 
+			c.RegistrationNOColorID = e.id AND 
+			c.WorkUnitID = d.id AND
+ 		 	c.TradeKindID=f.id AND
+			(c.isDeleted!=1 or c.isdeleted is null) and
+			c.TerminalID = j.id AND 
+			j.simID= k.id
+	</sql>
+	
+	
+	<!-- 获取企业管理员权限车辆 -->
+	<sql id="getVehicleByWorkUnitAdmin">
+		SELECT 
+		 		a.id,a.registrationNO,a.WorkUnitID,
+		 		a.RegistrationNO+'|'+e.name+'|'+f.name+'|'+d.name +'|'+k.phoneNo  AS NoColor
+		 	FROM 
+		 		Pub_Vehicle a ,
+		 		Pub_REGISTRATIONnOCOLOR e ,
+		 		pub_workUnit d,
+		 		Pub_TradeKind f,
+		 		Pub_Terminal j ,
+		 		pub_simcard k
+		 	WHERE 
+		 		a.RegistrationNOColorID=e.id AND 
+		 		a.WorkUnitID = d.id AND
+ 		 		a.TradeKindID=f.id  AND 
+				(a.isDeleted!=1 or a.isdeleted is null) and 
+				a.TerminalID = j.id AND 
+				j.simID= k.id
+		 	<dynamic>
+		 		<isNotNull prepend="and" property="workUnitId2">
+		 			d.fullId LIKE '%$workUnitId2$%'
+		 		</isNotNull>
+		 	</dynamic>	
+		 union
+		 <include refid="CommonSql.getUserVehicleAuthorizationTA"/>
+	</sql>
+	
+	<!-- ///////////////////////////////////////查询车辆公共sql【企业管理员】end///////////////////////////////////////-->
+	
+	<!-- ///////////////////////////////////////查询车辆公共sql【普通用户】begin///////////////////////////////////////-->
+	
+	
+	<!-- 获取权限车辆分组 -->
+	<sql id="getUserVehicleGroupSql">
+		SELECT  
+				DISTINCT a.VehicleGroupID  
+			FROM (
+				SELECT 
+					*
+				FROM Pub_VehicleGroupPurview c 
+				WHERE 
+					c.UserGroupID IN(
+						SELECT  a.id  
+							FROM  Pub_UserGroup a, 
+								  Pub_UserAndGroup b  
+						WHERE   
+							a.id=b.usergroupid  AND  
+							b.userId=#userId#)
+					) 
+				a, 
+				Pub_GroupVehicle c   
+			WHERE 
+				a.VehicleGroupID = c.VehicleGroupID
+	</sql>
+	
+
+	
+	<sql id="getUserVehicleByUserRoleTA">
+			SELECT 
+			DISTINCT 
+			a.id,a.registrationNO,a.WorkUnitID,
+			a.RegistrationNO +'|'+ e.name+'|'+f.name+'|'+d.name  +'|'+k.phoneNo AS NoColor
+		FROM pub_vehicle a,(
+			<include refid="getUserVehicleGroupSql"/>
+			) 
+			b,
+			Pub_GroupVehicle c ,
+			Pub_REGISTRATIONnOCOLOR e,
+			pub_workUnit d,
+			Pub_TradeKind f,
+			Pub_Terminal j ,
+		 	pub_simcard k
+		WHERE 
+			a.id=c.VehicleID AND 
+			c.VehicleGroupID=b.VehicleGroupID AND 
+			a.RegistrationNOColorID = e.id and 
+			a.TradeKindID=f.id AND 
+			a.workunitid=d.id AND 
+			a.WorkUnitID=#workUnitId# AND 
+			(a.isDeleted!=1 or a.isdeleted is null) and 
+			a.TerminalID = j.id AND 
+			j.simID= k.id
+	</sql>
+	
+	
+	<!-- 普通用户权限车辆列表 -->
+	<sql id="getVehicleByGenUser">
+		<include refid="CommonSql.getUserVehicleByUserRoleTA"/>	
+	</sql>
+	
+	<!-- ///////////////////////////////////////查询车辆公共sql【普通用户】end///////////////////////////////////////-->
+	
+	
+	
+	
+	<!-- ///////////////////////////////////////调用入口///////////////////////////////////////-->
+	<!--根据用户类型获取当前用户下面的车辆-->
+	<sql id="findVehilceListByUserTypeSqlTA">
+		select * from 
+		(
+			<dynamic>
+					<!--超级管理员-->
+					<isEqual compareValue="0" property="userType">
+						<include refid="CommonSql.getVehicleByAdminBig"/>
+					</isEqual>
+					<!--企业管理员-->
+					<isEqual compareValue="1" property="userType">
+						<include refid="CommonSql.getVehicleByWorkUnitAdmin"/>
+					</isEqual>
+					<!--企业管理员-->
+					<isEqual compareValue="2" property="userType">
+						<include refid="CommonSql.getVehicleByGenUser"/>
+					</isEqual>
+			</dynamic>
+		) o where 1=1
+	</sql>
+	
+	
+	
+	
+  <!-- ////////////////////////////////////////////分页公用部分开始///////////////////////////////////////////////-->
+  <!-- 分页公用开始语句 -->
+	<sql id="pageQueryStarTA">
+		SELECT * FROM (
+			SELECT row_number() over(order by $orderColumn$ desc) AS rowNumbers,t.* FROM (
+	</sql>
+	<!-- 分页公用结束语句 -->
+	<sql id="pageQueryEndTA">
+			) t  ) t WHERE t.rowNumbers  between  (($pageNo$*$pageSize$-$pageSize$)+1) AND ($pageNo$*$pageSize$)
+	</sql>
+  	
+  <!-- ////////////////////////////////////////////分页公用部分结束///////////////////////////////////////////////-->
+
+	
+</sqlMap>

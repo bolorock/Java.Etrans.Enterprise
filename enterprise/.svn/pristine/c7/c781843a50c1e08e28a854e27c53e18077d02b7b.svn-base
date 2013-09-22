@@ -1,0 +1,24 @@
+#struts.custom.i18n.resources=messageResource
+
+
+struts.i18n.encoding=UTF-8
+struts.objectFactory.spring.useClassCache = true
+struts.multipart.parser=jakarta
+struts.multipart.saveDir=
+struts.multipart.maxSize=2097152
+struts.serve.static=true
+struts.serve.static.browserCache=true
+struts.enable.DynamicMethodInvocation = true
+struts.enable.SlashesInActionNames = false
+struts.tag.altSyntax=true
+struts.devMode = true
+struts.i18n.reload=false
+struts.ui.theme=xhtml
+struts.ui.templateDir=template
+struts.ui.templateSuffix=ftl
+struts.url.includeParams = get
+struts.dispatcher.parametersWorkaround = false
+struts.freemarker.templatesCache=false
+struts.freemarker.wrapper.altMap=true
+struts.xslt.nocache=false
+struts.configuration.files=struts-default.xml,struts-plugin.xml,struts.xml

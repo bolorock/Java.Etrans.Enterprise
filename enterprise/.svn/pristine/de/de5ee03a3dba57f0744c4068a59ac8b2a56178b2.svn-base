@@ -1,0 +1,1478 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	
+	<!-- 警情监管统计SQL -->
+	<sql id="monthReportSql">
+		SELECT UnitName,
+			ISNULL(SpeedNum,0)as speedNum,
+			ISNULL(TirNum,0) as TirNum,
+			ISNULL(OvertimeNum,0)as OvertimeNum,
+			ISNULL(RoadInoutNum,0)as RoadInoutNum,
+			ISNULL(AreaInoutNum,0)as AreaInoutNum,
+			(ISNULL(SpeedNum,0)+ISNULL(TirNum,0)+ISNULL(OvertimeNum,0)+ISNULL(RoadInoutNum,0)+ISNULL(AreaInoutNum,0)) as Total,
+			0 as AlarmNum
+		FROM v_unit_info p1
+			
+		LEFT JOIN
+			(SELECT t2.UnitID,COUNT(1) as SpeedNum FROM bi_iaa_vehicle_speed t1
+			INNER JOIN v_vehicle_info t2 on t1.VehicleID=t2.ID
+			WHERE 1=1 
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND t1.StartDatetime>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=t1.StartDatetime
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY t2.UnitID) p2 on p1.ID=p2.UnitID
+			
+		LEFT JOIN
+			(SELECT t2.UnitID,COUNT(1) as TirNum FROM bi_iaa_vehicle_tired t1
+			INNER JOIN v_vehicle_info t2 on t1.VehicleID=t2.ID
+			WHERE 1=1 
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND t1.StartDatetime>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=t1.StartDatetime
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY t2.UnitID) p3 on p1.ID=p3.UnitID
+			
+		LEFT JOIN
+			(SELECT t2.UnitID,COUNT(1) as OvertimeNum FROM bi_iaa_vehicle_overtime t1
+			INNER JOIN v_vehicle_info t2 on t1.VehicleID=t2.ID
+			WHERE 1=1 
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND t1.StartDatetime>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=t1.StartDatetime
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY t2.UnitID) p4 on p1.ID=p4.UnitID
+			
+		LEFT JOIN
+			(SELECT t2.UnitID,COUNT(1) as RoadInoutNum  FROM bi_iaa_road_inout t1
+			INNER JOIN v_vehicle_info t2 on t1.VehicleID=t2.ID
+			WHERE 1=1 
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND t1.IntoDatetime>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=t1.OutDatetime
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY t2.UnitID) p5 on p1.ID=p5.UnitID
+			
+		LEFT JOIN
+			(SELECT t2.UnitID,COUNT(1) as AreaInoutNum  FROM bi_iaa_area_inout t1
+			INNER JOIN v_vehicle_info t2 on t1.VehicleID=t2.ID
+			WHERE 1=1 
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND t1.IntoDatetime>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=t1.OutDatetime
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY t2.UnitID) p6 on p1.ID=p6.UnitID
+			
+			<isNotNull property="unitIdList">
+				<isNotEmpty property="unitIdList">
+					<iterate property="unitIdList" conjunction="," close=")"
+						open=" WHERE p1.ID in (">
+						'$unitIdList[]$'
+					</iterate>
+				</isNotEmpty>
+			</isNotNull>
+	</sql>
+	
+	<!--警情监管统计分页总条数 -->
+	<select id="findMonthReportCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="monthReportSql" />
+		) as temp
+	</select>
+	
+	<!--警情监管统计 -->
+	<select id="getMonthReportSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by UnitName) as rowNum,* from (
+		<include refid="monthReportSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	
+	<!-- 车辆监管质量统计SQL -->
+	<sql id="vehicleSupervisionSql">
+	SELECT
+		UnitName,
+		VehicleNum,
+		OnlineRate,
+		NowOnlineRate,
+		UploadRate,
+		AlarmRate,
+			cast(ROUND(
+				(
+					OnlineRate + NowOnlineRate + UploadRate + AlarmRate
+				) / 4, 0
+			) as int)
+			AS QualityRate
+	FROM
+		(
+			SELECT
+				p1.UnitName,
+				p1.VehicleNum,
+				ISNULL(p2.OnlineNum, 0) AS OnlineNum,
+				CASE
+			WHEN p1.VehicleNum = 0
+			OR p2.OnlineNum IS NULL THEN
+				0
+			ELSE
+				cast(ROUND(
+					p2.OnlineNum / p1.VehicleNum * 100, 0
+				) as int)
+			END AS OnlineRate,
+			ISNULL(p3.NowOnlineRate, 0) AS NowOnlineRate,
+			0 AS UploadRate,
+			0 AS AlarmRate
+		FROM
+			(
+				SELECT
+					t1.UnitID,
+					t2.UnitName,
+					COUNT(1) AS VehicleNum
+				FROM
+					v_vehicle_info t1
+				INNER JOIN v_unit_info t2 ON t1.UnitID = t2.ID 
+				<isNotNull property="unitIdList">
+					<isNotEmpty property="unitIdList">
+						<iterate property="unitIdList" conjunction="," close=")"
+							open=" WHERE t2.ID in (">
+							'$unitIdList[]$'
+						</iterate>
+					</isNotEmpty>
+				</isNotNull>
+				GROUP BY
+					t1.UnitID,t2.UnitName
+			) p1
+		LEFT JOIN (
+			SELECT
+				UnitID,
+				COUNT(1) AS OnlineNum
+			FROM
+				v_vehicle_info
+			WHERE
+				ID IN (
+					SELECT
+						VehicleID
+					FROM
+						(
+							SELECT DISTINCT
+								VehicleID
+							FROM
+								bi_hta_now_online_rate
+							WHERE
+								IsOnline = 1
+								<isNotNull property="startDate">
+									<isNotEmpty property="startDate">
+										AND AnalyseDate>=#startDate#
+									</isNotEmpty>
+								</isNotNull>
+										
+								<isNotNull property="endDate">
+									<isNotEmpty property="endDate">
+										AND #endDate#>=AnalyseDate
+									</isNotEmpty>
+								</isNotNull>
+						) AS temp
+				)
+			GROUP BY
+				UnitID
+		) p2 ON p1.UnitID = p2.UnitID
+		LEFT JOIN (
+			SELECT
+				t2.UnitID,
+				cast(ROUND(
+					SUM(t1.RealOnlineTime) / SUM(t1.TotalOnlineTime) * 100, 0
+				) as int) AS NOwOnlineRate
+			FROM
+				bi_hta_vehicle_online_rate t1
+			INNER JOIN v_vehicle_info t2 ON t1.VehicleID = t2.ID
+			WHERE 1=1
+			<isNotNull property="startDate">
+				<isNotEmpty property="startDate">
+					AND AnalyseDate>=#startDate#
+				</isNotEmpty>
+			</isNotNull>
+					
+			<isNotNull property="endDate">
+				<isNotEmpty property="endDate">
+					AND #endDate#>=AnalyseDate
+				</isNotEmpty>
+			</isNotNull>
+			GROUP BY
+				t2.UnitID
+		) p3 ON p3.UnitID = p1.UnitID
+		) AS tempData
+	</sql>
+
+	<!--车辆监管质量统计分页总条数 -->
+	<select id="findVehicleSupervisionCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="vehicleSupervisionSql" />
+		) as temp
+	</select>
+	
+	<!--车辆监管质量统计 -->
+	<select id="getVehicleSupervisionSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by UnitName) as rowNum,* from (
+		<include refid="vehicleSupervisionSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	
+	<!-- 在线率统计SQL -->
+	<sql id="vehicleOnlineRateSql">
+	SELECT
+		t3.UnitName,
+		t2.PlateNumber,
+		t1.TotalOnlineTime,
+		t1.RealOnlineTime,
+			cast(ROUND(t1.OnlineRate * 100, 0) as int)
+			 AS OnlineRate,
+		t1.AnalyseDate,
+		t1.Remark
+	FROM
+		bi_hta_vehicle_online_rate t1
+	INNER JOIN v_vehicle_info t2 ON t1.VehicleID = t2.ID
+	INNER JOIN v_unit_info t3 ON t2.UnitID = t3.ID
+	WHERE 1=1
+	<isNotNull property="startDate">
+		<isNotEmpty property="startDate">
+			AND t1.AnalyseDate>=#startDate#
+		</isNotEmpty>
+	</isNotNull>
+			
+	<isNotNull property="endDate">
+		<isNotEmpty property="endDate">
+			AND #endDate#>=t1.AnalyseDate
+		</isNotEmpty>
+	</isNotNull>
+	
+	<isNotNull property="unitIdList">
+		<isNotEmpty property="unitIdList">
+			<iterate property="unitIdList" conjunction="," close=")"
+				open=" AND t3.ID in (">
+				'$unitIdList[]$'
+			</iterate>
+		</isNotEmpty>
+	</isNotNull>
+	</sql>
+
+	<!--在线率统计分页总条数 -->
+	<select id="findVehicleOnlineRateCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="vehicleOnlineRateSql" />
+		) as temp
+	</select>
+	
+	<!--在线率统计 -->
+	<select id="getVehicleOnlineRateSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by UnitName) as rowNum,* from (
+		<include refid="vehicleOnlineRateSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	
+	<!-- 当前在线率统计SQL -->
+	<sql id="nowOnlineSql">
+	SELECT
+	p1.UnitName,
+	p1.VehicleNum,
+	ISNULL(p2.OnlineNum, 0) AS OnlineNum,
+	CASE
+		WHEN p1.VehicleNum = 0
+		OR p2.OnlineNum IS NULL THEN
+			0
+		ELSE
+				cast(ROUND(
+					p2.OnlineNum / p1.VehicleNum * 100, 0
+				) as int)
+		END AS OnlinRate
+		FROM
+			(
+				SELECT
+					t1.UnitID,
+					t2.UnitName,
+					COUNT(1) AS VehicleNum
+				FROM
+					v_vehicle_info t1
+				INNER JOIN v_unit_info t2 ON t1.UnitID = t2.ID
+				<isNotNull property="unitIdList">
+					<isNotEmpty property="unitIdList">
+						<iterate property="unitIdList" conjunction="," close=")"
+							open=" WHERE t2.ID in (">
+							'$unitIdList[]$'
+						</iterate>
+					</isNotEmpty>
+				</isNotNull>
+				GROUP BY
+					t1.UnitID,t2.UnitName
+			) p1
+		LEFT JOIN (
+			SELECT
+				UnitID,
+				COUNT(1) AS OnlineNum
+			FROM
+				v_vehicle_info
+			WHERE
+				ID IN (SELECT VehicleID FROM(
+					SELECT DISTINCT
+						VehicleID
+					FROM
+						bi_hta_now_online
+					WHERE
+						1 = 1
+					<isNotNull property="startDate">
+						<isNotEmpty property="startDate">
+							AND CreateTime>=#startDate#
+						</isNotEmpty>
+					</isNotNull>
+			
+					<isNotNull property="endDate">
+						<isNotEmpty property="endDate">
+							AND #endDate#>=CreateTime
+						</isNotEmpty>
+					</isNotNull>
+				) as temp)
+			GROUP BY
+				UnitID
+		) p2 ON p1.UnitID = p2.UnitID
+	</sql>
+
+	<!--当前在线率统计分页总条数 -->
+	<select id="findNowOnlineCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="nowOnlineSql" />
+		) as temp
+	</select>
+	
+	<!-- 当前在线率统计 -->
+	<select id="getNowOnlineSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by UnitName) as rowNum,* from (
+		<include refid="nowOnlineSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	
+	<!-- 上线率统计SQL -->
+	<sql id="nowOnlineRateSql">
+	SELECT
+	p1.UnitName,
+	p1.VehicleNum,
+	ISNULL(p2.OnlineNum, 0) AS OnlineNum,
+	CASE
+		WHEN p1.VehicleNum = 0
+		OR p2.OnlineNum IS NULL THEN
+			0
+		ELSE
+				cast(ROUND(
+					p2.OnlineNum / p1.VehicleNum * 100, 0
+				) as int)
+		END AS OnlinRate
+		FROM
+			(
+				SELECT
+					t1.UnitID,
+					t2.UnitName,
+					COUNT(1) AS VehicleNum
+				FROM
+					v_vehicle_info t1
+				INNER JOIN v_unit_info t2 ON t1.UnitID = t2.ID
+				<isNotNull property="unitIdList">
+					<isNotEmpty property="unitIdList">
+						<iterate property="unitIdList" conjunction="," close=")"
+							open=" WHERE t2.ID in (">
+							'$unitIdList[]$'
+						</iterate>
+					</isNotEmpty>
+				</isNotNull>
+				
+				GROUP BY
+					t1.UnitID,t2.UnitName
+			) p1
+		LEFT JOIN (
+			SELECT
+				UnitID,
+				COUNT(1) AS OnlineNum
+			FROM
+				v_vehicle_info
+			WHERE
+				ID IN (SELECT VehicleID FROM(
+					SELECT DISTINCT
+						VehicleID
+					FROM
+						bi_hta_now_online_rate
+					WHERE
+						IsOnline = 1
+					<isNotNull property="startDate">
+						<isNotEmpty property="startDate">
+							AND AnalyseDate>=#startDate#
+						</isNotEmpty>
+					</isNotNull>
+			
+					<isNotNull property="endDate">
+						<isNotEmpty property="endDate">
+							AND #endDate#>=AnalyseDate
+						</isNotEmpty>
+					</isNotNull>
+				) as temp)
+			GROUP BY
+				UnitID
+		) p2 ON p1.UnitID = p2.UnitID
+	</sql>
+
+	<!--上线率统计分页总条数 -->
+	<select id="findNowOnlineRateCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="nowOnlineRateSql" />
+		) as temp
+	</select>
+	
+	<!-- 上线率统计 -->
+	<select id="getNowOnlineRateSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by UnitName) as rowNum,* from (
+		<include refid="nowOnlineRateSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	
+	<!-- 夜间行车按车辆统计SQL -->
+	<sql id="vehicleNightByVehicleSql">
+		SELECT
+			AnalyseConditions,
+			PlateNumber,
+			count(1) AS Number,
+			CONVERT (CHAR,
+				cast(ROUND(
+					SUM(EndMileage - StartMileage), 0
+				) as int)
+			) AS TotalMileage
+		FROM
+			bi_hta_vehicle_night
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+		
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,PlateNumber,VehicleID 
+	</sql>
+	
+	<!-- 夜间行车按车辆统计分页总条数 -->
+	<select id="findVehicleNightByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="vehicleNightByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取夜间行车按车辆统计 -->
+	<select id="getVehicleNightByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseConditions) as rowNum,* from (
+		<include refid="vehicleNightByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 获取夜间行车按分析组统计 -->
+	<select id="getVehicleNightByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+			AnalyseConditions,
+			count(1) AS Number,
+			CONVERT (CHAR,
+				cast(ROUND(
+					SUM(EndMileage - StartMileage), 0
+				) as int)
+			) AS TotalMileage
+		FROM
+			bi_hta_vehicle_night
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions
+	</select>
+	
+	
+	<!-- 路段偏离按车辆统计SQL -->
+	<sql id="roadInoutByVehicleSql">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			PlateNumber,
+			Sum(TotalTime) AS TotalTime
+		FROM
+			bi_iaa_road_inout
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+		
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,PlateNumber,VehicleID 
+	</sql>
+	
+	<!-- 路段偏离按车辆统计分页总条数 -->
+	<select id="findRoadInoutByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="roadInoutByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取路段偏离按车辆统计 -->
+	<select id="getRoadInoutByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="roadInoutByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 获取路段偏离按分析组统计 -->
+	<select id="getRoadInoutByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			Sum(TotalTime) AS TotalTime
+		FROM
+			bi_iaa_road_inout
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions
+	</select>
+	
+	
+	<!-- 进出区域按车辆统计SQL -->
+	<sql id="areaInoutByVehicleSql">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			PlateNumber,
+			DriverName,
+			Sum(TotalTime) AS TotalTime,
+			count(1) AS Number
+		FROM
+			bi_iaa_area_inout
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+		
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,PlateNumber,DriverName,VehicleID 
+	</sql>
+
+	<!-- 进出区域按车辆统计分页总条数 -->
+	<select id="findAreaInoutByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="areaInoutByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取进出区域按车辆统计 -->
+	<select id="getAreaInoutByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="areaInoutByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 获取进出区域按分析组统计 -->
+	<select id="getAreaInoutByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			Sum(TotalTime) AS TotalTime,
+			count(1) AS Number
+		FROM
+			bi_iaa_area_inout
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions
+	</select>
+	
+	
+	<!-- 进出地点按车辆统计SQL -->
+	<sql id="localeInoutByVehicleSql">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			PlateNumber,
+			DriverName,
+			count(1) AS IntoNumber,
+		  	count(1) As OutNumber
+		FROM
+			bi_iaa_locale_inout
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+		
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,PlateNumber,DriverName,VehicleID 
+	</sql>
+	
+	<!-- 进出地点按车辆统计分页总条数 -->
+	<select id="findLocaleInoutByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="localeInoutByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取进出地点按车辆统计 -->
+	<select id="getLocaleInoutByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="localeInoutByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 获取进出地点按分析组统计 -->
+	<select id="getLocaleInoutByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			count(1) AS IntoNumber,
+		  count(1) As OutNumber
+		FROM
+			bi_iaa_locale_inout
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND IntoDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=OutDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions
+	</select>
+	
+	
+	<!-- 地点超时停车按车辆统计SQL -->
+	<sql id="vehicleOvertimeByVehicleSql">
+	SELECT
+		AnalyseConditions AS AnalyseGroupsName,
+		PlateNumber,
+		DriverName,
+		Sum(TotalTime) AS TotalTime,
+		count(1) AS Number
+	FROM
+		bi_iaa_vehicle_overtime
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+		
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,PlateNumber,DriverName,VehicleID 
+	</sql>
+
+	<!-- 地点超时停车按车辆统计分页总条数 -->
+	<select id="findVehicleOvertimeByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="vehicleOvertimeByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取地点超时停车按车辆统计 -->
+	<select id="getVehicleOvertimeByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="vehicleOvertimeByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 获取地点超时停车按分析组统计 -->
+	<select id="getVehicleOvertimeByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+			AnalyseConditions AS AnalyseGroupsName,
+			DriverName,
+			Sum(TotalTime) AS TotalTime,
+			count(1) AS Number
+		FROM
+			bi_iaa_vehicle_overtime
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions,DriverName
+	</select>
+	
+	
+	<!-- 里程明细统计SQL -->
+	<sql id="vehicleMileageDetailSql">
+		SELECT
+		t1.VehicleID,
+		t3.AnalyseGroupsName,
+		t4.PlateNumber,
+		t1.StartMileage,
+		t1.EndMileage,
+		(
+		t1.EndMileage - t1.StartMileage
+		) AS
+		TotalMileage
+		FROM
+		bi_hta_vehicle_mileage t1
+		INNER JOIN
+		bi_analysegroups_vehicle t2 ON t1.VehicleID =
+		t2.VehicleID
+		INNER JOIN bi_analysegroups t3 ON
+		t2.AnalyseGroupsID = t3.ID
+		INNER JOIN v_vehicle_info t4
+		ON t1.VehicleID = t4.ID
+		WHERE 1 = 1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And t1.VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartTime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndTime
+			</isNotEmpty>
+		</isNotNull>
+	</sql>
+	
+	<!-- 里程明细分页总条数 -->
+	<select id="findVehicleMileageDetailCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="vehicleMileageDetailSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取里程统计明细数据 -->
+	<select id="getVehicleMileageDetailSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="vehicleMileageDetailSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 里程按车辆统计SQL -->
+	<sql id="vehicleMileageSql">
+		SELECT
+		t3.AnalyseGroupsName,
+		t4.PlateNumber,
+		CONVERT (CHAR,
+		cast(ROUND(SUM(t1.EndMileage - t1.StartMileage), 0) as int)
+		) AS TotalMileage
+		FROM
+		bi_hta_vehicle_mileage t1
+		INNER
+		JOIN bi_analysegroups_vehicle t2 ON t1.VehicleID =
+		t2.VehicleID
+		INNER JOIN bi_analysegroups t3 ON
+		t2.AnalyseGroupsID = t3.ID
+		INNER JOIN v_vehicle_info t4
+		on t1.VehicleID=t4.ID
+		WHERE 1 = 1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And t1.VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND t3.AnalyseGroupsName LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartTime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndTime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY t1.VehicleID,t3.AnalyseGroupsName,t4.PlateNumber
+	</sql>
+
+	<!-- 里程按车辆统计分页总条数 -->
+	<select id="findVehicleMileageCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<dynamic>
+			<include refid="vehicleMileageSql" />
+		</dynamic>
+		) as temp
+	</select>
+	
+	<!-- 获取里程统计按车辆统计 -->
+	<select id="getVehicleMileageByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="vehicleMileageSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+
+	<!-- 获取里程统计按分析组统计 -->
+	<select id="getVehicleMileageByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		t3.AnalyseGroupsName,
+		COUNT(DISTINCT t1.VehicleID) AS VehicleNum,
+		CONVERT(CHAR,
+		cast(ROUND(SUM(t1.EndMileage - t1.StartMileage), 0) as int)
+		) AS TotalMileage
+		FROM
+		bi_hta_vehicle_mileage t1
+		INNER JOIN
+		bi_analysegroups_vehicle t2 ON t1.VehicleID =
+		t2.VehicleID
+		INNER JOIN bi_analysegroups t3 ON
+		t2.AnalyseGroupsID = t3.ID
+		WHERE 1 = 1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND t3.AnalyseGroupsName LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartTime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndTime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY t2.AnalyseGroupsID,t3.AnalyseGroupsName
+	</select>
+	
+	
+	<!-- 疲劳驾驶明细统计SQL -->
+	<sql id="fatiguedriveDetailSql">
+		SELECT
+		VehicleID,
+		AnalyseConditions as AnalyseGroupsName,
+		PlateNumber,
+		StartDatetime,
+		EndDatetime,
+		TotalTime,
+		TotalMileage,
+		TimeThreshold,
+		StartPosition,
+		EndPosition,
+		DriverName
+		FROM
+		bi_iaa_vehicle_tired
+		WHERE 1 = 1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+	</sql>
+	
+	<!-- 疲劳驾驶明细数据分页总条数 -->
+	<select id="findFatiguedriveDetailCount" parameterClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="fatiguedriveDetailSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取疲劳驾驶明细数据 -->
+	<select id="getFatiguedriveDetailSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="fatiguedriveDetailSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 疲劳驾驶统计SQL -->
+	<sql id="fatiguedriveSql">
+		SELECT
+		AnalyseConditions as AnalyseGroupsName,PlateNumber,
+		count(1) AS Number,
+		CONVERT(CHAR,
+		cast(ROUND(SUM(TotalMileage), 0) as int))
+		 AS TotalMileage,
+		SUM(TotalTime) AS TotalTime,
+		COUNT(
+		CASE
+		WHEN TotalTime > TimeThreshold * 1.5 THEN
+		1
+		END
+		) AS
+		SeriousTired
+		FROM
+		bi_iaa_vehicle_tired
+		WHERE 1 = 1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY VehicleID,AnalyseConditions,PlateNumber
+	</sql>
+
+	<!-- 疲劳驾驶按车辆统计分页总条数 -->
+	<select id="findFatiguedriveCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="fatiguedriveSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取疲劳驾驶按车辆统计 -->
+	<select id="getFatiguedriveByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="fatiguedriveSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+
+	<!-- 获取疲劳驾驶按分析组统计 -->
+	<select id="getFatiguedriveByGroupSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT
+		AnalyseConditions as AnalyseGroupsName,
+		count(1) AS Number,
+		CONVERT(CHAR,
+		cast(ROUND(SUM(TotalMileage), 0) as int))
+		AS TotalMileage,
+		SUM(TotalTime) AS TotalTime,
+		COUNT(
+		CASE
+		WHEN TotalTime >
+		TimeThreshold * 1.5 THEN
+		1
+		END
+		) AS SeriousTired
+		FROM
+		bi_iaa_vehicle_tired
+		WHERE 1 = 1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY AnalyseConditions
+	</select>
+	
+	
+	<!-- 超速明细数据SQL -->
+	<sql id="overspeedDetailSql">
+	SELECT
+		t1.VehicleID,
+		t1.AnalyseConditions as AnalyseGroupsName,
+		t1.PlateNumber,
+		t1.StartDatetime,
+		t1.EndDatetime,
+		CONVERT(varchar,t1.MaxSpeed) +'('+ 
+		CONVERT(varchar,t1.SpeedThreshold) +')' 
+		AS MaxThresholdSpeed,
+		t1.AverageSpeed,
+		t1.TotalTime,
+		t1.SpeedType,
+		t1.StartPosition,
+		t1.EndPosition,
+		t1.DriverName
+		FROM
+		bi_iaa_vehicle_speed t1
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And t1.VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+	</sql>
+	
+	<!-- 超速明细数据分页总条数 -->
+	<select id="findOverspeedDetailCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="overspeedDetailSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取车辆超速明细数据 -->
+	<select id="getOverspeedDetailSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="overspeedDetailSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+	
+	<!-- 超速按车辆统计SQL -->
+	<sql id="overspeedByVehicleSql">
+	SELECT t1.AnalyseConditions as AnalyseGroupsName,t1.PlateNumber,
+		count(
+		CASE
+		WHEN t1.SpeedType = '一般超速' THEN
+		1
+		END
+		) AS 'GeneralOverSpeed',
+		count(
+		CASE
+		WHEN t1.SpeedType = '较严重超速' THEN
+		1
+		END
+		) AS 'SeriousOverSpeed',
+		count(
+		CASE
+		WHEN t1.SpeedType = '十分严重超速' THEN
+		1
+		END
+		) AS 'VerySeriousOverSpeed',
+		count(t1.VehicleID) AS Number,
+		Sum(t1.TotalTime) AS TotalTime,
+		CONVERT(CHAR,
+		cast(ROUND(AVG(t1.AverageSpeed), 0) as int))
+		 AS AvgSpeed
+		FROM
+		bi_iaa_vehicle_speed t1
+		WHERE 1=1
+
+		<isNotNull property="vehicleIdList">
+			<isNotEmpty property="vehicleIdList">
+				<iterate property="vehicleIdList" conjunction="," close=")"
+					open=" And t1.VehicleID in (">
+					'$vehicleIdList[]$'
+				</iterate>
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND t1.AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY t1.VehicleID,t1.AnalyseConditions,t1.PlateNumber 
+	</sql>
+	
+	<!-- 超速按车辆统计分页总条数 -->
+	<select id="findOverspeedByVehicleCount" resultClass="java.util.HashMap">
+		SELECT COUNT(*) as RecordCount FROM (
+		<include refid="overspeedByVehicleSql" />
+		) as temp
+	</select>
+	
+	<!-- 获取超速按车辆统计 -->
+	<select id="getOverspeedByVehicleSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		select * From ( select row_number() over(order by AnalyseGroupsName) as rowNum,* from (
+		<include refid="overspeedByVehicleSql" />
+		) as temp1) as temp2
+		where rowNum between #pageIndex# and #pageIndex#+#pageSize#
+	</select>
+
+	<!-- 获取超速按分析组统计 -->
+	<select id="getOverspeedByGroupSql" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT AnalyseConditions as AnalyseGroupsName,
+		count(
+		CASE
+		WHEN SpeedType = '一般超速' THEN
+		1
+		END
+		)
+		AS 'GeneralOverSpeed',
+		count(
+		CASE
+		WHEN SpeedType = '较严重超速' THEN
+		1
+		END
+		) AS
+		'SeriousOverSpeed',
+		count(
+		CASE
+		WHEN SpeedType = '十分严重超速' THEN
+		1
+		END
+		) AS
+		'VerySeriousOverSpeed',
+		count(1) AS Number,
+		Sum(TotalTime) AS TotalTime,
+		CONVERT(CHAR,
+		cast(ROUND(AVG(AverageSpeed), 0) as int))
+		 AS AvgSpeed
+		FROM
+		bi_iaa_vehicle_speed t1
+		WHERE 1=1
+		<isNotNull property="analyseGroup">
+			<isNotEmpty property="analyseGroup">
+				AND t1.AnalyseConditions LIKE
+				'%$analyseGroup$%'
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="startDate">
+			<isNotEmpty property="startDate">
+				AND t1.StartDatetime>=#startDate#
+			</isNotEmpty>
+		</isNotNull>
+
+		<isNotNull property="endDate">
+			<isNotEmpty property="endDate">
+				AND #endDate#>=t1.EndDatetime
+			</isNotEmpty>
+		</isNotNull>
+		GROUP BY t1.AnalyseConditions
+	</select>
+	
+	
+	<!-- 获取所有分析组-->
+	<select id="getAnalyseGroupsSql" resultClass="java.util.HashMap">
+		SELECT
+			ID,AnalyseGroupsName
+		FROM 
+			bi_analysegroups
+	</select>
+	
+	<!-- 获取所有车属单位-->
+	<select id="getVehicleUnitSql" resultClass="java.util.HashMap">
+		SELECT
+			ID,UnitName
+		FROM
+			v_unit_info
+	</select>
+	
+	
+</sqlMap>

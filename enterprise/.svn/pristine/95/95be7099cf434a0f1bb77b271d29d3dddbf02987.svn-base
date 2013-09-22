@@ -1,0 +1,83 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth" uri="/auth-tags"%>
+<%@ taglib prefix="s" uri="/struts-tags"%>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>车辆组管理</title>
+<%@ page import="com.etrans.bubiao.auth.SessionUser"%>
+<%@page import="com.etrans.bubiao.sys.UserContext"%>
+<%
+String	userId=user.getUserID().toString();
+%>
+<script type="text/javascript">
+	var userId = <%=userId%>;
+</script>
+<link rel="stylesheet" type="text/css" href="${basePath}css/style.css">
+<link rel="stylesheet" type="text/css"
+	href="${basePath}js/jq/bxSlider/jquery.bxslider.css">
+<script type="text/javascript" src="${basePath}js/jq/jquery.Query.js"></script>
+<script type="text/javascript" src="${basePath}js/sys/functionMenu/functionMenuList.js"></script>
+<script type="text/javascript" src="${basePath}js/sys/vehicle/vehicleGroup.js"></script>
+<script type="text/javascript" src="${basePath}js/sys/vehicle/vehicleList.js"></script>
+<script type="text/javascript" src="${basePath}js/common/shortcutSet.js"></script>
+<script type="text/javascript" src="${basePath}js/jq/bxSlider/jquery.bxslider.min.js"></script>
+</head>
+<body>
+
+	<div style="width: 100%" id="cont_box">
+		<div class="main">
+			<div class="mon_cont" style="overflow-y: auto;">
+				<div class="E_Tit">车辆分组管理</div>
+
+				<table width="100%">
+					<tbody>
+						<tr>
+							<td colspan="2" class="tdButton" align="center">
+
+							</td>
+							<td></td>
+						</tr>
+						<tr class="odd">
+							<td width="20%" class="even" valign="top">
+								<fieldset>
+									<div align="left" id="leftTd"
+										style="height: 330; OVERFLOW-Y: auto; OVERFLOW-X: hidden; padding-top: 0; vertical-align: top;">
+											<ul id="fnctionAuthTree">
+							</ul>
+									</div>
+								</fieldset>
+							</td>
+							<td width="100%" class="even" valign="top" height="350">
+								<ul class="bxslider">
+							
+								</ul>
+								<div style="text-align: center;">
+									<img id="imgChoose" src="imgs/menu/noimg.jpg">
+						            
+								</div>
+								<div style="text-align: center;">
+								<lable>选择的图标</lable>
+								</div>
+								<div style="margin-top:10px;">
+								    	<label>菜单简称</label>						
+											<input type="text" size="20" id="menuName" class="mon_ser_text" style="width: 130px;"/>	
+								</div>
+								<div style="margin-top:40px;text-align: center;">
+									<a id="saveBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">保存</a>
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+									<a id="btnCancle"  href="javascript:void(0)" class="ser_btn" style="color: white;">取消</a>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

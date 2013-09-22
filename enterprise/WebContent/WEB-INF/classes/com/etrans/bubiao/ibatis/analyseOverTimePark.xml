@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  <select id="findANA_AnalyserOverTimeParkSQL" resultClass="java.util.HashMap">
+  	 select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 ) RowNo,A.* from (
+		     select T.id,T.analyseGroupID,T.analyseGroupName,T.name,T.isAlert,T.checkTimeTypeId,T.checkTimeTypeName
+		     ,T.checkTimeValue,T.checkTimeBegin,T.checkTimeEnd,T.bounceParkTimeDay,T.bounceParkDistance,
+		     T.placeTypeId,T.placeTypeName,T.isPlaceInAlarm,T.checkInterval,T.isWarn,T.groupid from 
+		      (select 			
+				      T.ID as id			
+				      ,T.AnalyseGroupID  as analyseGroupID
+				      ,B.name as analyseGroupName
+				      ,T.Name as name
+		              ,(case T.IsAlert when '1' then '报警' else '只记录' end) as isAlert
+				      ,T.CheckTimeTypeID  as checkTimeTypeId
+					  ,C.Name as checkTimeTypeName
+				      ,T.CheckTimeValue as checkTimeValue
+				      ,CONVERT(varchar(10),T.CheckTimeBegin,24) as checkTimeBegin
+		              ,CONVERT(varchar(10),T.CheckTimeEnd,24) as checkTimeEnd
+				      ,T.BounceParkTimeDay as  bounceParkTimeDay 
+				      ,T.BounceParkDistance as bounceParkDistance
+					  ,T.placeTypeId as placeTypeId 
+					  ,D.Name as placeTypeName
+		              ,(case T.isPlaceInAlarm when '1' then '点范围内报警' else '点范围外报警' end) as isPlaceInAlarm
+					  ,T.checkInterval as checkInterval
+				      ,T.IsWarn as isWarn
+				      ,B.groupid as groupid
+				      ,au.UserID as UserID
+		        FROM   ANA_AnalyserOverTimePark  T
+                left join  dbo.ANA_AnalyseGroups B on T.AnalyseGroupID=B.id
+                left join  dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+                left join  dbo.ANA_BasePlaceTypes D on T.placeTypeID=D.id
+                LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+                ) T where 1=1
+		<dynamic>
+            <!--企业管理员权限-->
+			<isNotNull property="workUnitId">
+				AND T.groupid = #workUnitId# 
+			</isNotNull>
+			 <isNotNull property="name" >
+	          AND T.Name like '%$name$%'
+	         </isNotNull>
+	         
+	         <!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 and T.UserID = #userId#
+			</isNotEmpty>
+	         
+		</dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+   </select>
+   
+   <select id="findANA_AnalyserOverTimeParkCountSQL" resultClass="java.lang.Long">
+      select count(1) 
+      FROM   ANA_AnalyserOverTimePark  T
+                left join  dbo.ANA_AnalyseGroups B on T.AnalyseGroupID=B.id
+                left join  dbo.ANA_BaseCheckTimeTypes C on T.CheckTimeTypeID=C.id
+                left join  dbo.ANA_BasePlaceTypes D on T.placeTypeID=D.id
+                LEFT JOIN Ent_AnalyseGroupsIDAddUserID as au on B.id=au.AnalyseGroupsID
+                where   T.Name like '%$name$%'
+            <!--企业管理员权限-->
+			<isNotNull property="workUnitId">
+				AND B.groupid = #workUnitId# 
+			</isNotNull>
+			<!--普通用户权限-->
+			<isNotEmpty property="userId">
+			 	and au.UserID = #userId#
+			</isNotEmpty>
+   </select>
+   
+   <!-- 注：查询结果列名必须与页面表单元素名相同 -->
+  <select id="getANA_AnalyserOverTimeParkByIdSQL"  resultClass="java.util.HashMap">
+      SELECT 
+	       T.id as [id]		
+	      ,T.analyseGroupID as [analyseGroupID] 
+	      ,T.name as [name]
+	      ,ltrim(rtrim(str(T.isAlert))) [isAlert]
+	      ,T.checkTimeTypeId as [checkTimeTypeId]
+	      ,T.checkTimeValue as [checkTimeValue]
+	      ,CONVERT(varchar(10),T.checkTimeBegin,24)  as [checkTimeBegin]
+          ,CONVERT(varchar(10),T.checkTimeEnd,24)  as  [checkTimeEnd]
+	      ,T.bounceParkTimeDay as [bounceParkTimeDay]
+	      ,T.bounceParkDistance as [bounceParkDistance]
+		  ,D.name as placeTypeId
+		  ,ltrim(rtrim(str(T.isPlaceInAlarm))) [isPlaceInAlarm]
+		  ,T.checkInterval as [checkInterval]
+		  ,ltrim(rtrim(str(T.isWarn))) [isWarn]
+  FROM ANA_AnalyserOverTimePark T
+  left join  dbo.ANA_BasePlaceTypes D on T.placeTypeID=D.id
+   where T.id=#id# 
+   </select>
+   
+  <!-- 同名检查 -->
+   <select id="checkANA_AnalyserOverTimeParkByNameSQL" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+     select id,Name from  ANA_AnalyserOverTimePark
+		where
+	     		Name='$name$'
+			<isNotNull property="id" >
+	     		<isNotEmpty property="id">
+	     			<![CDATA[AND id<>'$id$']]>	
+	     		</isNotEmpty>
+     		</isNotNull>	
+   </select>
+   
+   <select id="getPlaceTypeNameSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	    select mli.id as id,mli.Name as name,mlp.Sequence as Sequence,mlp.Longitude as Longitude ,mlp.Latitude as Latitude
+		from Pub_CustomMapLine as mli,Pub_CustomMapLinePoint AS mlp
+		where mlp.MapLineID=mli.ID and 1=1
+	      <dynamic>
+			<isNotNull property="id">
+				<isNotEmpty property="id" prepend="and">
+					mli.id = '$id$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+   </select>
+   
+   
+     <!-- 自定义关键点list -->
+    <select id="getPlaceTypeNamesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select  c.id as id,c.name as name,c.Longitude as Longitude,c.latitude as Latitude
+		from 
+		Pub_CustomMapLayer as ly,
+		Pub_CustomMapPoint as c,
+		Pub_User as u
+		where 1=1
+		and ly.UserID=u.id
+		and c.MapLayerID=ly.ID
+		
+		<dynamic>
+			<isNotNull property="id">
+				<isNotEmpty property="id" prepend="and">
+					c.id = '$id$'
+				</isNotEmpty>
+			</isNotNull>
+			
+	     </dynamic>
+	</select>
+   
+   
+   
+   
+    <!-- 插入地点数据 ANA_BasePlaceTypes-->
+	<insert id="insertBasePlaceTypeSQL" parameterClass="java.util.HashMap">
+	  INSERT INTO dbo.ANA_BasePlaceTypes
+           ([GroupID]
+           ,[Name]
+           ,[Description]
+           )
+     VALUES
+           (#GroupID#
+           ,#Name#
+           ,#Description#
+          )
+	 <selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+	</selectKey>
+	</insert>
+	
+	
+	 <!-- 插入地点明细数据 -->
+	<insert id="insertParamPlaceSQL" parameterClass="java.util.HashMap">
+	  INSERT INTO [dbo].[ANA_ParamPlaces]
+           ([GroupID]
+           ,[name]
+           ,[Longitude]
+           ,[AutoTime]
+           ,[TypeId]
+           ,[Latitude])
+     VALUES
+           (#GroupID#
+           ,#name#
+           ,#Longitude#
+           ,#AutoTime#
+           ,#typeId#
+           ,#Latitude#)
+	<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+	</selectKey>
+	</insert>
+   
+    <!-- 插入超时停车报警数据 -->
+	<insert id="insertAnalyseOverTimeParkSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [ANA_AnalyserOverTimePark]
+           (
+           analyseGroupID 
+	      ,name
+	      ,isAlert
+	      ,checkTimeTypeId
+	      ,checkTimeValue
+	      ,checkTimeBegin
+	      ,checkTimeEnd
+	      ,isPlaceInAlarm
+	      ,placeTypeId
+		  ,bounceParkTimeDay
+		  ,bounceParkDistance
+		  ,checkInterval
+           )
+     VALUES
+           (
+           	#analyseGroupID#,
+           	#name#,
+           	#isAlert#,
+           	#checkTimeTypeId#,
+           	#checkTimeValue#,
+           	#checkTimeBegin#,
+           	#checkTimeEnd#,
+           	#isPlaceInAlarm#,
+           	#placeTypeId#,
+           	#bounceParkTimeDay#,
+           	#bounceParkDistance#,
+           	#checkInterval#
+           )
+	</insert>
+ </sqlMap>

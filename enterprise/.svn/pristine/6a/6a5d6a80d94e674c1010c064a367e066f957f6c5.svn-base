@@ -1,0 +1,164 @@
+var terminalKindID='';
+var vehicleId='';
+var registrationNo='';
+$(function() {
+	var mainFrame = window.dialogArguments; // 接收Left页面传来的参数
+	terminalKindID=$.query.get('terminalKindID');//mainFrame[0]; 终端类型
+	vehicleId=$.query.get("vehicleId");//mainFrame[1]; 车辆id
+	//按钮绑定点击事件
+    getFunctionCode();
+	$("input[name=commandSpecial]").bind("click",getCommandSpecial);
+});
+function getFunctionCode(){
+	 var parentId='';
+	 var funcitonName='';
+		$.ajax({
+		url:"command/getCommandSendOne.action",
+		type:"POST",
+		dataType:"json",
+		data:{"terminalKindID":terminalKindID,"datetimes": new Date()},
+		success:function(data){
+			var div='<ul class="instr_list_02">';
+		if(data.code!='0'){
+			var cmdCount=0;
+			$(data).each(function(i,n){
+				cmdCount++;
+			 var liID = "dycmd" + i;	
+		     if(i==0){
+		     	parentId=liID;
+		     	funcitonName = n.FUNCTION_NAME;	
+		     	
+		     	div+='<li class="instr_hot" id="'+liID+'" onClick="getCommandSendTwo(\''+liID+'\',\''+n.FUNCTION_NAME+'\')">'+n.FUNCTION_NAME+'</li>';
+		     }else{
+		     	div+='<li id="'+liID+'" onClick="getCommandSendTwo(\''+liID+'\',\''+n.FUNCTION_NAME+'\')">'+n.FUNCTION_NAME+'</li>';
+		     }
+		});
+		if(cmdCount==0){
+		$.messager.alert('提示信息','没有可操作指令！','info'); 
+		 }
+		}
+		
+		div+='</ul>';
+		  $("#commandType").html(div); 
+		  getCommandSendTwo(parentId,funcitonName);
+		  $("#mainFrame").attr("src","");
+		  hide();
+	   }
+		
+	});
+}
+
+
+function getCommandSendTwo(parentId,functionName){
+	
+	var select=$("li.instr_hot");
+	select.attr("class",'');
+	$("#"+parentId).attr("class","instr_hot");
+	var div='';
+	
+	var dynamicsStr= "";
+	
+	//直连指令根据中文名查询二级指令  ,ID带dycmd为发送直连指令
+	if(parentId.indexOf("dycmd")>-1){
+		dynamicsStr="dynamics=true";
+	}
+	
+$.ajax({
+		url:"command/getCommandSendTwo.action",
+		type:"POST",
+		dataType:"json",
+		data:{"terminalKindID":terminalKindID,"functionName":functionName,"datetimes": new Date()},  
+		success:function(data){
+			var div='<div style="padding-bottom: 4px"><table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;指令名称：<input type="text" size=20 name="functionNmaeTwo" id="functionNmaeTwo"></td><td><a href="javascript:void(0)" onclick="getCommandSendTwoQuery('+terminalKindID+',\''+functionName+'\')"><img src="imgs/look_up.gif" height=20  border="0"></a></td></tr></table></div><ul class="instr_list_03">';
+			if(data.code=='0'){
+				div='<ul class="instr_list_03">';
+			}
+			if(data.code!='0'){
+				$(data).each(function(i,n){
+			     div+='<li><input name="commandCode"  commandKindID='+n.commandKindID+' type="radio" value="'+n.COMMAND_CODE+'" commandId='+n.ID+' class="instr_rad">'+n.FUNCTION_NAME+'</li>';
+			});
+		}
+		div+='</ul>';
+		
+		  $("#commandSendTwo").html(div); 
+		  $('input[name=commandCode]').bind('click', getPubCommandCode);
+		  $("#mainFrame").attr("src","");
+		  hide();
+	   }
+		
+	});
+}
+var queryValue;
+/**
+ * 
+ * @param terminalKindID
+ * @param functionName
+ * @param dateTimes
+ * @param functionameTwo
+ */
+function getCommandSendTwoQuery(terminalKindID,functionName){
+	var towName = $("#functionNmaeTwo").val();
+	queryValue = $("#functionNmaeTwo").val();
+	$.ajax({
+			url:"command/getCommandSendTwo.action",
+			type:"POST",
+			dataType:"json",
+			data:{"terminalKindID":terminalKindID,"functionName":functionName,"datetimes": new Date(),"functionName_Two":towName},
+			success:function(data){
+				var div='<div style="padding-bottom: 4px"><table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;指令名称：<input type="text" size=20 value="'+queryValue+'" name="functionNmaeTwo" id="functionNmaeTwo"></td><td><a href="javascript:void(0)" onclick="getCommandSendTwoQuery('+terminalKindID+',\''+functionName+'\')"><img src="imgs/look_up.gif" height=20  border="0"></a></td></tr></table></div><ul class="instr_list_03">';
+				if(data.code=='0'){
+					div='<ul class="instr_list_03">';
+				}
+				if(data.code!='0'){
+					$(data).each(function(i,n){
+				     div+='<li><input name="commandCode"  commandKindID='+n.commandKindID+' type="radio" value="'+n.COMMAND_CODE+'" commandId='+n.ID+' class="instr_rad">'+n.FUNCTION_NAME+'</li>';
+				});
+			}
+			div+='</ul>';
+			
+			  $("#commandSendTwo").html(div); 
+			  $('input[name=commandCode]').bind('click', getPubCommandCode);
+			  $("#mainFrame").attr("src","");
+			  hide();
+		   }
+	});
+}
+//发送直连指令
+function getPubCommandCode(){
+	var selectCommand=$("input[name=commandCode]:checked");
+	var commandKindID = selectCommand.attr("commandKindID"); //一级指令id
+	var commandId=selectCommand.attr("commandId"); //二级指令id
+	var src="command/gbIndex.jsp?commandKindID="+commandKindID+"&commandId="+commandId+"&vehicleId="+vehicleId;
+	$("#mainFrame").attr("src",src);
+	show();
+}
+
+function show(){
+	$("#commandSendTwo").animate({height: 'hide', opacity: 'hide'}, 10);
+	$("#commandSendThree").animate({height: 'show', opacity: 'show'}, 400);
+}
+
+/**
+ * 收起
+ */
+function hide(){
+	$("#commandSendThree").animate({height: 'hide', opacity: 'hide'}, 400);
+	$("#commandSendTwo").animate({height: 'show', opacity: 'show'}, 10);
+	var val=$('input:radio[name="commandCode"]:checked');
+	val.attr("checked",false);
+}
+
+function getCommandSpecial(){
+	var functionCode = $("input[name=commandSpecial]:checked").val();
+	var pre="command/";
+	var src=pre+"special/"+functionCode+".jsp?vehicleId="+vehicleId;
+	$("#specialFrame").attr("src",src)
+	$("#commandSendTwoSpecial").animate({height: 'hide', opacity: 'hide'}, 10);
+	$("#commandSendThreeSpecial").animate({height: 'show', opacity: 'show'}, 400);
+}
+function hideSpecial(){
+	$("#commandSendThreeSpecial").animate({height: 'hide', opacity: 'hide'}, 400);
+	$("#commandSendTwoSpecial").animate({height: 'show', opacity: 'show'}, 10);
+	var val=$('input:radio[name="commandSpecial"]:checked');
+	val.attr("checked",false);
+}

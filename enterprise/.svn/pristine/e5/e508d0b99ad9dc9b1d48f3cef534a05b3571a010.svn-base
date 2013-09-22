@@ -1,0 +1,198 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"    pageEncoding="UTF-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<title>角色信息</title>
+	<script type="text/javascript" src="${basePath}js/sys/role/roleList.js"></script>
+	<script type="text/javascript"	src="${basePath}js/sys/tree/roleTreeWorkunit.js"></script>
+	<script type="text/javascript"	src="${basePath}js/sys/tree/roleTreeUpdateWorkunit.js"></script>	
+	
+<%
+	request.setAttribute("isSuper",String.valueOf(((SessionUser) request.getSession().getAttribute(Constants.LOGIN_USER)).getIsSuperUser()));
+%>
+</head>
+<body>
+
+<div style="width: 100%" id="cont_box">
+	<div class="main">
+		<div class="mon_cont">
+        	<div class="E_Tit">角色信息</div>
+          <table border="0" cellspacing="0" cellpadding="0" class="que_tab" >
+              <tr>
+                <td width="100" align="right">角色名称：</td>
+                <td width="150" align="left">
+                <input id="txtRoleName"  type="text" class="mon_ser_text" 
+                                style="width: 130px"
+                                maxlength="50"
+								onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+				                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))"/>
+                </td>
+                <td width="120">
+                	<a id="btnSearch" href="javascript:void(0)" class="ser_btn" style="color: white;">查询</a>
+                <auth:authorize operation="createRole">
+				 	<a id="createBtn" href="javascript:void(0)" class="ser_btn" style="color: white;">新增</a>
+				</auth:authorize>
+                </td>
+               </tr>
+            </table>
+            
+            <div id="divAddUserPanel" class="wDiv" style="width:1100px;HEIGHT:180px;display: none;border: 1px solid #d0d0d0;OVERFLOW-Y:auto">
+        	   <div class="td_title">角色信息新增</div>
+        	    <form id="addForm" action="" >
+		        	   <table align="center">
+			              <tr>
+			                <td width="120" align="right"><span class="xin_red">*</span>角色名称：</td>
+			                <td width="250" align="left">
+			                 <input id="txtAddRoleName" name="txtAddRoleName" type="text"  size="50"
+			                    class="td_input" style="width: 130px;"
+								formCheck="true" 
+								required="true" requiredError="请输入角色名称！" 
+								noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！"
+								ajaxAction="sys/role/checkRoleName.action" 
+								ajaxDataId="roleId" 
+								ajaxActionError="已存在此名称，请重新输入！" />
+								<span id="txtAddRoleNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                <td align="left">
+			                	简称：
+			                 	<input id="shortRoleName" name="shortRoleName" type="text"  size="50" class="td_input" style="width: 130px;"/>
+			                </td>
+			                <td width="200" rowspan="2" valign="middle">
+			                	<a id="submitBtn" href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px;">提交</a>
+			                	<br>
+			                	<a id="cancelBtn" href="javascript:void(0)" class="ser_btn">取消</a>
+			                </td>
+			                </tr>
+			                <tr>
+				                <s:if test="'true' eq #request.isSuper">
+				                	<td width="120" align="right"><span class="xin_red">*</span>所属企业：</td>
+				                	<s:action id="worklist" name="workUnitList" namespace="/sys/user" />
+<%--	 			                	<td>--%>
+<%--			                		<s:select list="#worklist.workUnitList" theme="simple" id="WorkUnitID"--%>
+<%--			                			listKey="id" listValue="name" cssStyle="width:136" name="WorkUnitID" value="WorkUnitID">--%>
+<%--			                		</s:select>--%>
+<%--			                		</td>--%>
+			                    <td align="left" width="240">
+							    	 <input type="text" name="workUnitName" id="workUnitIdPram"  formCheck="true"   class="td_input"  style="width:130"
+									required="true" requiredError="必须输入项!" noselect="true" requiredError="请选择一项"
+									readonly="readonly"/> 
+				      		        <input type="hidden" id="workUnitId" name="WorkUnitID"/>
+							        <span id="workUnitIDNamespan" class="errorMsg" style="display: none"></span>
+							       <a  href="javascript:void(0)" onclick="showWorkUnitTree()"  class="ser_btn">请选择</a>
+							    </td>
+			                		
+			                		
+				                	<td  align="left">
+				                		状态：<s:select list="#{'0':'正常','1':'失效'}" theme="simple" id="status" 
+				                		cssStyle="width:136" name="status"  listKey="key" listValue="value"  headerKey="0" />
+				                	</td>
+				                </s:if>
+				                <s:else>
+				                 <td width="120" align="right">状态：</td>
+				                	<td colspan="2"  align="left">
+				                	        <s:select list="#{'0':'正常','1':'失效'}" theme="simple" id="status" 
+				                		cssStyle="width:136" name="status"  listKey="key" listValue="value"  headerKey="0" />
+				                	</td>
+				                </s:else>
+			                </tr>
+		            </table>
+	            </form>
+        	</div>
+        	
+        	
+        	 <div id="editWindow" class="wDivEdit"  style="width:1100px;HEIGHT:180px;display: none;border: 1px solid #d0d0d0;OVERFLOW-Y:auto">
+        	   <div class="td_title">角色信息编辑</div>
+        	  
+		        	   <table  border="0" cellspacing="10" cellpadding="0"  id="editFrom">
+			              <tr>
+			                <td width="120" align="right"><span class="xin_red">*</span>角色名称：</td>
+			                <td width="250" align="left">
+			                 <input id="txtUpdateRoleName" name="txtUpdateRoleName" type="text"
+			                    class="td_input" style="width: 130px;"
+								formCheck="true" 
+								required="true" requiredError="请输入角色名称！" 
+								noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！"
+								ajaxAction="sys/role/checkRoleName.action" 
+								ajaxDataId="txtRoleId" 
+								ajaxActionError="已存在此名称，请重新输入！" />
+								<span id="txtUpdateRoleNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                <td align="left">
+			                	简称：
+			                 	<input id="upddateShortRoleName" name="upddateShortRoleName" type="text"  size="50" class="td_input" style="width: 130px;"/>
+			                </td>
+			                <td width="200" rowspan="2" align="center">
+			              	       <input id="txtRoleId" name="id" type="hidden" >
+			                	   <a id="submitbtnEidt" href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px;">提交</a>					
+						           <br/>
+						           <a id="cancelBtnEdit" href="javascript:void(0)" class="ser_btn">取消</a>
+						    </td>
+			               
+			              </tr>
+			               <tr>
+				                <s:if test="'true' eq #request.isSuper">
+				                	<td width="120" align="right"><span class="xin_red">*</span>所属企业：</td>
+				                	<s:action id="worklistUpdate" name="workUnitList" namespace="/sys/user" />
+<%--	 			                	<td>--%>
+<%--			                		<s:select list="#worklistUpdate.workUnitList" theme="simple" id="UpdateWorkUnitID"--%>
+<%--			                			listKey="id" listValue="ShortName" cssStyle="width:136" name="UpdateWorkUnitID">--%>
+<%--			                		</s:select>--%>
+<%--			                		</td>--%>
+                                     <td align="left" width="240">
+										<input type="text" id="workUnitIDName" name="workUnitIDName"   style="width:130"
+											   class="td_input"
+											   required="true" formCheck="true"    requiredError="请选择一项"
+											    readonly="readonly"/> 
+						      		    <input type="hidden" id="workUnitID1" />
+										<span id="workUnitIDNamespan" class="errorMsg" style="display: none"></span>
+										<a  href="javascript:void(0)" onclick="showWorkUnitAddTree()"  class="ser_btn">请选择</a>
+                                      </td>
+				                	<td  align="left">
+				                		状态：<s:select list="#{'0':'正常','1':'失效'}" theme="simple" id="Status1" 
+				                		cssStyle="width:136" name="Status1"  listKey="key" listValue="value"  headerKey="0" />
+				                	</td>
+				                </s:if>
+				                <s:else>
+				                 <td width="120" align="right">状态：</td>
+				                	<td colspan="2"  align="left">
+				                	        <s:select list="#{'0':'正常','1':'失效'}" theme="simple" id="Status1" 
+				                		cssStyle="width:136" name="Status1"  listKey="key" listValue="value"  headerKey="0" />
+				                	</td>
+				                </s:else>
+			                </tr>
+			             
+		            </table>
+        	</div>
+        	
+
+			
+            <table id="tbRoles" style="margin-top: 5px"></table>
+
+  </div>
+ </div>
+</div>
+
+
+     <div id="authDialog" style="display: none">
+		<div style="height:400px">
+			<iframe src="#" id="functionFrame" name="functionFrame" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>
+		</div>
+		<div style="background-color: #f9f9f9;height: 30px; margin-bottom:1px; padding-top: 10px; text-align: center;" >
+			<a href="javascript:void(0)" class="btn" style="color: white;" onclick="functionFrame.window.menuAssign()">确定</a>
+	        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	    	<a href="javascript:void(0)" class="btn" onclick="$('#authDialog').dialog('close');">取消</a>
+		</div>
+      </div>
+ 
+<div id="dialogs"  class="hiddiv" style="display: none;padding:5px;top:10px;">
+		<iframe src="" id="dialogFrame" name="dialogFrame" width="100%"  height="100%" frameborder="0" scrolling="auto"></iframe>
+</div>
+
+<div id="dialogTAs"  class="hiddiv" style="display: none;padding:5px;top:10px;">
+		<iframe src="" id="dialogTAFrame" name="dialogTAFrame" width="100%"  height="100%" frameborder="0" scrolling="auto"></iframe>
+</div>
+</body>
+</html>

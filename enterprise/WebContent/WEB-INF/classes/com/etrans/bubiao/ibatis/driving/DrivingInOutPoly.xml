@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap   PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	
+	<!-- 查询列表 -->
+	<select id="findANA_DrivingInOutPolySQL" resultClass="java.util.HashMap"> 
+	
+				select * from (   select ROW_NUMBER() OVER (
+					<dynamic prepend="order by">
+						  	<isNotEmpty property="sortname">
+								$sortname$ $sortorder$
+							</isNotEmpty>
+				   </dynamic>
+					) RowNo,A.* from (
+			SELECT ao.ID as id,
+	   c.registrationNo,
+	   ayp.name AS groupName,
+	   ao.generateTime,
+	   py.name AS placeTypeName,
+	   ao.timePlaceInOut,
+	   (case ao.isOut when '1' then '进' else '出' end) as isOut  	
+	   
+		FROM  [ANA_DrivingInOutPoly] ao   
+		left join ANA_BasePlaceTypes py on ao.PlaceTypeID=py.id   
+		left join ANA_AnalyseGroups ayp on ao.AnalyseGroupID=ayp.id  
+		LEFT JOIN Pub_vehicle C on ao.vehicleID=C.id
+		left join Ent_AnalyseGroupsIDAddUserID as au on ao.AnalyseGroupID=au.AnalyseGroupsID
+
+		<dynamic prepend="where"> 
+			<!--企业权限（普通管理员也一样）-->
+			1=1
+			<isNotEmpty property="workUnitId">
+				and ayp.groupID = #workUnitId#
+			</isNotEmpty>
+	         
+	         <!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+	          
+	         <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and ao.AnalyseGroupID=#analyseGroupID#
+			  </isNotEqual>  
+		     <isNotEmpty property="registrationNO">
+				and c.[registrationNO] like '%$registrationNO$%' 
+			 </isNotEmpty>
+		  <isNotNull property="beginTime" prepend="and">
+			    and ao.GenerateTime between #beginTime# and #endTime#
+	      </isNotNull>
+		</dynamic>		 
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+		</select> 
+	
+	
+	<!-- 查记录数  -->
+	<select id="findANA_DrivingInOutPolyCountSQL" resultClass="Long"> 
+			 
+			SELECT count(*)
+	   
+		FROM  [ANA_DrivingInOutPoly] ao   
+		left join ANA_BasePlaceTypes py on ao.PlaceTypeID=py.id   
+		left join ANA_AnalyseGroups ayp on ao.AnalyseGroupID=ayp.id  
+		LEFT JOIN Pub_vehicle C on ao.vehicleID=C.id
+		left join Ent_AnalyseGroupsIDAddUserID as au on ao.AnalyseGroupID=au.AnalyseGroupsID
+		<dynamic prepend="where"> 
+			<!--企业权限（普通管理员也一样）-->
+			1=1
+			<isNotEmpty property="workUnitId">
+				and ayp.groupID = #workUnitId#
+			</isNotEmpty>
+	          <!--普通用户权限-->
+				<isNotEmpty property="userId">
+				 and au.UserID = #userId#
+				</isNotEmpty>
+	           
+	         <isNotEqual property="analyseGroupID" compareValue="-1">
+			    and ao.AnalyseGroupID=#analyseGroupID#
+			  </isNotEqual>  
+		     <isNotEmpty property="registrationNO">
+				and c.[registrationNO] like '%$registrationNO$%' 
+			 </isNotEmpty>
+		  <isNotNull property="beginTime" prepend="and">
+			    and ao.GenerateTime between #beginTime# and #endTime#
+	      </isNotNull>
+		</dynamic>		 
+		
+			 
+  </select> 
+    
+    
+</sqlMap>

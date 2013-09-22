@@ -1,0 +1,248 @@
+/**
+ * JsonTree.java
+ * Create on 2012-6-5上午10:52:27
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.common.util.vehicleTree;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import com.etrans.common.util.vehicleTree.Tree;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.sys.UserContext;
+
+
+/**
+ * 根据指定条件递归生成树形Json串
+ * @author ljy
+ * @version1.0
+ * @since 2013-01-15
+ */
+public class VehicleJsonTree {
+	
+	/**
+	 * 需要取值的指定字段
+	 */
+	private String[] columnField;
+	
+	/**
+	 * ibatis查询Statement
+	 */
+	private String statement;
+	
+	/**
+	 * ibatis
+	 */
+	private IbatisServices ibatisServices;
+	
+	/**
+	 * 查询条件字段，父节点
+	 */
+	private String parentFiledName;
+	
+	/**
+	 * 是否被选中字段
+	 */
+	private String judgeCheckField;
+	
+	/**
+	 * 查询车辆的statement名称
+	 */
+	private String statementVehicle;
+	
+//	private String appendMapkey;
+//	private Object apendMapValue;
+	
+	/**
+	 * 构造函数
+	 * 
+	 * @param columnField       需要取值的指定字段
+	 * @param statement         ibatis查询Statement
+	 * @param ibatisServices    ibatis查询Service
+	 * @param parentFiledName   查询条件字段，父节点
+	 * @param judgeCheckField   查询条件字段，父节点
+	 */
+	public VehicleJsonTree(
+			String[] columnField,
+			String statement,
+			IbatisServices ibatisServices,
+			String parentFiledName,
+			String judgeCheckField
+			,String statementVehicle
+//			,String appendMapkey
+//			,Object apendMapValue
+			
+			){
+		this.columnField = columnField;
+		this.statement= statement;
+		this.ibatisServices= ibatisServices;
+		this.parentFiledName=parentFiledName;
+		this.judgeCheckField= judgeCheckField;
+		this.statementVehicle=statementVehicle;
+//		this.appendMapkey = appendMapkey;
+//		this.apendMapValue = apendMapValue;
+	}
+
+	/**
+	 * 生成Json串方法
+	 * @param listMap 节点集合
+	 * @param extend  扩展字段值
+	 * @param type 类型【1表示同时可以查询企业和车辆，2表示不查询车辆了】
+	 * @param analyseGroupid分析组id
+	 * @return  List<Tree>
+	 * @throws Exception 异常
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Tree> buildJsonTree(List<Map> listMap,String extend,String type,String analyseGroupid)throws   Exception{	
+		List<Tree> listTree = new ArrayList<Tree>();
+		Map<String,Object> whereMap = new HashMap<String,Object>();
+		Tree tree = null;
+		for(int i=0;i<listMap.size();i++){
+			Map mapNode = listMap.get(i);
+			tree = new Tree();
+			tree.setId(String.valueOf(mapNode.get(columnField[0])));
+//			tree.setText(String.valueOf(mapNode.get(columnField[0]))+"--"+String.valueOf(mapNode.get(columnField[1])));
+			tree.setText(String.valueOf(mapNode.get(columnField[1])));
+			tree.setState("closed");		
+			whereMap.put(parentFiledName, mapNode.get(columnField[2]));
+//			whereMap.put(columnField[2], Long.parseLong(roleId));
+//			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+//				whereMap.put("UserId",UserContext.getLoginUserID());
+//				if(appendMapkey!=null){
+//					whereMap.put(appendMapkey,apendMapValue);
+//				}
+//			}
+			/**查询下级企业**/
+			List<Map> listMapChildren = null;
+			if(whereMap.get(parentFiledName)!=null&&type.equals("1")){
+				listMapChildren=ibatisServices.queryForList(Map.class, statement,whereMap);
+			}
+			/**查询当前企业下的车辆**/
+			whereMap.put(columnField[4],analyseGroupid);
+			whereMap.put(columnField[3], mapNode.get(columnField[0]));
+			whereMap=putUserParams(whereMap);
+			whereMap=putUserParams2(whereMap);
+			List<Map> listMapChildrenVehicle =null;
+			if(whereMap.get(columnField[3])!=null&&type.equals("1")){
+				listMapChildrenVehicle= ibatisServices.queryForList(Map.class, statementVehicle,whereMap);
+			}
+			
+			//子节点----有企业也有车辆
+			if((listMapChildren!=null && listMapChildren.size()>0)&&(listMapChildrenVehicle!=null&&listMapChildrenVehicle.size()>0)){
+				List<Tree> listTreeWorkUnit = new ArrayList<Tree>();
+				List<Tree> listTreeVehicle = new ArrayList<Tree>();
+				List<Tree> listTreeCount = new ArrayList<Tree>();
+				listTreeWorkUnit=buildJsonTree(listMapChildren,extend,"1",analyseGroupid);
+				listTreeVehicle=buildJsonTree(listMapChildrenVehicle,extend,"2",analyseGroupid);//2表示不查询车辆了
+				listTreeCount=getListTreeCount(listTreeWorkUnit,listTreeVehicle); //每一级别的子节点【有企业，也有车辆】
+				tree.setChildren(listTreeCount);
+			}
+			//子节点----只有企业或者只有车辆或者企业和车辆都没有
+			else{
+					// 判断是否存在叶子节点【企业】
+					if(listMapChildren!=null && listMapChildren.size()>0){
+						tree.setChildren(buildJsonTree(listMapChildren,extend,"1",analyseGroupid));
+					}
+					// 判断是否存在叶子节点【车辆】
+					else if(listMapChildrenVehicle!=null&&listMapChildrenVehicle.size()>0){
+						tree.setChildren(buildJsonTree(listMapChildrenVehicle,extend,"2",analyseGroupid));//2表示不查询车辆了
+					}
+					else{	
+						if(mapNode.get(judgeCheckField)!=null){
+							tree.setChecked(true);
+						}
+						tree.setChildren(null);
+						//表示是车辆
+						if(type.equals("2")){
+							tree.setId(extend+tree.getId());
+						}
+					}
+			}
+			
+			
+			listTree.add(tree);
+		}
+		return listTree;
+	}
+	
+//	public Tree buildTree(Map map){
+//		Tree tree = new Tree();
+//		tree.setId(String.valueOf(map.get(columnField[0])));
+//		tree.setText(String.valueOf(map.get(columnField[1])));
+//		tree.setState("closed");
+//		return tree;
+//	}
+	
+	/**
+	 * 合并listTree
+	 */
+	public List<Tree> getListTreeCount(List<Tree> listTreeWorkUnit,List<Tree> listTreeVehicle){
+		
+		for (int i = 0; i < listTreeVehicle.size(); i++) {
+			listTreeWorkUnit.add(listTreeVehicle.get(i));
+		}
+		return listTreeWorkUnit;
+		
+	}
+	
+	
+	
+	/**
+	 * 获取用户信息
+	 * @param params
+	 * @return
+	 */
+	public Map<String,Object> putUserParams(Map<String,Object> params) {
+		
+		Long userId = UserContext.getLoginUserID();
+		Long workUnitId = UserContext.getLoginUser() == null ? -1 : UserContext.getLoginUser().getWorkUnitID();
+		String userName = UserContext.getLoginUser() == null ? "" : UserContext.getLoginUser().getUserName();
+		
+		params.put("userId", userId);//用户id
+		params.put("workUnitId", workUnitId); //用户所属企业id
+		params.put("userName", userName);//用户名称
+		
+		return params;
+	}
+	
+	/**
+	 * 组装查询参数
+	 * @param params
+	 * @return
+	 */
+	public Map<String,Object> putUserParams2(Map<String,Object> paramsMap) {
+		
+					/**这里是参照登录方法的begin**/
+		//用户类型【0表示超级管理员，1表示企业管理员，2表示普通用户】
+		String userType = "";
+		
+		//超级管理员
+		if(UserContext.isBsRootUser()){
+			userType="0";
+		}//企业管理员
+		else if(UserContext.getLoginUser().isWorkUnitSuperAdmin()){
+			userType="1";
+			String fullId = String.valueOf((Long)paramsMap.get("workUnitId"));
+			fullId = "00000000".substring(0,8-fullId.length())+fullId;
+			paramsMap.put("workUnitId2", fullId);
+		}//普通用户
+		else{
+			userType="2";
+		}
+		//用户类型
+		paramsMap.put("userType", userType);
+					/**这里是参照登录方法的begin**/
+		
+		return paramsMap;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+}

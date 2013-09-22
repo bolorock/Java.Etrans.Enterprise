@@ -1,0 +1,188 @@
+package com.etrans.bubiao.action.sys;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.services.sys.SimCardServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+
+
+/**
+ * SIM卡信息管理类
+ * 
+ * @author tjb
+ * @version 1.0
+ * @brief
+ */
+
+@Controller
+@Scope("prototype")
+@Namespace("/sys")
+public class SimCardAction extends BaseAction {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	@Autowired
+	private SimCardServices simCardServices;
+
+	public SimCardServices getSimCardServices() {
+		return simCardServices;
+	}
+
+	public void setSimCardServices(SimCardServices simCardServices) {
+		this.simCardServices = simCardServices;
+	}
+
+	/**
+	 * SIM卡分页查询
+	 */
+	@Action(value = "simCardList")
+	public void simCardList() {	
+		try {
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(user!=null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", true);
+				}
+				else{
+					String fullId = user.getWorkUnitFullId();
+					params.put("fullId", fullId);
+				}
+			}
+			this.renderJSON(JSONUtil.toJson(simCardServices.getSimCards(params)));
+			LogUtil.insertLog(LogActionTypes.READ, "成功", " SIM卡管理", "", "查询 SIM卡信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", " SIM卡管理", "", "查询 SIM卡信息");
+			e.printStackTrace();
+		}
+		
+		
+	}
+	
+	/**
+	 **新增SIM卡信息详细
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "createSimCard")
+	public void createSimCard() {
+			
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+
+		try {
+			this.renderJSON(simCardServices.createSimCard(params));
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "SIM卡信息管理", "", "新增SIM卡信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "SIM卡信息管理", "", "新增SIM卡信息");
+			e.printStackTrace();
+			log.debug("新增出错！");
+		}
+	}
+	
+	/**
+	 * 根据ID查询SIM卡信息详细
+	 */
+	@Action(value = "getSimCardById")
+	public void getSimCardById() {
+
+		String id = getParameter("id");
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("id", id);
+		try {
+			this.renderJSON(JSONUtil.toJson(simCardServices.getSimCardById(whereMap)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("根据ID查询SIM卡信息出错！");
+		}
+	}
+	
+	/**
+	 * 根据ID修改SIM卡信息
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "updateSimCard")
+	public void updateSimCard() {
+		
+		String jsonParams = getParameter("params"); 
+		Map<String, Object> params = JSONUtil.fromJson(jsonParams, Map.class);
+		
+		try {
+			this.renderJSON(simCardServices.updateSimCard(params));
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "SIM卡信息管理", "", "修改SIM卡信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "SIM卡信息管理", "", "修改SIM卡信息");
+			e.printStackTrace();
+			log.debug("根据ID修改SIM卡信息出错！");
+		}
+	}
+	
+	
+	
+	/**
+	 * 根据ID删除SIM卡信息
+	 */
+	@Action(value = "deleteSimCard")
+	public void deleteSimCard() {
+
+		String ids= getParameter("ids");
+		System.out.println(ids);
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("id", ids);
+		try {
+			this.renderJSON(simCardServices.deleteSimCard(whereMap));
+			LogUtil.insertLog(LogActionTypes.DELETE, "成功", "SIM卡信息管理", "", "删除SIM卡信息");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.DELETE, "失败", "SIM卡信息管理", "", "删除SIM卡信息");
+			e.printStackTrace();
+			log.debug("根据ID删除SIM卡信息出错！");
+		}
+	}
+	
+	/**
+	 * 验证不能有相同的电话号码
+	 */
+	@Action(value = "checkPhoneNo")
+	public void checkPhoneNo() {
+		String name = getParameter("name"); 
+		String id = getParameter("id"); 
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("name", name);
+		whereMap.put("id", id);
+		try {
+			this.renderJSON(simCardServices.checkPhoneNo(whereMap));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 验证不能有相同的卡编号
+	 */
+	@Action(value = "checkCode")
+	public void checkCode() {
+		String name = getParameter("name"); 
+		String id = getParameter("id"); 
+		Map<String, Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("name", name);
+		whereMap.put("id", id);
+		try {
+			this.renderJSON(simCardServices.checkCode(whereMap));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}

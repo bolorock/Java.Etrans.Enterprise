@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+<!--分页查询操作日志-->
+  <select id="getWorkSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	select * from 
+(
+	select  ROW_NUMBER() OVER (
+		<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+	)
+	RowNo,convert(varchar, b.LogTime,120) as LogTime,
+	b.t_name,b.u_name,b.ID,b.UserID,b.ActionTypeID,b.SQLStr,
+	b.ModuleName,b.ActionName,b.Description from
+	(
+		select c.* from (select a.*,u.name as u_name,u.workUnitId
+		from (select wl.*,t.name as t_name from Sys_UserLog as wl left join Sys_ActionType as t
+		on wl.actiontypeid=t.id where 1=1
+		<dynamic>
+			<!-- 用户id 普通用户时用到 -->
+			<isNotEmpty property="userId">
+	    		and wl.userid=#userId#
+	    	</isNotEmpty>
+		</dynamic>
+		)as a left join Pub_User as u on a.userId=u.id)as c
+		left join Pub_WorkUnit as wu on c.workUnitId=wu.id
+		where 1=1
+		<dynamic>
+			<!-- 完整企业id 企业管理员时用到-->
+			<isNotEmpty property="fullId">
+	    	and wu.fullid like '%$fullId$%'
+	    	</isNotEmpty>
+			<isNotEmpty property="startDate">
+				and	c.LogTime>=#startDate#
+			</isNotEmpty>
+			<isNotEmpty property="endDate">
+	    		<![CDATA[ and  c.LogTime<=#endDate# ]]>
+	   	 	</isNotEmpty>
+	   	 	<isNotEmpty property="moduleName">
+	   	 		and c.ModuleName like '%$moduleName$%'
+	   	 	</isNotEmpty>
+		</dynamic>
+	)b
+)r 
+	<!-- 分页查询动态条件-->
+	<dynamic prepend="where">
+	  	  	<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+	</dynamic>
+</select>
+  
+  
+<!--查询操作日志总条数-->
+  <select id="getWorkCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	select count(*)
+		from (select a.*,u.name as u_name,u.workUnitId
+		from (select wl.*,t.name as t_name from Sys_UserLog as wl left join Sys_ActionType as t
+		on wl.actiontypeid=t.id where 1=1
+		<dynamic>
+			<!-- 用户id 普通用户时用到 -->
+			<isNotEmpty property="userId">
+	    		and wl.userid=#userId#
+	    	</isNotEmpty>
+		</dynamic>
+		)as a left join Pub_User as u on a.userId=u.id)as c
+		left join Pub_WorkUnit as wu on c.workUnitId=wu.id
+		where 1=1
+	<dynamic>
+			<!-- 完整企业id 企业管理员时用到-->
+			<isNotEmpty property="fullId">
+	    	and wu.fullid like '%$fullId$%'
+	    	</isNotEmpty>
+			<isNotEmpty property="startDate">
+				and	c.LogTime>=#startDate#
+			</isNotEmpty>
+			<isNotEmpty property="endDate">
+	    		<![CDATA[ and  c.LogTime<=#endDate# ]]>
+	   	 	</isNotEmpty>
+	   	 	<isNotEmpty property="moduleName">
+	   	 		and c.ModuleName like '%$moduleName$%'
+	   	 	</isNotEmpty>
+	</dynamic>
+  </select>
+  
+  
+<!-- 导出Excel  没用到-->
+  	<select id="getDownWorkDataLogSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+select * from 
+(
+	select  ROW_NUMBER() OVER (
+		<dynamic prepend="order by">
+			<isNotNull property="sortname">
+					 $sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+	)
+	RowNo,convert(varchar, b.LogTime,120) as LogTime,
+	b.u_name,b.t_name,b.ID,b.UserID,b.ActionTypeID,b.SQLStr,
+	b.ModuleName,b.ActionName,b.Description from
+	(
+		select  u.name as u_name,t.name as t_name,wl.*
+		from EtBaseTimingData.dbo.Sys_UserLog as wl,
+		EtBaseData.dbo.Pub_User as u,EtBaseData.dbo.Sys_ActionType as t
+		where 1=1 and wl.userid=u.id and wl.actiontypeid=t.id
+		<dynamic>
+			<isNotEmpty property="startDate">
+				and	wl.LogTime>=#startDate#
+			</isNotEmpty>
+			<isNotEmpty property="endDate">
+	    		<![CDATA[ and  wl.LogTime<=#endDate# ]]>
+	   	 	</isNotEmpty>
+	   	 	<isNotEmpty property="moduleName">
+	   	 		and wl.ModuleName like '%$moduleName$%'
+	   	 	</isNotEmpty>
+		</dynamic>
+	)b
+)r 
+	<!-- 分页查询动态条件-->
+	<dynamic prepend="where">
+	  	  	<isNotNull property="fromRow">
+				r.RowNo BETWEEN $fromRow$ AND $toRow$
+			</isNotNull>
+	</dynamic>
+</select>
+  	
+  	
+</sqlMap>

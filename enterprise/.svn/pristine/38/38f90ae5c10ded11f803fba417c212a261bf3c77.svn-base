@@ -1,0 +1,29 @@
+$(document).ready(function() {
+	$("#menuls li").bind("click", onClickMenuLi);
+});
+
+/**
+ * 功能描述：切换菜单
+ * 
+ * @author llq
+ * @since Create on 2012-2-7
+ * @version Copyright (c) 2012 by e_trans.
+ */
+function onClickMenuLi() {
+	var url = $(this).attr("url");
+	var parentId = $(this).attr("parentId");
+	parent.window.document.getElementById("mainFrame").src = url+"?parentId="+parseInt(parentId);	
+	$("#menuls li").each(function(i, n) {
+		$(this).removeAttr("class");
+	});
+	$(this).attr("class", "btn_hit");
+}
+
+/**
+ * 用户退出
+ */
+function goUrl(url) {
+	if (confirm("您确定要注销吗？")){
+		top.location = url;
+	}
+}

@@ -1,0 +1,755 @@
+/**
+ * RoleAction.java
+ * Create on 2012-2-9上午10:52:27
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.action.sys;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Pub_UserGroup;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.entities.Tree;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.services.sys.FunctionMenuServices;
+import com.etrans.bubiao.services.sys.RoleServices;
+import com.etrans.bubiao.services.sys.UserRoleServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.PageBean;
+import com.etrans.common.util.RoleJsonTree;
+import com.etrans.common.util.TreeAppend;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.web.Struts2Utils;
+
+/**
+ * 用户角色管理
+ * 
+ * @author Ivan
+ * @version 1.0
+ */
+@Controller
+@Namespace("/sys/role")
+@Scope("prototype")
+public class RoleAction extends BaseAction {
+
+	private static final long serialVersionUID = 3595832987485843371L;
+	
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+
+	@Autowired
+	private UserRoleServices userRoleServices;
+
+	@Autowired
+	private FunctionMenuServices menuServices;
+	
+	@Autowired
+	private IbatisServices ibatisServices;
+	
+	private Pub_UserGroup role;
+	
+	private Result result = new Result();
+
+	/**
+	 * 创建用户角色
+	 */
+	@Action("createRole")
+	public void createRole() {
+		Result result = new Result();
+		try {
+			role = new Pub_UserGroup();
+			
+			role.setName(getParameter("roleName"));
+			role.setAbbre(getParameter("shortRoleName"));
+			if(!UserContext.isBsRootUser()){
+				role.setWorkUnitId(UserContext.getLoginUser().getWorkUnitID());
+			}else{
+				role.setWorkUnitId(Long.parseLong(getParameter("workUnitId")));
+			}
+			role.setStatus(getParameter("state"));
+			role.setCreateDate(DateUtil.getDate(new Date()));
+			role.setUserId(UserContext.getLoginUser().getUserID());
+			role.setInnerPurviewGroupId(0);
+			role.setIsUseDataPurview(0);
+			role.setPrivilegeLevelId(0);			
+			this.ibatisServices.insert("addRoles", role);	
+			LogUtil.insertLog(LogActionTypes.INSERT, "成功", "创建用户角色", "", "角色管理");
+			result.setCode(0);			
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "创建用户角色", "", "角色管理");
+			e.printStackTrace();
+			log.error(e.getMessage());
+			result.setCode(1);
+		}
+		this.renderJSON(result);
+	}
+
+	/**
+	 * 验证名称是否存在
+	 */
+	@Action(value = "checkRoleName")
+	public void checkRoleName() {
+		try {
+			List<HashMap>  list = new ArrayList<HashMap>();
+			Result result = new Result();	
+			String id = getParameter("id");
+			String name = getParameter("name");
+			Map<String, Object> paramMap = new HashMap<String, Object>();
+			paramMap.put("id", id);
+			paramMap.put("name", name);
+			HashMap mapRole = this.ibatisServices.queryForObject(HashMap.class, "getNsRoleByNameSQL", paramMap);			
+			if(mapRole!=null && mapRole.size()>0){
+				list.add(mapRole);
+				result.setCode(1);				
+				result.setMsg("角色名称已存在！");
+			}else{
+				result.setCode(1);
+			}
+			result.setData(list.size());
+			this.renderJSON(result);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 编辑用户角色
+	 */
+	@Action(value = "editRole")
+	public void editRole() {
+		try {
+            role = new Pub_UserGroup();
+			role.setName(getParameter("name"));
+			role.setAbbre(getParameter("abbre"));
+			if(!UserContext.isBsRootUser()){
+				role.setWorkUnitId(UserContext.getLoginUser().getWorkUnitID());
+			}else{
+				role.setWorkUnitId(Long.parseLong(getParameter("workUnitId")));
+			}
+			role.setStatus(getParameter("status"));
+			role.setId(Long.parseLong(getParameter("id")));
+			role.setCreateDate(DateUtil.getDate(new Date()));
+			role.setUserId(UserContext.getLoginUser().getUserID());
+			role.setInnerPurviewGroupId(0);
+			role.setIsUseDataPurview(0);
+			role.setPrivilegeLevelId(0);	
+			ibatisServices.update("updateRoles", role);		
+			result.setCode(0);
+			LogUtil.insertLog(LogActionTypes.UPDATE, "成功", "修改用户角色", "", "角色管理");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.UPDATE, "失败", "修改用户角色", "", "角色管理");
+			log.error(e.getMessage());
+			result.setCode(1);
+		}
+		renderJSON(result);
+	}
+
+	/**
+	 * 给角色分配功能权限
+	 */
+	@Action("assignMenu")
+	public void assignMenu() {
+
+		String roleId = this.getParameter("roleId");
+		String menuIds = this.getParameter("menuIds");
+		try {
+			menuServices.updateMenu4Role(roleId, menuIds);
+			this.renderText("SUCCESS");
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.renderText("ERROR");
+		}
+	}
+
+	/**
+	 * 给角色分配功能权限
+	 */
+	@Action("assignRoleFunction")
+	public void assignRoleFunction() {
+
+		String roleId = this.getParameter("roleId");
+		String funcIds = this.getParameter("funcIds");
+		try {
+			Map<String, Object> paramMap = new HashMap<String, Object>();
+			paramMap.put("@_roleId", roleId);
+			paramMap.put("@_funcIds", funcIds);
+
+			this.renderText(menuServices.assignRoleFunction(paramMap));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	
+	/**
+	 * 查找角色
+	 */
+	@Action("findRole")
+	public void findRole() {
+		try {
+			this.renderJSON(userRoleServices.findRoleById(getParameter("id"),new Random().nextLong()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * 查找所有的角色
+	 */
+	@Action("findAllRoles")
+	public void findAllRoles() {
+		try {
+			Map<String,Object> param = FlexiGridUtil.parseJSONParam(getGridParams());
+			List roleList = this.ibatisServices.findIbatisList("findRoles");
+			Long toTal = ibatisServices.findIbatisListCount("findRolesCount",param);	
+			// 为页面空间构造数据参数
+			PageBean bean = new PageBean();
+			bean.setPage(Integer.valueOf(param.get("page") + ""));
+			bean.setRows(roleList);
+			bean.setTotal(toTal);
+			this.renderJSON(bean);
+			LogUtil.insertLog(LogActionTypes.READ, "成功", "查找用户角色", "", "角色管理");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "查找用户角色", "", "角色管理");
+			log.error(e.getMessage());
+		}
+	}
+
+	/**
+	 * 查找用户角色
+	 */
+	@Action("findRoles")
+	public void findRoles() {
+		
+		try {
+			/*
+			PageBean bean = new PageBean();
+			Map<String,Object> param = FlexiGridUtil.parseJSONParam(getGridParams());
+			System.out.println(" UserContext.getLoginUserID()"+ UserContext.getLoginUserID());
+			param.put("userId", UserContext.getLoginUserID());
+			List list = userRoleServices.findRoles(param,new Random().nextLong());
+			Long toTal = ibatisServices.findIbatisListCount("findRolesCount",param);	
+			bean.setPage(Integer.valueOf(param.get("page") + ""));
+			bean.setRows(list);
+			bean.setTotal(toTal);
+			this.renderJSON(bean);
+			*/
+			Map<String,Object> params = FlexiGridUtil.parseParam(this.getGridParams());
+			SessionUser user = UserContext.getLoginUser();
+			if(user != null){
+				if(UserContext.isBsRootUser()){
+					params.put("isSuper", 1);
+				}else if(UserContext.isSuperUser()){
+					params.put("workUnitId", user.getWorkUnitID());
+				}else{
+					params.put("userId", user.getUserID());
+				}
+				this.renderJSON(JSONUtil.toJson(roleServices.getRoleLists(params)));
+				LogUtil.insertLog(LogActionTypes.READ, "成功", "查找用户角色", "", "角色管理");
+			 }
+		}catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.READ, "失败", "查找用户角色", "", "角色管理");
+			e.printStackTrace();
+		}
+		
+	}
+
+	/**
+	 * 获取功能菜单（分配权限用）
+	 */
+
+	@Action("findMenuTree")
+	public void findMenuTree() {
+
+		String roleId = this.getParameter("roleId");
+		String parentId = this.getParameter("parentId");
+
+		try {
+			// 不是按父Id查询
+			if (parentId==null || "".equals(parentId)) {
+				String json = menuServices.findUserMenuTree(
+						UserContext.isBsRootUser(),
+						UserContext.getLoginUserID(), roleId);
+				this.renderJSON(json);
+			} else {
+				this.renderJSON(menuServices.findLevelTwoMenu4Tree(
+						Long.parseLong(parentId), roleId));
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * 删除用户角色
+	 */
+	@Action("deleteRole")
+	public void deleteRole() {
+		try {
+			ibatisServices.delete("delRoles", role);
+			log.info("成功删除角色[id=" + role.getId() + "]");
+			LogUtil.insertLog(LogActionTypes.DELETE, "成功", "删除用户角色", "", "角色管理");
+			this.renderText("SUCCESS");
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.DELETE, "失败", "删除用户角色", "", "角色管理");
+			this.renderText("ERROR");
+		}
+	}
+	
+	@Action(value = "configRoleFunction")
+	public void configRoleFunction() {
+		try {
+			String jsonStr = JSONUtil.toJson(this.menuServices
+					.getUserRoleFunction(String.valueOf(role.getId()),new Random().nextLong()));
+			this.renderJSON(jsonStr);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+	}
+	//-------------------------------------权限管理树形菜单Star-------------------------------------
+	/**
+	 * 功能菜单权限
+	 * <p>
+	 * 根节点和子节点数据不处于同一张数据表中，所以分开查询
+	 * </p>
+	 * 
+	 * 根据父节点查找子节点
+	 */
+	@Action(value="findMenusByParent")
+	public void findMenusByParent(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		String parentId = this.getParameter("id");
+		if(parentId==null || (parentId!=null &&  "".equals(parentId))){
+			parentId="0";
+			map.put("parentFuncId", Long.parseLong(parentId));
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				map.put("UserId",UserContext.getLoginUserID());
+			}
+			
+			try {
+				RoleJsonTree tree = new RoleJsonTree(
+						new String[]{"ID","functionName","roleId"},
+						"findMenusByParent_Role",
+						ibatisServices,
+						"parentFuncId",
+						"checkedId",
+						null,
+						null
+						);
+				List<Tree> trees = tree.buildJsonTree(
+						ibatisServices.queryForList(Map.class, "findMenusByParent", map),
+						getParameter("roleId"),
+						"f|");
+				Struts2Utils.renderJson(trees);
+			} catch (Exception e) {
+				log.error("生成权限功能菜单异常["+e.getMessage()+"]");
+			}	
+		}else{
+			Struts2Utils.renderJson(new ArrayList<Tree>());;
+		}
+	}
+	
+	
+	/**
+	 * 功能菜单权限--TA菜单权限
+	 * 
+	 * 根据父节点查找子节点
+	 */
+	@Action(value="findMenusByParentTA")
+	public void findMenusByParentTA(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		String parentId = this.getParameter("id");
+		if(parentId==null || (parentId!=null &&  "".equals(parentId))){
+			parentId="0";
+		//	map.put("parentFuncId", Long.parseLong(parentId));
+			map.put("parentFuncId", 262);
+			if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+				map.put("UserId",UserContext.getLoginUserID());
+			}
+			try {
+				RoleJsonTree tree = new RoleJsonTree(
+						new String[]{"ID","functionName","roleId"},
+						"findMenusByParent_Role",
+						ibatisServices,
+						"parentFuncId",
+						"checkedId",
+						null,
+						null
+						);
+				List<Tree> trees = tree.buildJsonTree(
+						ibatisServices.queryForList(Map.class, "findMenusByParent", map),
+						getParameter("roleId"),
+						"f|");
+				Struts2Utils.renderJson(trees);
+			} catch (Exception e) {
+				log.error("生成权限功能菜单异常["+e.getMessage()+"]");
+			}	
+		}else{
+			Struts2Utils.renderJson(new ArrayList<Tree>());;
+		}
+	}
+	/*
+	 * 功能权限新
+	 **/
+	@Action(value="findMenusByParent_new")
+	public void findMenusByParent_new(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(!(UserContext.isBsRootUser())){
+			//map.put("rolelimt", getParameter("userid"));
+			if(!UserContext.getLoginUser().isWorkUnitSuperAdmin()){
+				map.put("UserId",UserContext.getLoginUserID());
+			}
+		}
+		map.put("roleId",getParameter("roleId"));
+		try {
+			List<Tree> trees = buildMenuTree(ibatisServices.queryForList(Map.class, "findMenusParentNew", map),"f|");
+			Struts2Utils.renderJson(trees);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("新功能树["+e.getMessage()+"]");
+		}	
+	}
+	/**
+	 * 指令权限
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value="findCommandMenu")
+	public void findCommandMenu(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		SessionUser user = UserContext.getLoginUser();
+		String vehicleGroupId=this.getParameter("vehicleGroupId");
+		String vehiclesStr=this.getParameter("vehiclesStr");
+		
+		
+		String vehicleList="";
+		String vehicleLists="";
+		if(!vehicleGroupId.equals("-1")){
+			Map<String,Object> vgmap = new HashMap<String,Object>();
+			vgmap.put("vehicleGroupId", vehicleGroupId);
+			List<HashMap<String, String>> vgList = ibatisServices.findIbatisList("getVehicleGroupListZLSQL", vgmap);
+			for (Map<String, String> vList : vgList) {
+				String vStr= String.valueOf(vList.get("vehicleId"));
+				vehicleList+=vStr+",";
+			}
+			vehicleLists = vehicleList.substring(0,vehicleList.length()-1).trim();
+		}else{
+			String[] vehclesArys = null;
+			if(!vehiclesStr.isEmpty()){
+				vehclesArys = vehiclesStr.split(",");
+			}
+			for (int i=0;i<vehclesArys.length;i++) {
+				if (vehclesArys[i].startsWith("v")) {
+					String str=vehclesArys[i].split("\\|")[1];
+					vehicleList+=str+",";
+				}
+			}
+			vehicleLists = vehicleList.substring(0,vehicleList.length()-1).trim();
+		}
+		
+		map.put("vehiclesStr", vehicleLists);
+		map.put("workUnitId", user.getWorkUnitID());
+		if(user.isWorkUnitSuperAdmin()){
+			String fullId = user.getWorkUnitFullId();
+			map.put("fullId", fullId);
+			map.put("flag", 0);
+		}
+		try {
+			if(getParameter("id")==null){
+				RoleJsonTree tree = new RoleJsonTree(
+							new String[]{"ID","functionName","roleId"},
+							"getTwoCommandMenu",
+							ibatisServices,
+							"catalog",
+							"checkedId",
+							"workUnitId",
+							 user.getWorkUnitID()
+						);
+				if(!(UserContext.isBsRootUser() || user.isWorkUnitSuperAdmin())){
+					map.put("UserId",UserContext.getLoginUserID());
+					map.put("flag", 1);
+				}
+				List<Tree> trees = tree.buildJsonTreeCommand_zl(
+							ibatisServices.queryForList(Map.class, "getOneCommandMenu", map),
+							getParameter("roleId"),
+							"c|",true,vehicleLists
+						);
+				
+				StringBuffer sb = new StringBuffer();
+				//=================平台指令和其他指令===========================固定值，非读库==================
+				Map params = new HashMap();
+				params.put("roleId", getParameter("roleId"));
+				List<Map<String,Object>> list=this.ibatisServices.queryForList(Map.class,"getPlatAndOtherCommandSql_Role", params);
+				if(list!=null && list.size()>0){
+					for(int i=0;i<list.size();i++){
+						sb.append(list.get(i).get("CommandKindID")).append(",");
+					}
+				}
+				List<String[]> appendTree = new ArrayList<String[]>();
+				appendTree.add(TreeAppend.treeTreeByFirst_1);
+				appendTree.add(TreeAppend.treeTreeByFirst_2);
+				trees.addAll(TreeAppend.buildAppendTree(TreeAppend.firstTree, appendTree,sb.toString()));
+				Struts2Utils.renderJson(trees);
+			}else{
+				Struts2Utils.renderJson(new ArrayList<Tree>());
+			}
+		} catch (Exception e) {
+			log.error("生成指令权限菜单异常["+e.getMessage()+"]");
+		}	
+	}
+	/**
+	 * 获取首页功能菜单树
+	 */
+	@Action(value="getMenusForIndex")
+	public void getMenusForIndex(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("UserId",null);
+		if(!(UserContext.isBsRootUser())){
+			if(!UserContext.getLoginUser().isWorkUnitSuperAdmin()){
+				map.put("UserId",UserContext.getLoginUserID());}
+			else{
+				map.put("rolelimt", UserContext.getLoginUserID());
+			}
+		}
+		try {
+			List<Tree> trees = buildMenuTree(ibatisServices.queryForList(Map.class, "findMenusForIndex", map),"");
+			Struts2Utils.renderJson(trees);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("生成首页功能菜单异常["+e.getMessage()+"]");
+		}	
+	}
+	/**
+	 *@see传入的le（map)不能为0，
+	 * 假如：le >le-1 那么 le为子级，le-1为父级
+	 * 
+	 **/
+	public List<Tree >buildMenuTree(List<Map> list,String extend){
+		if(list.isEmpty()){
+			return new ArrayList<Tree>();
+		}
+		Map<Integer, List<Tree>> mapLe=new HashMap<Integer ,List<Tree>>();
+		Tree tree;
+		List<Tree> trees=new ArrayList<Tree>();
+		int lastLevel=0;
+		java.util.Set<String> set = new java.util.TreeSet<String>();
+		for(int i=0 ;i<list.size();i++){
+			Map mapNode=list.get(i);
+			String id=mapNode.get("ID").toString().trim();
+			if(!set.add(id)) continue;
+			String text=mapNode.get("function_name").toString().trim();
+			String pid=mapNode.get("parent_func_id").toString().trim();
+			String level=mapNode.get("le").toString().trim();
+			Object check=mapNode.get("FunctionID");
+			tree=new Tree();
+			tree.setId(id);
+			tree.setText(text);
+			tree.setState("closed");
+			tree.setPid(pid);
+			if(check!=null){
+				tree.setChecked(true);
+			}
+			if(Integer.parseInt(level)==lastLevel||lastLevel==0){
+				trees.add(tree);
+			}else{
+				mapLe.put(lastLevel, trees);
+				trees=new ArrayList<Tree>();
+				trees.add(tree);
+			}
+			lastLevel=Integer.parseInt(level);
+		}
+		if(!mapLe.containsKey(lastLevel)){
+			mapLe.put(lastLevel, trees);
+		}
+		if(mapLe.size()==1){
+			for(int key:mapLe.keySet()){return mapLe.get(key);}
+		}
+		int min=0,max=0;
+		for(int key:mapLe.keySet()){
+			if(min==0) min=key;
+			if(max==0) max=key;
+			if(key>max){
+				max=key;
+			}
+			if(min>key){
+				min=key;
+			}
+		}
+		List<Tree> tempTree=new ArrayList<Tree>();
+		for(int i=max;i>=min;i--){
+			List<Tree> t1=tempTree;
+			List<Tree> t2=mapLe.get(i);
+			if(tempTree.isEmpty()){
+				t1.addAll(mapLe.get(i));
+				t2=	mapLe.get(--i);
+			}
+			String pid,id;
+			for(int j=0;j<t2.size();j++){//设置关联
+				Tree p=t2.get(j);
+				id=p.getId();
+				for(int m=0;m<t1.size();m++){
+					Tree c=t1.get(m);
+					pid=c.getPid();
+					if(i==max-1){
+						if(!c.getId().contains(extend))  c.setId(extend+c.getId());
+						c.setState("open");
+						c.setChildren(null);	
+					}
+					if(pid.equals(id)){
+						p.getChildren().add(c);
+						t1.remove(m);
+						--m;
+					}else{
+						continue;
+					}
+				}
+			   if(p.getChildren()==null) continue;
+			   if(p.getChildren().isEmpty()){
+				    if(!p.getId().contains(extend)) p.setId(extend+p.getId());
+					p.setState("open");
+					p.setChildren(null);	
+				}
+			}
+	   if(max<0) t2.addAll(t1);
+		tempTree.removeAll(tempTree);
+		tempTree.addAll(t2);
+		}
+		return tempTree ;
+	}
+  
+	/**
+	 * 获取车辆组树形结构
+	 */
+	@Action(value="getVehicleGoupTreeWorkUnitList")
+	public void getVehicleGoupTreeWorkUnitList(){
+		try {
+			if(getParameter("id")==null){
+				Long[] groupId = null;
+				List<Map> listMap = new ArrayList<Map>();
+				List<Map> groupIdListMap = new ArrayList<Map>();
+				Map<String,Object> map = new HashMap<String,Object>();
+				map.put("roleId", getParameter("roleId"));
+				//  取得权限企业列表
+				listMap = ibatisServices.queryForList(Map.class,"getAllWorkUnit_Role", map);
+				// 只对普通管理员处理，企业管理员和超级管理员无需处理
+				//  获取权限范围内的车辆分组编号及上级分组编号
+				if(!(UserContext.isBsRootUser() || UserContext.getLoginUser().isWorkUnitSuperAdmin())){
+					// 先获取权限子节点，再算出其子节点的父节点
+					map.put("UserId",UserContext.getLoginUserID());
+					groupIdListMap = ibatisServices.queryForList(Map.class,"getRoleVehicleGroupId",map);
+					if(groupIdListMap!=null && groupIdListMap.size()>0){
+						for(int i=0;i<groupIdListMap.size();i++){
+							Long id = Long.parseLong((groupIdListMap.get(i).get("ID")).toString());
+							listId.add(id);
+							getGroupId(id);
+						}
+						groupId = new Long[listId.size()];
+						groupId = listId.toArray(groupId);
+					}
+				}
+				RoleJsonTree tree = new RoleJsonTree(
+							new String[]{"ID","Name","roleId"},
+							"getTreeVehicleGroup_Role",
+							ibatisServices,
+							"id",
+							"checkedId",
+							"groupId",
+							groupId
+						);
+				List<Tree> trees = tree.buildJsonTreeVehicleRole("0",listMap,getParameter("roleId"),"v|");
+				Struts2Utils.renderJson(trees);
+			}else{
+				Struts2Utils.renderJson(new ArrayList<Tree>());;
+			}
+		} catch (Exception e) {
+			log.error("生成车辆组权限菜单异常["+e.getMessage()+"]");
+		}	
+	}
+	
+	private List<Long> listId = new ArrayList<Long>();
+	
+	public void getGroupId(Long id){
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("id",id);
+		List<Map> listMap = ibatisServices.queryForList(Map.class,"getRoleVehicleGroupParentId", map);
+		if(listMap!=null && listMap.size()>0){
+			Map mapQuery  = listMap.get(0);
+			Long ParentGroupID = Long.parseLong(mapQuery.get("parentGroupID").toString());
+			Long ID = Long.parseLong(mapQuery.get("ID").toString());
+			// 为0则一个树到顶
+			listId.add(ID);
+			if(ParentGroupID!=0){
+				getGroupId(ParentGroupID);
+			}				
+		}
+	}
+	//-------------------------------------权限管理树形菜单End-------------------------------------
+	
+	@Action(value="saveRoleAuth")
+	public void saveRoleAuth(){
+		String roleId = getParameter("roleId");
+		String roleType = getParameter("roleType");
+		String auths = getParameter("auths");
+		String isCommand = getParameter("isCommand");
+		try {
+			userRoleServices.addUserAuth(roleType,roleId, auths,isCommand);
+			this.renderText("true");
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+	}
+	
+	public Pub_UserGroup getRole() {
+		return role;
+	}
+
+	public void setRole(Pub_UserGroup role) {
+		this.role = role;
+	}
+	
+	/**
+	 * @param menuServices
+	 *            the menuServices to set
+	 */
+	public void setMenuServices(FunctionMenuServices menuServices) {
+		this.menuServices = menuServices;
+	}
+
+	/**
+	 * @param userRoleServices
+	 *            the userRoleServices to set
+	 */
+	public void setUserRoleServices(UserRoleServices userRoleServices) { 
+		this.userRoleServices = userRoleServices;
+	}
+	
+	@Autowired
+	private RoleServices roleServices;
+
+	public RoleServices getRoleServices() {
+		return roleServices;
+	}
+
+	public void setRoleServices(RoleServices roleServices) {
+		this.roleServices = roleServices;
+	}
+
+}

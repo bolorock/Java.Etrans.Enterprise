@@ -1,0 +1,43 @@
+$(function(){
+   var showUpdwonLineVehicle=$.cookie("showUpdwonLineVehicle");
+   var showUrgentAlarm=$.cookie("showUrgentAlarm");
+   if(showUpdwonLineVehicle=="false"){
+	   $("#showUpdwonLineVehicle").attr("checked",'true');
+   }
+   if(showUrgentAlarm=="false"){
+	   $("#showUrgentAlarm").attr("checked",'true');
+   }
+   if(showUrgentAlarm=="false"&&showUpdwonLineVehicle=="false"){
+	   $("#checkAll").attr("checked",'true');
+   }
+   $('#checkAll').bind('click', checkAll);
+})
+
+function clickParams(params){
+	var jqCheckBox=$(params);
+	var id=jqCheckBox.attr("id");
+	if(jqCheckBox.attr('checked')){
+		$.cookie(id,"false",{"expires":30,"path":"/"});
+	}else{{
+		$.cookie(id,"true",{"expires":30,"path":"/"});
+	}}
+}
+
+function checkAll(){
+	var isCheckAll=$("#checkAll");
+	if (isCheckAll.attr('checked')=="checked") {//全选
+		$(":checkbox:gt(0)").each(function() {
+		  var id=this.id;
+		  $.cookie(id,"false",{"expires":30,"path":"/"});
+		  $("#"+id).attr("checked",'true');
+		});
+	}else{//全不选
+		$(":checkbox:gt(0)").each(function() {
+			  var id=this.id;
+			  $.cookie(id,"true",{"expires":30,"path":"/"});
+			  $("#"+id).attr("checked",false);
+			});
+	}
+	
+}
+

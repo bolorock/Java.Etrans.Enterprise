@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+   <!-- 车辆在线率统计 -->
+  <select id="vehicleOnlinePercentMysqlSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+      select 
+				 C.VehicleID as VehicleID
+				,C.registrationNo as registrationNo
+				,C.workUnitID as workUnitID
+				,C.workUnitName as workUnitName
+				,C.vehiclecount as vehiclecount
+				,C.onLineRate as onLineRate
+				,(100-C.onLineRate) AS offLineRate
+				 from (select 
+				 B.VehicleID
+				,B.registrationNo
+				,B.workUnitID
+				,B.workUnitName
+				,convert((cast(B.RealOnlineTime as DECIMAL(18,2)))/10,decimal(10,2)) as vehiclecount
+				,convert(100*(cast(B.RealOnlineTime as DECIMAL(18,2)))/(144*#timeDay#),decimal(10,2)) as onLineRate
+				from (select bvi.ID as VehicleID
+				,bvi.plateNumber as registrationNo
+				,bvi.UnitID as workUnitID
+				,bu.UnitName as workUnitName
+				,ifnull(A.RealOnlineTime,0) as RealOnlineTime
+				from etta_basedata.bi_vehicle_info bvi
+				left outer join (select sum(bv.RealOnlineTime) as RealOnlineTime ,bv.VehicleID from etta_report.bi_hta_vehicle_online_rate bv
+				where bv.CreateTime >= cast(#startDate# AS dateTime)
+				AND cast(#endDate# AS dateTime) >= bv.CreateTime
+				GROUP BY VehicleID) A on A.VehicleID=bvi.id
+				left outer join etta_basedata.bi_unit_info bu on bu.id=bvi.UnitID) B) C 
+				
+				<isEqual property="isWorkUnitSuperAdmin" compareValue="1">
+			       inner  join (select pv.ID from (select id from etta_basedata.bi_unit_info bi where bi.FullID  like '%$fullId$%') pw 
+				   inner  join etta_basedata.bi_vehicle_info pv on pv.UnitID=pw.id) XX on xx.id=C.VehicleID
+			  </isEqual>
+		<dynamic prepend="where 1=1 ">
+			  <isEqual property="isWorkUnitSuperAdmin" compareValue="2">
+			     <isNotNull property="vehicleID">
+			       and c.VehicleID in ($vehicleID$)
+			     </isNotNull>
+			  </isEqual>
+			  
+		   <isNotEmpty property="workUnitNameWhere">
+		      <isNotNull property="workUnitNameWhere">
+		          and C.workUnitName='$workUnitNameWhere$'
+		      </isNotNull> 
+		   </isNotEmpty>
+		     
+		     <isNotEmpty property="registrationNo">
+		      <isNotNull property="registrationNo">
+		          and C.registrationNo like '%$registrationNo$%'
+		      </isNotNull> 
+		   </isNotEmpty>
+		</dynamic>
+		 limit $fromRow$ , $toRow$ 
+  </select>
+
+  <select id="vehicleOnlinePercentCountMysqlSQL" parameterClass="java.util.HashMap" resultClass="Long">
+            select 
+				 count(*)
+				from (select bvi.ID as VehicleID
+				,bvi.plateNumber as registrationNo
+				,bvi.UnitID as workUnitID
+				,bu.UnitName as workUnitName
+				,ifnull(A.RealOnlineTime,0) as RealOnlineTime
+				from etta_basedata.bi_vehicle_info bvi
+				left outer join (select sum(bv.RealOnlineTime) as RealOnlineTime ,bv.VehicleID from etta_report.bi_hta_vehicle_online_rate bv
+				where bv.CreateTime >= cast(#startDate# AS dateTime)
+				AND cast(#endDate# AS dateTime) >= bv.CreateTime
+				GROUP BY VehicleID) A on A.VehicleID=bvi.id
+				left outer join etta_basedata.bi_unit_info bu on bu.id=bvi.UnitID) C 
+				<isEqual property="isWorkUnitSuperAdmin" compareValue="1">
+			       inner  join (select pv.ID from (select id from etta_basedata.bi_unit_info bi where bi.FullID  like '%$fullId$%') pw 
+inner  join etta_basedata.bi_vehicle_info pv on pv.UnitID=pw.id) XX on xx.id=C.VehicleID
+			  </isEqual>
+		<dynamic prepend="where 1=1 ">
+		    
+			  
+			  <isEqual property="isWorkUnitSuperAdmin" compareValue="2">
+			     <isNotNull property="vehicleID">
+			       and c.VehicleID in ($vehicleID$)
+			     </isNotNull>
+			  </isEqual>
+		   
+		     <isNotEmpty property="workUnitNameWhere">
+		      <isNotNull property="workUnitNameWhere">
+		          and C.workUnitName='$workUnitNameWhere$'
+		      </isNotNull> 
+		   </isNotEmpty>
+		   
+		   <isNotEmpty property="registrationNo">
+		      <isNotNull property="registrationNo">
+		          and C.registrationNo like '%$registrationNo$%'
+		      </isNotNull> 
+		   </isNotEmpty>
+		</dynamic>
+		
+  </select>
+	
+</sqlMap>

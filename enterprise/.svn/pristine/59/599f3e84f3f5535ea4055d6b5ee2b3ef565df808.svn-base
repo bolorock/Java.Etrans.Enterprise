@@ -1,0 +1,97 @@
+$(function() {
+	//new一个当前时间
+	var nowDate = dateutil.formatDate(new Date(dateutil.setDateBefore(new Date(),0)),dateutil.FORMAT_DATE_LONG);
+	//把时间显示到文本框
+	$("#startDate").val(nowDate);
+	$("#endDate").val(nowDate);
+	
+	var startDate = nowDate + " 00:00:00";
+	var endDate = nowDate + " 23:59:59";
+	//后台查询条件
+	var params = [{
+		name : 'startDate',
+		value : startDate
+	} ,{
+		name : 'endDate',
+		value : endDate
+	}];
+	
+	//报表组件调用
+	$("#loginDataLog").flexigrid( {
+		url : 'query/log/getLoginLog.action',
+		dataType : 'json',
+		colModel : [ //用户名、登录时间、注销时间、登录主机、登录ip
+		     		  {
+		     			display : '用户名',
+		     			name : 'name',
+		     			width : 200,
+		     			sortable : true,
+		     			align : 'center'
+		     		}, {
+		     			display : '登录时间',
+		     			name : 'LogonTime',
+		     			width : 200,
+		     			sortable : true,
+		     			align : 'center'
+		     		}, 
+		     		{
+		     			display : '登录主机',
+		     			name : 'LogonHost',
+		     			width : 200,
+		     			sortable : false,
+		     			align : 'center'
+		     		},
+		     		{
+		     			display : '登录ip',
+		     			name : 'LogonIP',
+		     			width : 200,
+		     			sortable : false,
+		     			align : 'center'
+		     		}],
+		     		sortname : "id",//第一次加载数据时排序列
+		    		sortorder : "desc",//第一次加载数据时排序类型
+		    		params : params,
+		    		usepager : true,//是否分页，默认为true。
+		    		showTableToggleBtn : true,//是否显示收起/打开按钮,默认不显示。
+		    		useRp : true,//是否可以动态设置每页显示的结果数，默认为false。
+		    		rp : 9,//每页记录数，默认为10
+		    		singleSelect:true,
+		    		width : 'auto',//表格宽度
+		    		height : getBaseHeight()//表格高度310
+	});
+	
+	//按钮绑定点击事件
+	$('#searchBtn').bind('click').bind('click', doSearch);
+   // $('#exportBtn').bind('click', toExportExl);
+    
+})
+
+/**
+ * 多条件查询方法
+ */
+function doSearch()
+{
+	var startDate = $("#startDate").val() + " 00:00:00"; //开始时间
+	var endDate = $("#endDate").val() + " 23:59:59";     //结束时间
+	var loginName = $("#loginName").val(); //登录名称
+	
+	//查询参数
+	var params = [{
+		name : 'startDate',
+		value : startDate
+	} ,{
+		name : 'endDate',
+		value : endDate
+	},{
+		name : 'loginName',
+		value : loginName
+	} ];
+	// 重置表格的某些参数
+	$("#loginDataLog").flexOptions({
+				newp : 1,// 设置起始页
+				params : params// 设置查询参数
+			}).flexReload();// 重新加载
+}
+
+
+

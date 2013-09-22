@@ -1,0 +1,125 @@
+/**
+ * Users.java
+ * Create on 2012-1-13上午11:33:12
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.entities;
+
+import java.io.Serializable;
+
+/**
+ * @author llq
+ * @version 1.0
+ * @brief
+ */
+public class User implements Serializable {
+
+	/**
+  * 
+  */
+	private static final long serialVersionUID = -7831505902529169852L;
+
+	private Long Id;
+	// 姓名
+	private String name;
+	// 工作单位
+	private Long workUnitId;
+	// 用户名
+	private String userName;
+	//密码
+	private String password;
+	//创建时间
+	private String createTime;
+	//是否超级用户
+	private Boolean isSuperUser;
+	//备注
+	private String memo;
+	//状态
+	private int status;
+	//启用时间
+	private String runTime;
+	//过期时间
+	private String overTime;
+	
+	// 操作是否显示
+	
+	private Boolean isShowHandle;  
+
+	public Boolean getIsShowHandle() {
+		return isShowHandle;
+	}
+
+	public void setIsShowHandle(Boolean isShowHandle) {
+		this.isShowHandle = isShowHandle;
+	}
+
+	
+	public Long getId() {
+		return Id;
+	}
+	public void setId(Long id) {
+		Id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public Long getWorkUnitId() {
+		return workUnitId;
+	}
+	public void setWorkUnitId(Long workUnitId) {
+		this.workUnitId = workUnitId;
+	}
+	public String getUserName() {
+		return userName;
+	}
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public String getCreateTime() {
+		return createTime;
+	}
+	public void setCreateTime(String createTime) {
+		this.createTime = createTime;
+	}
+	public Boolean getIsSuperUser() {
+		return isSuperUser;
+	}
+	public void setIsSuperUser(Boolean isSuperUser) {
+		this.isSuperUser = isSuperUser;
+	}
+	public String getMemo() {
+		return memo;
+	}
+	public void setMemo(String memo) {
+		this.memo = memo;
+	}
+	public int getStatus() {
+		return status;
+	}
+	public void setStatus(int status) {
+		this.status = status;
+	}
+	public String getRunTime() {
+		return runTime;
+	}
+	public void setRunTime(String runTime) {
+		this.runTime = runTime;
+	}
+	public String getOverTime() {
+		return overTime;
+	}
+	public void setOverTime(String overTime) {
+		this.overTime = overTime;
+	}
+
+
+}

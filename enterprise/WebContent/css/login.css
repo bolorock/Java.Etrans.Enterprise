@@ -1,0 +1,252 @@
+
+input, textarea {
+    color: #333333;
+    font-family: Arial,Helvetica,sans-serif;
+    font-size: 12px;
+    margin: 0;
+    outline: medium none;
+    padding: 0;
+}
+
+input {
+    line-height: 1.2em;
+    overflow: hidden;
+}
+input, textarea, select {
+}
+
+a em {
+    font-family: "宋体";
+}
+
+
+.inputnormal, .inputhover {
+    background: url("../imgs/textbg.png") no-repeat scroll 0 -41px transparent;
+    float: left;
+    height: 35px;
+    margin-right: 6px;
+    padding: 3px;
+    width: 321px;
+}
+.inputhover {
+    background: url("../imgs/textbg.png") no-repeat scroll 0 0 transparent;
+    height: 35px;
+    padding: 3px;
+    width: 321px;
+}
+.inputnormal .textinp, .inputhover .textinp {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border: medium none;
+    color: #000000;
+    font-size: 14px;
+    height: 29px;
+    line-height: 28px;
+    margin: 5px 0 0 5px;
+    width: 306px;
+}
+.inputhover .textinp {
+    background: url("../imgs/textbg.png") no-repeat scroll -10px -10px transparent;
+}
+
+
+.new_construct .jh_yanzheng, .new_construct .jh_yanzhenghover {
+    background: url("../imgs/textbg.png") no-repeat scroll left -41px transparent;
+    float: left;
+    padding-left: 5px;
+}
+.new_construct .jh_yanzhenghover, .stepbg .jh_yanzhenghover {
+    background: url("../imgs/textbg.png") no-repeat scroll left 0 transparent;
+}
+.new_construct .jh_yanzheng strong, .stepbg .jh_yanzheng strong, .new_construct .jh_yanzhenghover strong, .stepbg .jh_yanzhenghover strong {
+    background: url("../imgs/textbg.png") no-repeat scroll right -41px transparent;
+    float: left;
+    height: 35px;
+    padding: 3px 5px 3px 3px;
+}
+.new_construct .jh_yanzhenghover strong, .stepbg .jh_yanzhenghover strong {
+    background: url("../imgs/textbg.png") no-repeat scroll right 0 transparent;
+}
+.new_construct .jh_yanzheng .textinp, .stepbg .jh_yanzheng .textinp, .new_construct .jh_yanzhenghover .textinp, .stepbg .jh_yanzhenghover .textinp {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border: medium none;
+    color: #000000;
+    font-size: 14px;
+    height: 27px;
+    line-height: 26px;
+    margin: 2px 0 0;
+    width: 91px;
+}
+
+.new_construct .new_item {
+    clear: both;
+    overflow: hidden;
+}
+.new_construct .new_item .tit {
+    float: left;
+    font-size: 14px;
+    height: 50px;
+    line-height: 41px;
+    text-align: right;
+    width: 103px;
+}
+.new_construct .new_item .tit em {
+    color: #FF0000;
+    font-family: "宋体";
+    padding-right: 4px;
+}
+.new_construct .new_item .bdmain {
+    display: inline;
+    float: left;
+    margin-right: 5px;
+    padding-left: 6px;
+    width: 249px;
+}
+.new_construct .new_item .fragm {
+    float: left;
+    height: 26px;
+    margin-right: 7px;
+    padding: 12px 0 12px 4px;
+}
+.new_construct .new_item .fragm label {
+    font-size: 14px;
+    vertical-align: middle;
+}
+.new_construct .new_item .fragm input.ra {
+    border: medium none;
+    margin-right: 2px;
+    vertical-align: -2px;
+}
+.new_construct .new_item .bdmain input {
+    font-size: 18px;
+}
+.new_construct .new_item .bdmain .lf {
+    line-height: 48px;
+}
+.new_construct .new_item .bdmain .labelbox {
+    margin: 0 3px;
+    vertical-align: -2px;
+}
+.new_construct .new_item .bdmain .plus_mailname, .new_construct .new_item .bdmain .mention, .new_construct .new_item .bdmain .jh_yanzheng {
+    margin: 0;
+}
+.new_construct .new_item .bdmain .jh_yanzheng, .new_construct .new_item .new_plus {
+    float: left;
+}
+.new_construct .new_item .new_plus .plus_link {
+    margin-top: 12px;
+}
+.new_construct .new_item .bdmain .jh_yanzhimg {
+    display: inline;
+    width: 160px;
+}
+.new_construct .new_item .bdmain .pwdques {
+    width: 246px;
+}
+.new_construct .new_item .bdmain p {
+    clear: both;
+    padding-bottom: 10px;
+}
+.new_construct .new_item .bdmain .noti1 {
+    left: 0;
+    position: relative;
+    top: -10px;
+}
+.new_construct .new_item .bdmain .noti2 {
+    color: #999999;
+    padding-left: 3px;
+    padding-top: 2px;
+}
+.new_construct .new_item .bdmain .noti3 {
+    float: left;
+    padding-left: 5px;
+}
+.new_construct .new_item .bdmain .input_area {
+    padding: 0 0 5px 3px;
+}
+.new_construct .new_item .bdmain .input_area input {
+    border: 0 none;
+}
+.input_area, .input_area * {
+    vertical-align: middle;
+}
+.new_construct .mb10 {
+    height: 64px;
+    margin-bottom: 10px;
+}
+.new_construct .new_item .new_plus .errormt {
+    margin-top: 3px;
+    position: absolute;
+}
+.new_construct .new_item .new_plus .success, .new_construct .new_item .new_plus .loading {
+    padding-top: 14px;
+    position: static;
+}
+.new_construct .new_item .new_plus .plus_a {
+    line-height: 24px;
+    padding-top: 7px;
+}
+.new_construct .new_item .new_plus .tips1 {
+    width: 245px;
+}
+.new_construct .lessitem {
+    height: 41px;
+}
+.new_construct .lessitem .tit {
+    height: 41px;
+}
+.new_construct .lessitem .bdmain {
+    height: 41px;
+}
+
+
+.new_construct .new_item .wid_bdmain {
+    width: 420px;
+}
+.new_construct .new_item .wid_bdmain p {
+    padding-bottom: 5px;
+}
+.new_construct .new_item .wid_bdmain i {
+    color: #999999;
+    font-style: normal;
+}
+
+.dv_login_btn
+{
+    margin: auto 0;
+    text-align: center;
+    width: 300px;
+    margin-left: 120px;
+   
+}
+
+.btnLogin
+{
+	background: url("../imgs/btnbg_n.png") no-repeat;
+	display: inline-block;
+	width: 256px;
+	height: 60px;
+	text-align: center;
+	font-size: 24px;
+	line-height: 60px;
+	font-weight: bold;
+
+}
+
+.btnLogin:hover
+{
+ background: url("../imgs/btnbg_p.png") no-repeat;
+}
+
+
+
+.error_tip
+{
+	
+ margin: auto 0;
+ width: 70%;
+ text-align: center;
+ color: #F8B3D0;
+ font-size: 24px;
+ font-weight: bold;
+ margin-top: 50px;
+}

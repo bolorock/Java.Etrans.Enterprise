@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	<!-- 添加或修改一个菜单设置 -->
+	<insert id="addAndUpdateUserMenuSQL" parameterClass="java.util.HashMap">
+		if not exists (select 1 from Ent_User_Menu where userId=#userId# and
+		FunctionMenuId=#functionMenuId#)
+		Insert into Ent_User_Menu
+		(FunctionMenuId,name,userId,menuIocId)
+		values(#functionMenuId#,#name#,#userId#,#menuIocId#
+
+		<selectKey resultClass="int" keyProperty="id">
+			SELECT
+			@@IDENTITY AS
+			ID
+		</selectKey>
+		)
+		
+		else
+			Update Ent_User_Menu set name=#name#,menuIocId=#menuIocId# where userId=#userId# And FunctionMenuId=#functionMenuId#
+	</insert>
+
+	<!-- 获取菜单的简称和图标 -->
+	<select id="getMenuInfoByMenuIdSQL" resultClass="java.util.HashMap">
+		select
+		name,t2.imageURL,t2.ID from dbo.Ent_User_Menu t1
+		join Ent_Menu_Ioc t2
+		on t1.menuIocId=t2.ID
+		where t1.userId=#userId# And
+		t1.FunctionMenuId=#functionMenuId#
+	</select>
+
+	<!-- 获取还没有使用的菜单图标 -->
+	<select id="getMenuImageSQL" resultClass="java.util.HashMap">
+		select ID,
+		imageURL from
+		Ent_Menu_Ioc t1 where ID not in
+		(select menuIocId from Ent_User_Menu
+		where userId=#userId#)
+	</select>
+
+	<!-- 获取用户所有菜单设置 -->
+	<select id="getUserMenuSQL" resultClass="java.util.HashMap">
+		select
+		t1.name,t2.imageURL,t3.function_name as functionName, t3.assembly_name
+		as url from Ent_User_Menu t1
+		join Ent_Menu_Ioc t2 on t1.menuIocId=t2.ID
+		join Ent_Function_Menu t3 on t1.FunctionMenuId=t3.ID
+		where
+		t1.userId=#userId#
+	</select>
+
+	<!-- 获取用户所有菜单ID -->
+	<select id="getUserMenuIdSQL" resultClass="java.util.HashMap">
+		select FunctionMenuId
+		from Ent_User_Menu where userId=#userId#
+	</select>
+
+	<!-- 删除用户单个菜单 -->
+	<delete id="delUserMenuSQL" parameterClass="java.util.HashMap">
+		Delete From Ent_User_Menu
+		Where userId=#userId# And FunctionMenuId=#functionMenuId#
+	</delete>
+	
+	<!-- 获取报警统计 -->
+	<select id="getAlarmCountSQL" resultClass="java.util.HashMap">
+			select  t3.Name,
+				count(t1.AlarmSum) as AlarmSum,
+				count(t1.AlarmHandleSum) as HandleSum 
+			from Ent_AnaVehicleAlarmTypeStat t1
+		
+			<isNotEqual  property="isSuperUser"  compareValue="1">
+				join Ent_UserVehicle t2 on t1.VehicleID=t2.VehicleID
+			</isNotEqual>
+			
+			join Pub_AlarmKind t3 on t3.id=t1.AlarmOperationID
+			
+			<isEqual property="isSuperUser" compareValue="1">
+				join Pub_Vehicle t4  on t4.ID=t1.VehicleID
+				join Pub_WorkUnit t5 on t5.id=t4.WorkUnitId
+		    </isEqual>
+		    
+			where  1=1 
+			And t1.StatDate>=#statDate#
+			
+			<isNotNull property="alarmIdList">
+				<isNotEmpty property="alarmIdList">
+					<iterate property="alarmIdList" conjunction="," close=")"
+						open=" And t1.AlarmOperationID in (">
+						'$alarmIdList[]$'
+					</iterate>
+				</isNotEmpty>
+			</isNotNull>
+			
+			<isEqual property="isSuperUser" compareValue="1">
+			  and t5.FullId like '%$fullId$%'
+			</isEqual>
+			
+			<isNotEqual  property="isSuperUser"  compareValue="1">
+			  And t2.UserId=#userId#
+			</isNotEqual>
+			group by t3.Name
+	</select>
+
+	<!-- 删除对应类型的所有用户设置数据 -->
+	<delete id="delUserSetSQL" parameterClass="java.util.HashMap">
+		delete from Ent_User_Statistics where UserId=#userId# And TypeCode=#typeCode#
+	</delete>
+	
+	<!-- 添加对应类型的用户设置数据 -->
+	<insert id="addUserSetSQL" parameterClass="java.util.HashMap">
+		insert into Ent_User_Statistics(userId,statisticsTypeId,TypeCode)
+ 			values(#userId#,#statisticsTypeId#,#typeCode#)
+	</insert>
+	
+	<!-- 获取用户所有菜单ID -->
+	<select id="getUserSetSQL" resultClass="java.util.HashMap">
+		 select statisticsTypeId From Ent_User_Statistics where userId=#userId# And TypeCode=#typeCode#
+	</select>
+	
+</sqlMap>

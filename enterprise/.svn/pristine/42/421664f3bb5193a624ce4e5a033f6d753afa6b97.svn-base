@@ -1,0 +1,69 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ include file="/common/validateHead.jsp"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="expires" content="0">
+<head>
+
+<style type="text/css">
+
+.titilefont{font:16px/180% Arial, Helvetica, sans-serif, "新宋体"; font-weight: bold; color: #666666;}
+.tess{ font:12px/180% Arial, Helvetica, sans-serif, "新宋体";}
+body{background-image:url(Images/systemNoticeWindow.png);  background-position: top center; background-repeat:no-repeat;overflow:hidden;}
+
+.box01 {
+background-color: transparent;
+border-bottom: none;
+border-right-width: 0px;
+border-left-width: 0px;
+border-top-width: 0px;
+border-top-style: none;
+border-right-style: none;
+border-left-style: none;
+padding: 0px;
+margin: 0;
+font:12px/180% Arial, Helvetica, sans-serif, "新宋体";
+color: #666666;
+}
+
+</style>
+<!--<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/default/easyui.css">-->
+<!--<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/icon.css">-->
+
+<script type="text/javascript" src="${basePath}js/jq/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="${basePath}js/easyui/jquery.easyui.min.js"></script>
+<script type="text/javascript"	src="${basePath}js/sys/systemNotice/systemNoticePage.js"></script>	
+
+
+</head>
+
+<body style="width:429px; height: 343px; background-color: #fff">
+        
+<div id="systemNotiePages" style="overflow-x:hidden;overflow-y:hidden;width: 420px;
+ height:333px; padding-top: 55px; padding-left: 35px;">
+
+<div id="systemNotiePage" style="width: 350px; height: 250px; overflow-x:hidden;overflow-y:auto;">
+   <div style="text-align: center; width: 350px; height: 20px;">
+       <label id="notileTitle" style="text-align: center; width: 350px; height: 20px;" class="titilefont"></label>
+   </div>
+   
+    
+    <div style="text-align: left; width: 350px; height: 220px;">
+        <textarea id="notileContents" class="box01" style="width: 350px; height: 220px;  border-style: hidden; position:absolute;
+        background:transparent;overflow-y:auto;" readonly="readonly"></textarea>
+    </div>
+  
+</div>
+
+ <div id="checkbox" style="margin-left:280px; margin-bottom:3px; width: 80px; height: 18px;" >
+   <input type="checkbox" id="notip" onclick="noShow()" align="right"/><label for='notip' style="color: #9e9d9e">不再显示</label> 
+ </div>  
+ 
+ </div>
+
+</body>
+</html>

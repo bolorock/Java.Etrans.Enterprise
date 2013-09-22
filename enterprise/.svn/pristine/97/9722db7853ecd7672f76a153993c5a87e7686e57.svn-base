@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--企业管理员所有id车辆  -->
+ <select id="getAdminVehicleIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+       SELECT 
+		 		a.id
+		 	FROM 
+		 		Pub_Vehicle a ,
+		 		Pub_REGISTRATIONnOCOLOR e ,
+		 		pub_workUnit d, 
+		 		Pub_TradeKind f,
+		 		Pub_Terminal j ,
+		 		pub_simcard k
+		 WHERE 
+		 		a.RegistrationNOColorID=e.id AND 
+		 		a.WorkUnitID = d.id AND
+ 		 		a.TradeKindID=f.id  AND 
+				(a.isDeleted!=1 or a.isdeleted is null) and 
+				a.TerminalID = j.id AND 
+				j.simID= k.id   and 1=1
+        <dynamic prepend="and">
+           <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					 d.fullId LIKE '%$fullId$%' 
+				</isNotEmpty>
+			</isNotNull>
+				
+		</dynamic>
+		
+	</select>
+
+
+<!--普通用户下id车辆  -->
+ <select id="getVehicleIdstatSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	   select vehicleid from Ent_UserVehicle
+        <dynamic prepend="where">
+				<isNotNull property="userId">
+				   userid LIKE '%$userId$%' 
+				</isNotNull>
+			</dynamic>
+	</select>
+	
+<!--查询车辆上线率 统计-->
+	<parameterMap id="VehicleUpLineMap" class="java.util.HashMap">
+        <parameter property="@year" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@month" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@day" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@week" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@vehicle_list" mode="IN" jdbcType="varchar(8000)" javaType="java.lang.String"/>
+        <parameter property="@toRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@fromRow" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@registrationNo" mode="IN" jdbcType="varchar(4000)" javaType="java.lang.String"/>
+        <parameter property="@workunitid" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@workUnitName" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+        <parameter property="@SortName" mode="IN" jdbcType="varchar" javaType="java.lang.String"/>
+        <parameter property="@SortOrder" mode="IN" jdbcType="varchar" javaType="java.lang.String"/> 
+        <parameter property="@IsExport" mode="IN" jdbcType="varchar" javaType="java.lang.String" /> 
+    </parameterMap>
+       
+      <!-- 按车辆统计 --> 
+      <procedure id="getVehicleUpLineStatSQL" parameterMap="VehicleUpLineMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetUplineData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+	
+	<!-- 按部门统计 --> 
+      <procedure id="getVehicleSectionUpLineStatSQL" parameterMap="VehicleUpLineMap" resultClass="java.util.HashMap"> 
+	    <![CDATA[
+	     {call P_GetUplineSectionData(?,?,?,?,?,?,?,?,?,?,?,?,?)}
+	    ]]>
+	</procedure> 
+</sqlMap>
+

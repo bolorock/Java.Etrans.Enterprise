@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+	   <!--  获取超速数据-->
+       <select id="getOverspeedSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+				select * from bi_iaa_vehicle_speed t1 where 
+				  t1.VehicleID IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            
+				<isNotNull property="startDate">
+					<isNotEmpty property="startDate">
+						AND  t1.StartDatetime>=#startDate#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="endDate">
+					<isNotEmpty property="endDate">
+						AND #endDate#>=t1.EndDatetime
+					</isNotEmpty>
+				</isNotNull>
+	           
+	   </select>
+	   
+	   	   <!--  获取疲劳驾驶数据-->
+       <select id="getFatiguedriveSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+				select * from bi_iaa_vehicle_tired t1 where 
+				  t1.VehicleID IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            
+				<isNotNull property="startDate">
+					<isNotEmpty property="startDate">
+						AND  t1.StartDatetime>=#startDate#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="endDate">
+					<isNotEmpty property="endDate">
+						AND #endDate#>=t1.EndDatetime
+					</isNotEmpty>
+				</isNotNull>
+	           
+	   </select>
+
+	   	   <!--  获取区域进出数据-->
+       <select id="getAreaSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+				select * from bi_iaa_area_inout t1 where 
+				  t1.VehicleID IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            
+				<isNotNull property="startDate">
+					<isNotEmpty property="startDate">
+						AND  t1.IntoDatetime>=#startDate#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="endDate">
+					<isNotEmpty property="endDate">
+						AND #endDate#>=t1.OutDatetime
+					</isNotEmpty>
+				</isNotNull>
+	           
+	   </select>
+	   
+	   	   	   <!--   获取地点超时停车数据-->
+       <select id="getOvertimeParkingSql" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+
+				select * from bi_iaa_vehicle_overtime t1 where 
+				  t1.VehicleID IN
+            <iterate property="vehicleIdList" open="(" close=")" conjunction=",">  
+                   '$vehicleIdList[]$'
+            </iterate>  
+            
+				<isNotNull property="startDate">
+					<isNotEmpty property="startDate">
+						AND  t1.StartDatetime>=#startDate#
+					</isNotEmpty>
+				</isNotNull>
+				
+				<isNotNull property="endDate">
+					<isNotEmpty property="endDate">
+						AND #endDate#>=t1.EndDatetime
+					</isNotEmpty>
+				</isNotNull>
+	           
+
+	   </select>
+
+</sqlMap>

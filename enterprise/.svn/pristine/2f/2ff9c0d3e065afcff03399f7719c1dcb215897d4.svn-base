@@ -1,0 +1,94 @@
+/**
+ * UserServices.java
+ * Create on 2012-2-10下午02:43:49
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.services.sys;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.etrans.bubiao.entities.PageBean;
+import com.etrans.bubiao.entities.User;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.common.util.ParamKey;
+
+/**
+ * 普通用户信息管理Services
+ * 
+ * @author yangzhen
+ * @version 1.0
+ */
+@Service
+public class UserManageServices {
+
+	@Autowired
+	private IbatisServices ibatisServices;
+
+	/**
+	 * 新增用户权限[功能权限、]
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	public int addUserAuth(String roleId, String auths) throws Exception {
+		try {
+
+			if (roleId != null && roleId.length() > 0) {
+				Map<String, Object> delMap = new HashMap<String, Object>();
+				delMap.put("roleId", roleId);
+				ibatisServices.deleteIbatisObject("delEntRoleFunctionByIdSQL",delMap);
+				ibatisServices.deleteIbatisObject("delPubCommandPurviewByIdSQL", delMap);
+			}
+			if (auths != null && auths.length() > 0) {
+
+				String[] ids = StringUtils.split(auths, ",");
+				List<Map<String, Object>> functionRoleMap = new ArrayList<Map<String, Object>>();
+				List<Map<String, Object>> commandRoleMap = new ArrayList<Map<String, Object>>();
+
+				for (String id : ids) {
+					Map<String, Object> valueMap = new HashMap<String, Object>();
+					if (id.contains("f")) {
+						valueMap.put("roleType", 1);
+						valueMap.put("RoleID", roleId);
+						valueMap.put("FunctionID", id.split("\\|")[1]);
+						functionRoleMap.add(valueMap);
+					}
+					if (id.contains("c")) {
+						valueMap.put("UserGroupID", roleId);
+						valueMap.put("CommandKindID", id.split("\\|")[1]);
+						commandRoleMap.add(valueMap);
+					}
+
+				}
+				if (functionRoleMap.size() > 0) {
+					ibatisServices.batchInsertIbatisObject("addRoleFunction",
+							functionRoleMap);
+				}
+				if (commandRoleMap.size() > 0) {
+					ibatisServices.batchInsertIbatisObject("addCommandAuth",
+							commandRoleMap);
+				}
+				return 1;
+			}
+			return 0;
+		} catch (Exception e) {
+			throw new Exception("新增关系异常" + e.getMessage());
+		}
+	}
+
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+
+}

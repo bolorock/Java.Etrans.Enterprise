@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--查询外设类型信息 -->
+ <select id="getPeripheralTypeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		  SELECT id, name,code,memo
+  			FROM pub_vehicledevicetype
+		<dynamic prepend="where 1=1">
+            <isNotEmpty property="name" >
+      		 and name like '%$name$%'
+            </isNotEmpty>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+
+<!--外设类型信息总数量SQL	-->
+	<select id="getPeripheralTypeCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+		(SELECT name,code,memo
+  			FROM pub_vehicledevicetype
+  			) C where 1=1
+		<dynamic>
+		    
+		     <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            
+		</dynamic>
+	</select>
+	
+	<!-- 插入外设类型数据 -->
+	<insert id="insertPeripheralTypeSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [pub_vehicledevicetype]
+           (
+            [name]
+           ,[code]
+           ,[memo]
+           )
+     VALUES
+           (
+           	#name#,
+           	#code#,
+           	#memo#
+           )
+	</insert>
+	
+<!--根据ID查询外设类型信息	-->
+    <select id="getPeripheralTypeByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		 id,name,code,memo
+  			FROM pub_vehicledevicetype
+	   where 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				id = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改外设类型信息   -->
+     <update id="updatePeripheralTypeSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [pub_vehicledevicetype]
+		   SET [name] = '$name$'
+		      ,[code] = '$code$'
+		      ,[memo] = '$memo$'
+		     
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除外设类型信息  -->
+     <delete id="deletePeripheralTypeSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM pub_vehicledevicetype WHERE ID in ($id$)
+	</delete>
+	
+
+	
+	   
+<!-- 验证不能有相同的名称  -->
+     <select id="checkIsSoleNameSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,name  FROM pub_vehicledevicetype where name='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+	
+</sqlMap>

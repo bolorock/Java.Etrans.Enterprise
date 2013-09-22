@@ -1,0 +1,248 @@
+package com.etrans.bubiao.action.monitorCenter;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.apache.struts2.convention.annotation.ParentPackage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.services.monitorCenter.MonitorCenterServices;
+import com.etrans.bubiao.sys.Constants;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.web.Struts2Utils;
+import com.sun.corba.se.spi.orb.StringPair;
+import com.thoughtworks.xstream.converters.Converter;
+/**
+ * 轨迹回放
+ * @author lihaiyan
+ * @version 1.0
+ * @brief
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/monitorCenter")
+@ParentPackage("sessionPkg")
+public class TrackPlayBackAction extends BaseAction
+{
+	@Autowired
+	private MonitorCenterServices monitorCenterServices;
+	/**
+	 * 描述：获取轨迹
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-5-17
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "findPlayBackTrack")
+	public String findPlayBackTrack() {
+		String vehicleId=getParameter("vehicleId");
+		String beginTime=getParameter("beginTime");
+		String endTime=getParameter("endTime");
+		String mapType = getParameter("mapType");
+		String index = getParameter("index");
+		boolean showStatus= getParameter("showStatus").equals("1");
+		String jsonString = "false";
+		Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+		try {
+			
+			List<String> backList = this.monitorCenterServices.findPlayBackTrack(vehicleId, Long.valueOf(beginTime), Long.valueOf(endTime),vehicleMap,mapType,showStatus);
+			if (backList != null && backList.size() > 0) {
+				backList.add(0,"index:"+index);
+				if (backList.size() == 1) {
+					backList.add(backList.get(0));
+				}
+				jsonString =JSONUtil.toJson(backList);
+			} else {
+				jsonString = "false";
+			}
+		} catch (Exception e) {
+			jsonString = "false";
+		}
+		System.out.println(jsonString);
+		this.renderText(jsonString);
+		return NONE;
+	}
+	
+	/**
+	 * 描述：导出历史轨迹
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "exportTrackTable")
+	public String exportTrackTable() {
+		OutputStream outputStream = null;
+		String tableInfo=getParameter("paramsTable");
+		String titles=getParameter("titles");
+		try {
+			String[] titleArray = titles.split(",");
+			String[] rows=tableInfo.split("\\&");
+			List<Object> list = new ArrayList<Object>();
+			// 取得导出信息
+		
+			for (String track : rows) {
+				try
+				{
+					String[] trackArray = track.split("\\#");
+					list.add(Arrays.asList(trackArray));
+					
+				} catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				
+			}
+
+			HttpServletResponse response = ServletActionContext.getResponse();
+
+			outputStream = response.getOutputStream();// 取得输出流
+			response.reset();// 清空输出流
+			response.setHeader("Content-disposition", "attachment; filename=track.xls");// 设定输出文件头
+			response.setContentType("application/msexcel");// 定义输出类型
+			Tools.createExcel(outputStream, titleArray, list);
+		} catch (Exception e) {
+            e.printStackTrace();
+		} finally {
+			if (outputStream != null) {
+				try {
+					outputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+		return NONE;
+	}
+	
+	/**
+	 * 描述：导出历史轨迹
+	 * 
+	 * @author lihaiyan
+	 * @since Create on 2012-3-9
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value = "exportTrack")
+	public String exportTrack() {
+		OutputStream outputStream = null;
+		String vehicleId=getParameter("vehicleId");
+		String beginTime=getParameter("beginTime");
+		String endTime=getParameter("endTime");
+		Map<String, String> vehicleMap=(HashMap<String, String>)Struts2Utils.getSessionAttribute(Constants.USER_VEHICLE);
+		try {
+			Map<String, String> backMap = new HashMap<String, String>();
+
+			String[] titleArray = { "车牌", "经度", "纬度", "速度", "状态", "时间"};
+
+			List<Object> list = new ArrayList<Object>();
+			// 取得导出信息
+			List<String> backList = this.monitorCenterServices.exportTrack(vehicleId, Long.valueOf(beginTime), Long.valueOf(endTime),vehicleMap);
+			for (String track : backList) {
+				try
+				{
+					String[] trackArray = track.split("\\|");
+					List<Object> tempList = new ArrayList<Object>();
+					tempList.add(trackArray[4].split("=")[1]);
+					tempList.add(trackArray[1].split("=")[1]);
+					tempList.add(trackArray[0].split("=")[1]);
+					if(trackArray[2].split("=").length==1){
+						tempList.add("");
+						
+					}else{
+						tempList.add(trackArray[2].split("=")[1]);
+					}
+					tempList.add(trackArray[5].split("=")[1]);
+					tempList.add(trackArray[3].split("=")[1]);
+					list.add(tempList);
+				} catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				
+			}
+
+			HttpServletResponse response = ServletActionContext.getResponse();
+
+			outputStream = response.getOutputStream();// 取得输出流
+			response.reset();// 清空输出流
+			response.setHeader("Content-disposition", "attachment; filename=track.xls");// 设定输出文件头
+			response.setContentType("application/msexcel");// 定义输出类型
+			Tools.createExcel(outputStream, titleArray, list);
+		} catch (Exception e) {
+            e.printStackTrace();
+		} finally {
+			if (outputStream != null) {
+				try {
+					outputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+		return NONE;
+	}
+	
+	
+	
+	/**
+	 * 获取车辆驾驶员信息
+	 *@author lihaiyan
+	 * @since Create on 2012-5-31
+	 * @version Copyright (c) 2012 by e_trans.
+	 */
+	@Action(value ="getDriverMessage")
+	public String getDriverMessage(){
+		String jsonString="";
+		String gpsTime=getParameter("gpsTime");
+		String vehicleId=getParameter("vehicleId");
+		try{
+			
+			if(gpsTime!=null){
+					Map<String,Object> params=new HashMap<String,Object>();
+					params.put("gpsTime", gpsTime);
+					params.put("vehicleId", vehicleId);
+					Map<String,Object> message=this.monitorCenterServices.getDriverMessage(params);
+					if(message!=null){
+						 jsonString=JSONUtil.toJson(message);
+					}
+			}else{
+				jsonString="";
+			}
+			 
+		}catch(Exception e){
+			e.printStackTrace();
+			jsonString="false";
+		}
+		this.renderJSON(jsonString);
+
+		return NONE;
+	}
+
+	public MonitorCenterServices getMonitorCenterServices()
+	{
+		return monitorCenterServices;
+	}
+	public void setMonitorCenterServices(MonitorCenterServices monitorCenterServices)
+	{
+		this.monitorCenterServices = monitorCenterServices;
+	}
+	
+	
+	
+}

@@ -1,0 +1,316 @@
+/**
+ * UserAction.java
+ * Create on 2012-2-8下午01:59:47
+ * Copyright (c) 2012 by e_trans.
+ */
+package com.etrans.bubiao.action.sys;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.action.sys.log.LogActionTypes;
+import com.etrans.bubiao.action.sys.log.LogUtil;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Pub_UserGroup;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.entities.VehicleGroup;
+import com.etrans.bubiao.entities.WorkUnit;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.bubiao.services.sys.CustomMapServices;
+import com.etrans.bubiao.services.sys.UserServices;
+import com.etrans.bubiao.services.sys.VehicleGroupServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.encrypt.CsEncodeUtils;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.web.Struts2Utils;
+/**
+ * @author yangzhen
+ * @version 1.0
+ * @brief 用户Action
+ */
+
+@Controller
+@Namespace("/sys/userManage")
+@Scope("prototype")
+public class UserManageAction extends BaseAction{
+	
+	private static final long serialVersionUID = -306092009304943914L;
+ 
+ 	protected Logger log = LogManager.getLogger(this.getClass().getName());
+ 
+ 	
+ 	/**
+ 	 * IbatisServices
+ 	 */
+	@Autowired
+	private IbatisServices ibatisServices;
+ 	/**
+ 	 * 图层Services
+ 	 */
+	@Autowired
+	private CustomMapServices customMapServices;
+	
+	
+	@Autowired
+	private VehicleGroupServices vehicleGroupServices;
+	
+	private VehicleGroup vehicleGroupBean;
+	
+ 
+	
+	
+
+	/**
+	 * 新增用户
+	 */
+ 	@Action("createUser")
+	public void createUser() {
+ 		String jsonString = "false";
+ 		try {
+		Map<String, Object> insertParamMap =  new HashMap<String,Object>();
+		String name=getParameter("name");
+		String userName=getParameter("userName");
+		String password=getParameter("password");
+		String runTime=getParameter("runTime");
+		String overTime=getParameter("overTime");
+		String workUnitId=getParameter("workUnitId");
+		
+		insertParamMap.put("Name", name);
+		insertParamMap.put("UserName", userName);
+		insertParamMap.put("RunTime", runTime);
+		insertParamMap.put("OverTime", overTime);
+		insertParamMap.put("WorkUnitID", workUnitId);
+		insertParamMap.put("IsSuperUser","0");  // 不管是企业管理还是普通管理员此标志都为0,预留的超级管理员为1
+		insertParamMap.put("IsShowHandle","0");  //  添加是否显示操作指示默认为0
+		insertParamMap.put("CreateUserId",UserContext.getLoginUser().getUserID());
+		insertParamMap.put("Status", "0");
+		insertParamMap.put("CreateTime", new Date());
+		insertParamMap.put("Password", CsEncodeUtils.Encrypt(password));
+		
+		Map<String, Object> gMap =  new HashMap<String,Object>();
+		gMap.put("workId", getParameter("workUnitId"));
+		String groupId=null;
+		List<HashMap<String, String>> vehicleGroupList = ibatisServices.findIbatisList("getWorkUnitVehicleGroupSQL", gMap);
+		if(vehicleGroupList != null && vehicleGroupList.size()>0){
+            Map<String,String> mapId=vehicleGroupList.get(0);
+            groupId=String.valueOf(mapId.get("id"));
+		 
+		}
+		
+		
+		Map<String, Object> paramMap =  new HashMap<String,Object>();
+		String userId=getParameter("userId").trim();
+		if(userId!=null && userId.length()>0){
+			paramMap.put("ID", userId);
+			List<HashMap<String, String>> userList = ibatisServices.findIbatisList("findUserByIdListsSQL", paramMap);
+			if(userList != null && userList.size()>0){
+				insertParamMap.put("ID", userId);
+				insertParamMap.remove("WorkUnitID");
+				insertParamMap.put("workUnitId", workUnitId);
+				ibatisServices.updateIbatisObject("updateUserSQL", insertParamMap);	
+				jsonString = userId.trim()+"@"+groupId.trim();
+			}
+		}else{
+			Object insertId = ibatisServices.insertIbatisObject("addUserSQL", insertParamMap);
+			
+			Integer id=(Integer)insertId;
+			if(id>0){
+				customMapServices.addPub_CustomMapLayer("默认图层",3, id);
+				LogUtil.insertLog(LogActionTypes.INSERT, "成功", "用户信息", "", "新增普通用户信息");
+				jsonString = id.toString().trim()+"@"+groupId.trim();
+			}
+			
+		}
+		
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "用户信息", "", "新增普通用户信息");
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}
+		Tools.writeToOutputStream(jsonString, "新增用户信息json字符串写到输出流", ServletActionContext.getResponse());	
+	}
+ 	
+ 	/**
+	 * 新增角色
+	 */
+ 	@Action("createRole")
+	public void createRole() {
+ 		String jsonString = "false";
+ 		try {
+			
+			Map<String, Object> insertParamMap =  new HashMap<String,Object>();
+			String name=getParameter("name");
+			String shortRoleName=getParameter("shortRoleName");
+			String workUnitId=getParameter("workUnitId");
+			String userId=getParameter("userId");
+			
+			insertParamMap.put("name", name);
+			insertParamMap.put("abbre", shortRoleName);
+			insertParamMap.put("workUnitId", workUnitId);
+			insertParamMap.put("status", "0");
+			insertParamMap.put("innerPurviewGroupId", "0");
+			insertParamMap.put("userId", UserContext.getLoginUser().getUserID());
+			insertParamMap.put("createDate",  new Date());
+			insertParamMap.put("isUseDataPurview", "0");
+			insertParamMap.put("privilegeLevelId", "0");
+			
+			
+			
+		Map<String, Object> paramMap =  new HashMap<String,Object>();
+		String roleId=getParameter("roleId").trim();
+		if(roleId!=null && roleId.length()>0){
+			paramMap.put("id", roleId);
+			List<HashMap<String, String>> roleList = ibatisServices.findIbatisList("findRoleListById", paramMap);
+			if(roleList != null && roleList.size()>0){
+				insertParamMap.put("id", roleId);
+				ibatisServices.updateIbatisObject("updateRoleSQL", insertParamMap);	
+				jsonString = roleId.trim();
+			}
+		}else{
+			//新增角色信息
+            Object insertId = ibatisServices.insertIbatisObject("addRoleSQL", insertParamMap);
+			Integer id=(Integer)insertId;
+			if(id>0){
+				//新增用户角色信息
+				Map<String, Object> roleparamMap =  new HashMap<String,Object>();
+				roleparamMap.put("usergroupId", id.toString());
+				roleparamMap.put("userId", userId);
+				ibatisServices.insertIbatisObject("addUserRole", roleparamMap);
+				LogUtil.insertLog(LogActionTypes.INSERT, "成功", "角色信息", "", "新增角色信息");
+				jsonString = id.toString().trim();
+			}
+			
+		}
+		
+		} catch (Exception e) {
+			LogUtil.insertLog(LogActionTypes.INSERT, "失败", "角色信息", "", "新增角色信息");
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}
+		Tools.writeToOutputStream(jsonString, "新增角色信息json字符串写到输出流", ServletActionContext.getResponse());	
+	}
+ 
+ 	
+ 	/**
+ 	 * 车辆分组树形
+ 	 */
+ 	@Action(value="getWorkUnitVehicleList")
+	public void getWorkUnitVehicleList(){
+		try {
+			HashMap<String,Object> mapParam = new HashMap<String,Object>();
+				
+			mapParam.put("workId", getParameter("workId"));
+			
+			SessionUser user = UserContext.getLoginUser();
+			//超级管理员
+			if(UserContext.isBsRootUser()){
+				mapParam.put("id", "-1");
+			} 
+			//企业管理员
+			else if(user != null&&user.isWorkUnitSuperAdmin()){
+				mapParam.put("id", "-1");
+			}//普通用户
+			else{
+				mapParam.put("id",  getParameter("groupId"));	
+			}
+			List<Map> listGroup = ibatisServices.queryForList(Map.class, "getVehicleByGroupIdSQL", mapParam);
+			this.renderJSON(vehicleGroupServices.buildJsonVehicleGroup(listGroup));
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+	}
+ 	
+ 	@Action(value="createVehicleGroup")
+ 	public void createVehicleGroup() {
+ 		String jsonString = "false";
+ 		try {
+ 		// 车辆、车组关系
+ 			String vehicles =getParameter("vehicles");
+ 			String roleId=getParameter("roleId");
+ 			String[] vehclesArys = null;
+ 			if(vehicles!=null && vehicles.length()>0){
+ 				vehclesArys = vehicles.split(",");
+ 			}
+ 				
+ 			//新增车组
+ 			long nVehicleGroupID = vehicleGroupServices.addVehicleGroup(vehicleGroupBean);
+ 			//新增车组与车辆关系
+ 			vehicleGroupServices.addGroupVehicle(vehclesArys,nVehicleGroupID);
+ 			
+ 			HashMap<String,Object> vehicleRoleMap = new HashMap<String,Object>();
+ 			vehicleRoleMap.put("UserGroupID", roleId);
+ 			vehicleRoleMap.put("VehicleGroupID", nVehicleGroupID);
+ 			
+ 			//新增车组角色
+ 			ibatisServices.insertIbatisObject("addVehicleGroupPurview", vehicleRoleMap);
+ 			
+ 			
+ 			jsonString ="true";
+ 		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}
+ 		
+ 		Tools.writeToOutputStream(jsonString, "新增角色信息json字符串写到输出流", ServletActionContext.getResponse());	
+ 	    
+		
+ 	}
+
+
+
+	public IbatisServices getIbatisServices() {
+		return ibatisServices;
+	}
+
+
+	public void setIbatisServices(IbatisServices ibatisServices) {
+		this.ibatisServices = ibatisServices;
+	}
+
+
+	public CustomMapServices getCustomMapServices() {
+		return customMapServices;
+	}
+
+
+	public void setCustomMapServices(CustomMapServices customMapServices) {
+		this.customMapServices = customMapServices;
+	}
+
+	 
+	public VehicleGroupServices getVehicleGroupServices() {
+		return vehicleGroupServices;
+	}
+
+	public void setVehicleGroupServices(VehicleGroupServices vehicleGroupServices) {
+		this.vehicleGroupServices = vehicleGroupServices;
+	}
+	
+	public VehicleGroup getVehicleGroupBean() {
+		return vehicleGroupBean;
+	}
+
+	public void setVehicleGroupBean(VehicleGroup vehicleGroupBean) {
+		this.vehicleGroupBean = vehicleGroupBean;
+	}
+
+ 
+}

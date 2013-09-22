@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--查询SIM卡信息 -->
+ <select id="getSimCardsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		  SELECT distinct  ps.ID
+			      ,ps.Code
+			      ,ps.PhoneNO
+			      ,ps.SIMChargeID
+			      ,CONVERT(VARCHAR(10),ps.EffectiveDate,120) as EffectiveDate
+			      ,CONVERT(VARCHAR(10),ps.BuyDate,120) as BuyDate
+			      ,(case ps.IsInUse when '1' then '是' else '否' end) as IsInUse
+			      ,ps.OperationID
+			      ,ps.Address
+			      ,(case ps.SoundKind when '1' then '拨出' else '接听' end) as SoundKind
+			      ,(case ps.IsNote when '1' then '是' else '否' end) as IsNote
+			      ,ps.NoteCount
+			      ,ps.PrepaySum
+			      ,CONVERT(VARCHAR(10),ps.EndDate,120) as EndDate
+			      ,ps.OverSpend
+			      ,ps.APN
+			      ,ps.IP
+			      ,(case ps.IsTwoCities when '1' then '是' else '否' end) as IsTwoCities
+			      ,(select pw.name from dbo.Pub_WorkUnit pw where pw.id=ps.workUnitID) WorkUnitID
+  			FROM dbo.Pub_SIMCard ps 
+  			left join Pub_WorkUnit pwu on pwu.id=ps.WorkUnitId
+		<dynamic prepend="where 1=1">
+		     
+		     <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					 and pwu.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            <isNotEmpty property="phonePram" >
+      		 and ps.PhoneNO like '%$phonePram$%'
+            </isNotEmpty>
+            
+             <isNotEmpty property="codePram" >
+      		 and ps.Code like '%$codePram$%'
+            </isNotEmpty>
+            
+            <isNotNull property="workUnitIdPram" >
+              <isNotEmpty property="workUnitIdPram">
+                <isNotEqual property="workUnitIdPram" compareValue="-1" >
+					    and  ps.WorkUnitID ='$workUnitIdPram$'
+				  </isNotEqual>
+              </isNotEmpty>  
+		    </isNotNull>
+            
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+
+<!--SIM卡信息总数量SQL	-->
+	<select id="getSimCardsCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		select count(*) from
+		(SELECT   ps.ID
+			      ,ps.Code
+			      ,ps.PhoneNO
+			      ,ps.SIMChargeID
+			      ,CONVERT(VARCHAR(10),ps.EffectiveDate,120) as EffectiveDate
+			      ,CONVERT(VARCHAR(10),ps.BuyDate,120) as BuyDate
+			      ,(case ps.IsInUse when '1' then '是' else '否' end) as IsInUse
+			      ,ps.OperationID
+			      ,ps.Address
+			      ,(case ps.SoundKind when '1' then '拨出' else '接听' end) as SoundKind
+			      ,(case ps.IsNote when '1' then '是' else '否' end) as IsNote
+			      ,ps.NoteCount
+			      ,ps.PrepaySum
+			      ,CONVERT(VARCHAR(10),ps.EndDate,120) as EndDate
+			      ,ps.OverSpend
+			      ,ps.APN
+			      ,ps.IP
+			      ,ps.IsTwoCities
+			      ,ps.workUnitID
+			      ,pwu.FullId
+  			FROM dbo.Pub_SIMCard ps
+  			left join Pub_WorkUnit pwu on pwu.id=ps.WorkUnitId
+  			) C where 1=1
+		<dynamic>
+		    
+		     <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					and C.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+		
+            <isNotEmpty property="phonePram" >
+      			and C.PhoneNO like '%$phonePram$%'
+            </isNotEmpty>
+            
+             <isNotEmpty property="codePram" >
+      			and C.Code like '%$codePram$%'
+            </isNotEmpty>
+            
+            <isNotNull property="workUnitIdPram" >
+              <isNotEmpty property="workUnitIdPram">
+                <isNotEqual property="workUnitIdPram" compareValue="-1" >
+					    and C.WorkUnitID ='$workUnitIdPram$'
+				  </isNotEqual>
+              </isNotEmpty>  
+		    </isNotNull>
+		    
+		</dynamic>
+	</select>
+	
+	<!-- 插入SIM卡数据 -->
+	<insert id="insertSimCardSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [Pub_SIMCard]
+           (
+            [Code]
+           ,[PhoneNO]
+           ,[SIMChargeID]
+           ,[EffectiveDate]
+           ,[BuyDate]
+           ,[IsInUse]
+           ,[OperationID]
+           ,[Address]
+           ,[SoundKind]
+           ,[IsNote]
+           ,[NoteCount]
+           ,[PrepaySum]
+           ,[EndDate]
+           ,[OverSpend]
+           ,[APN]
+           ,[IP]
+           ,[IsTwoCities]
+           ,[WorkUnitID]
+           )
+     VALUES
+           (
+           	#Code#,
+           	#PhoneNO#,
+           	#SIMChargeID#,
+           	#EffectiveDate#,
+           	#BuyDate#,
+           	#IsInUse#,
+           	#OperationID#,
+           	#Address#,
+           	#SoundKind#,
+           	#IsNote#,
+           	#NoteCount#,
+           	#PrepaySum#,
+           	#EndDate#,
+           	#OverSpend#,
+           	#APN#,
+           	#IP#,
+           	#IsTwoCities#,
+           	#WorkUnitID#
+           )
+	</insert>
+	
+<!--根据ID查询SIM卡信息	-->
+    <select id="getSimCardByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		  ps.ID
+	      ,ps.Code
+	      ,ps.PhoneNO
+	      ,ps.SIMChargeID
+	      ,CONVERT(VARCHAR(10),ps.EffectiveDate,120) as EffectiveDate
+	      ,CONVERT(VARCHAR(10),ps.BuyDate,120) as BuyDate
+	      ,ps.IsInUse
+	      ,ps.OperationID
+	      ,ps.Address
+	      ,ps.SoundKind
+	      ,ps.IsNote
+	      ,ps.NoteCount
+	      ,ps.PrepaySum
+	      ,CONVERT(VARCHAR(10),ps.EndDate,120) as EndDate
+	      ,ps.OverSpend
+	      ,ps.APN
+	      ,ps.IP
+	      ,ps.IsTwoCities
+	      ,ps.WorkUnitID
+	      ,pwu.name as workUnitIDName
+  		FROM dbo.Pub_SIMCard ps 
+  		left join Pub_WorkUnit pwu on pwu.id=ps.WorkUnitId
+  		where 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				ps.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改SIM卡信息   -->
+     <update id="updateSimCardSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [Pub_SIMCard]
+		   SET [Code] = '$Code$'
+		      ,[PhoneNO] = '$PhoneNO$'
+		      ,[SIMChargeID] = '$SIMChargeID$'
+		      ,[EffectiveDate] = '$EffectiveDate$'
+		      ,[BuyDate] = '$BuyDate$'
+		      ,[IsInUse] = '$IsInUse$'
+		      ,[OperationID] = '$OperationID$'
+		      ,[Address] = '$Address$'
+		      ,[SoundKind] = '$SoundKind$'
+		      ,[IsNote] = '$IsNote$'
+		      ,[NoteCount] = '$NoteCount$'
+		      ,[PrepaySum] = '$PrepaySum$'
+		      ,[EndDate] = '$EndDate$'
+		      ,[OverSpend] = '$OverSpend$'
+		      ,[APN] = '$APN$'
+		      ,[IP] = '$IP$'
+		      ,[IsTwoCities] = '$IsTwoCities$'
+		      ,[WorkUnitID] = '$WorkUnitID$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除SIM卡信息  -->
+     <delete id="deleteSimCardSQL"  parameterClass="java.util.HashMap">
+		DELETE FROM dbo.Pub_SIMCard WHERE ID in ($id$)
+	</delete>
+	
+<!-- 根据SIMID删除终端号信息  -->
+    <delete id="deleteTerminalSQL_terminal"  parameterClass="java.util.HashMap">
+		DELETE  FROM dbo.Pub_Terminal WHERE SIMID in($id$)
+	</delete>
+	
+	   
+<!-- 验证不能有相同的电话号码  -->
+     <select id="checkPhoneNoSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,PhoneNO  FROM dbo.Pub_SIMCard where PhoneNO='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+	
+	   
+<!-- 验证不能有相同的卡编号-->
+     <select id="checkCodeSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,Code  FROM dbo.Pub_SIMCard where Code='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+</sqlMap>

@@ -1,0 +1,405 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@page import="org.apache.commons.lang.time.DateFormatUtils"%>
+<%@page import="java.util.*"%>
+<%@ include file="/common/validateHead.jsp"%>
+<%@taglib prefix="auth"  uri="/auth-tags"  %>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<%@page import="com.etrans.bubiao.sys.UserContext" %>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>			
+			<%
+			request.setAttribute("isSuper",String.valueOf(((SessionUser) request.getSession().getAttribute(Constants.LOGIN_USER)).getIsSuperUser()));
+				boolean isRoot = UserContext. isBsRootUser();
+				
+				String isUser = UserContext.isUser();
+				request.setAttribute("isUser",isUser);
+				
+			%>
+		    <title>用户信息</title>
+		    <link rel="stylesheet" type="text/css" href="${basePath}css/style.css">
+		    <script type="text/javascript">
+		    	var isBsRoot = <%=isRoot%>;
+		    </script>
+		    <script type="text/javascript" src="${basePath}js/sys/userManage/userList.js"></script>
+			<script type="text/javascript" src="${basePath}js/datepicker/WdatePicker.js"></script>
+			<script type="text/javascript"	src="${basePath}js/sys/tree/treeWorkunit.js"></script>
+		    <script type="text/javascript"	src="${basePath}js/sys/tree/treeAddWorkunit.js"></script>	
+	
+	</head>
+	
+<body>
+
+
+<div style="width: 100%" id="cont_box">
+	<div class="main">
+		<div class="mon_cont">
+        	<div class="E_Tit">用户管理</div>
+        	<input type="hidden" id="delUserId" />
+        	<input type="hidden" id="delRoleId" />
+            <table border="0" cellspacing="0" cellpadding="0" class="que_tab" >
+              <tr>
+                <td width="100" align="right">用户名：</td>
+                <td width="150" align="left">
+                <input id="txtQueryUserName"  type="text" class="mon_ser_text" 
+	                style="width: 130px"
+	                maxlength="50"
+					onchange="value=value.replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,'')" 
+	                onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^0-9a-zA-Z\u4e00-\u9fa5]/g,''))"/>
+                </td>
+                <td width="120">
+                	<a id="btnSearch" href="javascript:void(0)" class="ser_btn" style="color: white;">查询</a>&nbsp;&nbsp;
+                 <auth:authorize operation="createUser">
+				 	<a id="btnAddUserPanel" href="javascript:void(0)" class="ser_btn" style="color: white;">新增</a> 
+				 </auth:authorize>
+                </td>
+                </tr>
+            </table>
+            <div id="vechileGroup" style="display:none;">
+            <div class="td_title">第二步：分配车组</div>
+            	  <table class="maintable"  >
+			            <tr >
+			                <td colspan="2" >
+			                <fieldset style="width:500;">
+								<legend>车组信息</legend>
+									&nbsp;&nbsp;车组名称&nbsp;&nbsp;&nbsp;
+									<input type="text" size="30" onBlur="isDigit()" value="" id="vehicleName" name="vehicleName" class="mon_ser_text"/>	
+									<span id="vehicleNamespan" class="errorMsg" style="display: none"></span>
+		 							&nbsp;&nbsp;所属企业&nbsp;&nbsp;&nbsp;
+									<input type="text" size="30" name="workunitName" id="workunitName" readonly="readonly" class="mon_ser_text"/>	
+							</fieldset>
+			                </td>
+			            </tr>
+			            <tr >
+			            <td>
+			            <fieldset style="width:500;">
+			            	<div style=" width:500px;height:200px;OVERFLOW-Y: auto; OVERFLOW-X: hidden;padding-top: 0;vertical-align: top;">
+			            		<ul id="selectVehicle" style="height: 220px;"></ul>
+			            	</div>
+			            </fieldset>
+			            </td >	
+			            <td width="" align="left" valign="middle"  rowspan="3" ><a href="javascript:void(0)" class="ser_btn"  style="margin-bottom: 3px" onclick="next(0)">上一步</a>
+			            <br/>
+			            <a href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px"  onclick="next(2)">下一步</a>
+			             <br/>
+						<a href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px"  onclick="document.getElementById('vechileGroup').style.display='none';rollBack()">取消</a>
+			            </td>            
+			            </tr>
+			            
+			        </table>
+            </div>
+            <div id="roles" style="display:none;">
+             <div class="td_title">第三步：分配权限</div>
+				<table class="maintable" style="width:33%">
+					<tr>	
+							<td valign="top"  >
+								<fieldset>
+									<legend>
+										功能权限
+									</legend>
+									<div align="left" id="leftTd"
+										style="width:400px; height:200px;overflow-x:hidden;overflow-y:auto; padding-top: 0; display:block;vertical-align: top;">
+										<ul id="fnctionAuthTree">
+										</ul>
+										<input type="hidden" value="1" id="roleType" />
+									</div>
+								</fieldset>
+							</td>
+							<td valign="top" >
+								<fieldset>
+									<legend>指令权限</legend>
+									<div align="left" id="leftTd" style="width:400px; height:200px;overflow-x:hidden;overflow-y:auto; padding-top: 0; vertical-align: top; display:block;">
+											<ul id="commandAuthTree"></ul>
+									</div>
+								</fieldset>
+							</td>
+							<td rowspan="2"  valign="top" align="left"  height="25">
+							<a id="saveBtn" href="javascript:void(0)" class="ser_btn" onclick="doNode()" style=" margin-top:10px;margin-bottom: 3px; ">确定</a> 
+							 <br/>
+							<a href="javascript:void(0)" class="ser_btn" onclick="document.getElementById('roles').style.display='none'">取消</a>
+							</td>
+						
+						
+							<td width="200" align="left"  valign="middle" rowspan="3"><a href="javascript:void(0)" class="ser_btn"  style="margin-bottom: 3px;" onclick="next(1)">上一步</a>
+							 <br/> 
+							<a href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px;"  onclick="document.getElementById('roles').style.display='none';rollBack();">取消</a>
+							 <br/>
+							<a href="javascript:void(0)"  class="ser_btn" onclick="next(3)">完成</a>
+							</td>
+						</tr>
+						
+				</table>
+			</div>
+            <div id="divAddUserPanel" class="wDiv" style=" width:100%;display: none;border: 1px solid #d0d0d0;">
+        	        <div id="addUDiv" class="td_title">第一步：新建普通管理员</div>
+  	  				<form id="formAddUser" action="" style="">
+		        	   <table  border="0" cellspacing="0" cellpadding="0" onmouseover="">
+			              <tr>
+			                <td width="100" align="right"><span class="xin_red">*</span>用户名：</td>
+			                <td width="240" align="left">
+			                 <input id="txtName" name="Name" type="text" 
+			                    class="td_input" style="width: 130px;"
+								formCheck="true" 
+								required="true" requiredError="请输入用户名称！" 
+								noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！"
+								 />
+								<span id="txtNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                 <td width="100" align="right"><span class="xin_red">*</span>登陆名：</td>
+			                <td width="150" align="left">
+			                 <input id="txtUserName" name="UserName" type="text" 
+			                    class="td_input" style="width: 130px;"
+			                    formCheck="true"  
+								required="true" requiredError="请输入登陆名！" 
+								noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！"
+								ajaxAction="sys/user/checkUserName.action" 
+								ajaxActionError="已存在此名称，请重新输入！" />
+								<span id="txtUserNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                <td colspan="2" valign="middle"  align="right" rowspan="2"> 
+			                <div id="userDiv">
+			                <a  href="javascript:void(0)"  onclick="next(1)" class="ser_btn" style="margin-bottom: 3px;">下一步</a>
+		                	<br>
+		                	<a id="btnAddUserCancle" href="javascript:void(0)" class="ser_btn" style="margin-left: 4px;">取消</a>
+		                	</div>
+		                	<div id="workDiv" style="display: none;">
+		                	   <a  id="btnAddWorkUser" href="javascript:void(0)"  class="ser_btn" style="margin-bottom: 3px;">确定</a>
+		                	   <br>
+		                	   <a id="btnAddUserColse" href="javascript:void(0)" class="ser_btn" style="margin-left: 4px;">取消</a>
+		                	</div>
+		                	</td>
+			             </tr>
+			              
+			              <tr>
+			                <td width="100" align="right"><span class="xin_red">*</span>密码：</td>
+			                <td width="240" align="left">
+			                 <input id="txtPassword" name="Password" type="password" 
+			                  class="td_input" style="width: 130px;"
+			                   formCheck="true" 
+							   required="true" requiredError="请输入密码" 
+							   textLength="6-10" valLengthError="长度必须在6到10个" />
+							   <span id="txtPasswordspan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                
+			                <td width="100" align="right"><span class="xin_red">*</span>确认密码：</td>
+			                <td width="150" align="left">
+			                 <input id="txtPasswordA" name="PasswordA" type="password" 
+			                    class="td_input" style="width: 130px;"
+			                    formCheck="true" 
+							    required="true" requiredError="请输入密码" 
+							    confirmpwd="txtPassword" confirmpwd="两次密码输入不一致！" />
+							    <span id="txtPasswordAspan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                
+			                 <td></td>
+			              </tr>
+			            
+			               <tr>
+			               
+			                <td width="100" align="right"><span class="xin_red">*</span>账户启用时间：</td>
+			                <td width="240" align="left">
+			                 
+			                 	<input id="txtRunTime" name="txtRunTime" type="text" value="<%=DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss") %>" onFocus="this.blur()" readonly="readonly"
+			                 	class="td_input" 
+			                 	formCheck="true" 
+								required="true" requiredError="请选择账户启用时间！" 
+			                 	style="width: 130px;" >
+			                 	<img src="Images/time.jpg" width="20" height="23" style=""
+							    onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('txtRunTime'),dateFmt:'yyyy-MM-dd HH:mm:ss'})" />
+			                 <span id="txtRunTimespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                
+			                <td width="100" align="right"><span class="xin_red">*</span>账户过期时间：</td>
+			                <td width="170" align="left">
+			                 	<input id="txtOverTime" name="OverTime" type="text" onFocus="this.blur()" readonly="readonly"
+			                 	class="td_input"
+			                 	 formCheck="true" 
+								required="true" requiredError="请选择账户过期时间！" 
+			                 	 style="width: 130px;" >
+			                 	<span id="txtOverTimespan" class="errorMsg" style="display: none"></span>
+			                 	  <img src="Images/time.jpg" width="20" height="23" style="margin-top:1px "
+							      onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('txtOverTime'),dateFmt:'yyyy-MM-dd HH:mm:ss',minDate:'%y-%M-{%d}'})"/>
+			                </td>
+			                <td></td>
+			              </tr>
+			              
+			               <tr>
+			             
+			                	<td width="100" align="right" ><span class="xin_red">*</span>所属企业：</td>
+                                 <td align="left" width="240">
+							    	 <input type="text" name="workUnitName" id="workUnitIdPram"  formCheck="true"   class="td_input"  style="width:130"
+									required="true" requiredError="必须输入项!" noselect="true" requiredError="请选择一项"
+									readonly="readonly"/> 
+				      		        <input type="hidden" id="workUnitId" name="WorkUnitID"/>
+							        <span id="workUnitIDNamespan" class="errorMsg" style="display: none"></span>
+							       <a  href="javascript:void(0)" onclick="showWorkUnitTree()"  class="ser_btn">请选择</a>
+							    </td>
+							    <%--  超级用户或企业用户才显示--%>
+							     <s:if test="'false' eq #request.isUser">
+							     <td width="100" align="right"><span class="xin_red">*</span>用户类型：</td>
+					                <td align="left" width="240" >
+					                    <input type="radio" name="IsSuperUser" onclick="showUserDiv()" value="0" checked="checked">普通管理员
+						                <input type="radio" name="IsSuperUser" onclick="showWorkDiv()" value="1">企业管理员
+						               
+					                </td>
+                                 </s:if>
+			              </tr>
+			             
+			              </table></form> 
+			              
+        	</div>
+        	<div id="special" class="" style="width:1100px;HEIGHT:180px;display: none;border: 1px solid #d0d0d0;">
+        	   <div class="td_title">个性化报表</div>
+	        	   <table>
+	        	   		<tr>
+	        	   			<td>
+	        	   				<fieldset style="width:500;">
+					            	<div style=" width:500px;height:120px;OVERFLOW-Y: auto; OVERFLOW-X: hidden;padding-top: 0;vertical-align: top;">
+					            		<ul id="specialTree" style="height: 220px;"></ul>
+					            	</div>
+			          		  	</fieldset>
+	        	   			</td>
+	        	   			<td>
+	        	   				 <a id="specialSure" href="javascript:void(0)" onclick="setSpecial()" class="ser_btn" style="margin-bottom: 3px;">确定</a>
+			                	<br>
+			                	<a id="specialCancel" onclick="document.getElementById('special').style.display='none';" href="javascript:void(0)" class="ser_btn">取消</a>
+			                </td>
+	        	   		</tr>
+	        	   </table>
+        	   </div>
+        	
+        	 <div id="editWindow" class="wDivEdit" style="width:100%;display: none;border: 1px solid #d0d0d0;">
+        	   <div class="td_title">用户信息编辑</div>
+	        	  
+		        	<table border="0" cellspacing="10" cellpadding="0" id="editFrom" >
+			              <tr>
+			                <td width="100" align="right"><span class="xin_red">*</span>用户名：</td>
+			                <td width="150" align="left">
+			                  <input id="txtUpdateUserId" name="id" type="hidden" />
+			                 <input id="txtUpdateName" name="Name" type="text" 
+				                 class="td_input" style="width: 130px;"
+				                 formCheck="true" 
+								 required="true" requiredError="请输入用户名称！" 
+								 noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！"/>
+								 <span id="txtUpdateNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                 <td width="100" align="right"><span class="xin_red">*</span>登陆名：</td>
+			                <td  width="240" align="left">
+			                 <input id="txtUpdateUserName" name="UserName" type="text" 
+				                 class="td_input" style="width: 130px;"
+				                 formCheck="true" 
+								 required="true" requiredError="请输入登陆名！" 
+								 noSpecialCaracters="true" noSpecialCaractersError="请输入中英文或数字！" 
+								 ajaxAction="sys/user/checkUserName.action" 
+								 ajaxDataId="txtUpdateUserId" 
+								 ajaxActionError="已存在此名称，请重新输入！" />
+							  <span id="txtUpdateUserNamespan" class="errorMsg" style="display: none"></span>
+			                </td>
+			                <td width="200" align="center" rowspan="4" >
+			                 
+			                   <a id="btnUpdateUser" href="javascript:void(0)" class="ser_btn" style="margin-bottom: 3px;">提交</a>
+			                	<br>
+			                	<a id="btnUpdateUserCancle" href="javascript:void(0)" class="ser_btn">取消</a>
+			                </td>
+			              </tr>
+			            
+			             <tr>
+			                <td width="100" align="right"><span class="xin_red">*</span>账户启用时间：</td>
+			                <td width="240" align="left">
+			                 
+			                 	<input id="txtUpdateRunTime" name="RunTime" type="text"  onFocus="this.blur()"
+			                 	class="td_input"
+			                 	formCheck="true" 
+								required="true" requiredError="请选择账户启用时间！" 
+			                 	 style="width: 130px;" readonly="readonly">
+			                 	 <span id="txtUpdateRunTimespan" class="errorMsg" style="display: none"></span>
+			                 			                 
+			                </td>
+			                <td width="100" align="right"><span class="xin_red">*</span>账户过期时间：</td>
+			                <td width="170" align="left">
+			                 	<input id="txtUpdateOverTime" name="OverTime" type="text"  onFocus="this.blur()"
+			                 	class="td_input" 
+			                 	 formCheck="true" 
+								required="true" requiredError="请选择账户过期时间！" 
+			                 	style="width: 130px;">
+			                 	<span id="txtUpdateOverTimespan" class="errorMsg" style="display: none"></span>
+			                 	  <img src="Images/time.jpg" width="20" height="23" style="margin-top:5px "
+							      onClick="WdatePicker({firstDayOfWeek:1,isShowWeek:true,el:document.getElementById('txtUpdateOverTime'),dateFmt:'yyyy-MM-dd HH:mm:ss',minDate:'%y-%M-{%d-1}'})"/>
+			                 
+			                </td>
+			                <td>
+			                </td>
+			              </tr>
+			                 <tr>
+			
+			       			
+                              <td align="right" width="100"><span class="xin_red">*</span>企业名称：</td>
+						      <td align="left" width="240">
+							<input type="text" id="workUnitIDName" name="workUnitIDName"  disabled="true"  style="width:130"
+								   class="td_input"
+								   required="true" formCheck="true"    requiredError="请选择一项"
+								   /> 
+			      		    <input type="hidden" id="workUnitID1" />
+							<span id="workUnitIDNamespan" class="errorMsg" style="display: none"></span>
+							</td>
+			              
+			              </tr>
+		            </table>
+		        	   
+	              
+        	</div>
+        	
+        <div id="updateGroupForm" class="vehicleDiv" style="width:1100px;HEIGHT:250px;display: none;border: 1px solid #d0d0d0;">
+        <div class="td_title">车组信息</div>
+		<form    method="POST" id="form_updateVehicleGroup">    
+	        <table class="maintable" border="0" cellspacing="10" cellpadding="0">
+		            <tr>
+		                <td colspan="3">
+		                <fieldset style="width: 650;">
+							<legend>车组信息</legend>
+								&nbsp;&nbsp;车组名称&nbsp;&nbsp;&nbsp;
+								<input type="text" size="30" value="" id="updateVehicleName" class="mon_ser_text"/>	
+								&nbsp;&nbsp;所属企业&nbsp;&nbsp;&nbsp;
+								<input type="text" size="30" name="addTheirCustomer" id="addTheirCustomer" readonly="readonly"  value="<s:property value='vehicleGroupBean.workUnitName'/>" id="otName" class="mon_ser_text"/>										
+						</fieldset>
+		                </td>
+		                
+		                <td colspan="3" align="center" rowspan="2">		                  
+			                <a id="updateVehicleBtn" href="javascript:void(0)" class="btn" style="color: white;font-size: 12px;">确定</a>
+				            <br>
+				    	    <a id="btnUpdateVehicleCancle" href="javascript:void(0)" class="ser_btn">取消</a>
+			    	</td> 
+			    	
+		            </tr>
+		            <tr>
+		              <td> 
+				        <fieldset>
+			            	<div style="height:100;OVERFLOW-Y: auto; OVERFLOW-X: hidden;padding-top: 0;vertical-align: top;">
+			            		<ul id="selectVehicle1" style="height: 150px;width: 630px;"></ul>
+			            	</div>
+			            </fieldset>
+		              </td>	
+		            </tr>
+	        </table>
+        </form>
+		</div>
+        <table id="tbUsers" style="display: none"></table>
+        <input type="hidden"  id="isroot" value="<%=isRoot%>">
+</div>
+
+</div>
+</div>
+ 
+<div id="roleDlg" style="display: none;">
+	<div class='flexigrid'>
+		<table id='roleList' cellpadding='0' cellspacing='0'>
+		</table>
+	</div>
+</div>
+
+
+ <div id="dialogs" class="hiddiv" style="display: none;padding:5px;top:10px;">
+			<iframe src="" id="dialogFrame" name="dialogFrame" width="100%"  height="100%" frameborder="0" scrolling="auto"></iframe>
+		</div>
+</body>
+</html>

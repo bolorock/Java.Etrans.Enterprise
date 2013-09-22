@@ -1,0 +1,102 @@
+/**    
+ * MessageHandle.java
+ * Create on 2010-7-30
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * 发送指令
+ * @author lihaiyan
+ * @version 1.0
+ */
+
+public class SendMessage implements Runnable {
+	private CommandSendQueue commandSendQueue; // 指令发送队列
+	private SocketTemplate socketTemplate; // socket连接模板
+	private final Log logger = LogFactory.getLog(SendMessage.class.getName());
+
+	public SendMessage(SocketTemplate socketTemplate, CommandSendQueue commandSendQueue) {
+		this.socketTemplate = socketTemplate;
+		this.commandSendQueue = commandSendQueue;
+	}
+
+	/**
+	 * 线程初始化
+	 * */
+	public void run() {
+		logger.error("---------808发送线程启动!---------");
+		String message = "";
+			PrintWriter pw = null;
+
+			try
+			{
+				pw = this.socketTemplate.getWriter();
+			} catch (IOException e1)
+			{
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			while (true) {
+				try
+				{
+					message = commandSendQueue.consume();
+					if (!StringUtils.isEmpty(message)) {
+						try{
+							MessageHandle(pw, message);
+						}catch(Exception e){
+							pw = this.reloadSocket(); // 重连MSC
+						}	
+					}else{
+						Thread.sleep(500);
+//						MessageHandle(pw, "##noop#13#10");
+					}
+				} catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			
+			}
+
+	}
+
+	/**
+	 * 重连MSC
+	 * */
+	public PrintWriter reloadSocket() {
+		PrintWriter pw = null;
+		 logger.error("------MSC连接异常(808),10秒钟后重连------");
+		try {
+			this.socketTemplate.reloadSocket();
+			pw = this.socketTemplate.getWriter();
+		} catch (Exception e) {
+			 logger.error("-----------------MSC重连失败(808)----------------------" + e);
+			// this.reloadSocket();
+			 pw = null;
+		}
+		return pw;
+	}
+	
+	/**
+	 * 发送指令
+	 * */
+	public void MessageHandle(PrintWriter pw, String message) {
+		try {
+			pw.println(message.replaceAll("\r\n", "").replaceAll("\r", "").replaceAll("\n", ""));
+			logger.error("发送808指令成功,指令 : " + message);
+		} catch (Exception e) {
+			this.commandSendQueue.produce(message);
+			logger.error("发送808指令失败,指令 : " + message + "e:" + e);
+			pw = this.reloadSocket(); // 重连MSC
+			//socketTemplate.closeSocket();
+			 //socketTemplate.reloadSocket();
+		}
+	}
+}

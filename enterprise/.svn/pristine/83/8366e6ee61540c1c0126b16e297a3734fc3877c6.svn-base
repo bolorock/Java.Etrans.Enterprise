@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+ <!-- 树形 -->
+ <!-- 区域树形 -->
+	<select id="getAreaTreeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT a.id,a.name,a.level,a.fullId
+			FROM  [Pub_Area] a
+   		<dynamic prepend="where">
+			<isNotNull property="parentFullId" prepend="AND">
+				a.fullId like '%$parentFullId$%' 
+				and len(a.FullID) = LEN('$parentFullId$') + 9
+			</isNotNull>
+			<isNotNull property="name" prepend="AND">
+				a.name like '%$name$%'
+			</isNotNull>
+		</dynamic>
+	</select>
+	
+	<select id="getAreaRootSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT a.id,a.name,a.level,a.fullId FROM 
+				[Pub_Area] a 
+		where len(a.fullId)=8  	
+	</select>
+	<!-- 区域树形 -->
+	
+	<!-- 企业树形 -->
+<select id="getWorkUnitTreeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM  Pub_WorkUnit as w
+		left join Pub_Area as a on w.AreaID=a.id
+	    left join Pub_OrganzationKind as o on   w.OrganizationKindID=o.id 
+	    left join Pub_TradeKind as t  on   w.TradeKindID=t.id 
+	    where 1=1
+	    and IsDeleted!=1
+   		<dynamic>
+			<isNotNull property="parentFullId" prepend="AND">
+				w.fullId like '%$parentFullId$%' 
+				and len(w.FullID) = LEN('$parentFullId$') + 9
+			</isNotNull>
+			<isNotNull property="name" prepend="AND">
+				name like '%$name$%'
+			</isNotNull>
+		</dynamic>
+		order by w.id desc
+	</select>
+	
+	<!-- 查询单位ROOT级别数据 -->
+	<select id="getWorkUnitRootSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM  Pub_WorkUnit as w
+		 left join Pub_Area as a on w.AreaID=a.id 
+		left join  Pub_OrganzationKind as o on w.OrganizationKindID=o.id
+		 left join Pub_TradeKind as t  on w.TradeKindID=t.id 
+		 where  1=1 
+		and IsDeleted!=1
+		<isNotEmpty property="fullId">
+<!--			and  len(w.FullID)=LEN('$fullId$')-->
+			and  w.id = $wuID$
+			and w.fullId like '%$fullId$%'
+		</isNotEmpty>
+		<!-- 超级管理员 -->
+		<isNotEmpty property="lengths">
+			and  len(w.FullID)=#lengths#
+			and w.level=1
+		</isNotEmpty>
+		order by w.id desc
+	</select>
+	
+	
+	<!-- 企业树形 -->
+	<!-- 树形 -->
+	
+  
+  	<select id="getColorsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleColor
+	</select>
+  	
+  	<select id="getRegistrationNoKindsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_RegistrationNOKind
+	</select>
+	
+	<select id="getRegistrationNoColorsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_RegistrationNOColor
+	</select>
+	
+	
+	<select id="getTerminalsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,commno as name from Pub_Terminal where useFlag = 0
+		<dynamic>   
+	     	<isNotNull property="workUnitId" >
+	     		<isNotEmpty property="workUnitId">
+	     			<![CDATA[ and workUnitId=#workUnitId#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+     	</dynamic>
+	</select>
+	
+	
+	<select id="getSimsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,code,phoneNO from dbo.Pub_SIMCard where isInUse = 1
+		<dynamic>   
+	     	<isNotNull property="workUnitId" >
+	     		<isNotEmpty property="workUnitId">
+	     			<![CDATA[ and workUnitId=#workUnitId#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+     	</dynamic>
+	</select>
+	
+<!--所属企业下拉框(超级管理员)-->
+	<select id="getWorkUnitsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	  select pw.id,pw.name from Pub_WorkUnit pw where pw.IsDeleted!=1;
+	</select>
+	
+	<!--所属企业下拉框(超级管理员)-->
+	<select id="getUserWorkUnitsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	  select pw.id,pw.name from Pub_WorkUnit pw where  pw.IsDeleted!=1 and 1=1
+	    <isNotNull property="fullId">
+				<isNotEmpty property="fullId" >
+					and pw.FullId like '%$fullId$%'
+				</isNotEmpty>
+		</isNotNull>
+	</select>
+	
+	<select id="getKindsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleKind
+	</select>
+	
+	<select id="getPlatformsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_Platform
+	</select>
+	            
+	<select id="getTradeKindsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name+'('+code+')' AS name from Pub_TradeKind
+	</select>
+	
+	<select id="getGroupsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleGroup pvg
+		<dynamic prepend="where">   
+	     	<isNotNull property="workUnitId" >
+	     		<isNotEmpty property="workUnitId" prepend="AND">
+	     			<![CDATA[pvg.workUnitId=#workUnitId#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+     	</dynamic>
+	</select>
+	
+	<select id="getCustomTradeKindsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_CustomTradeKind
+	</select>
+	
+	<select id="getUsagesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleUsage
+	</select>
+	
+	<select id="getBandsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleBand
+	</select>
+	
+	<select id="getManufactorysSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_VehicleManufactory
+	</select>
+	
+	<select id="getDriversSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_Driver
+		<dynamic prepend="where">   
+	     	<isNotNull property="workUnitId" >
+	     		<isNotEmpty property="workUnitId" prepend="AND">
+	     			<![CDATA[workUnitId=#workUnitId#]]>	
+	     		</isNotEmpty>
+     		</isNotNull>
+     	</dynamic>
+	</select>
+	
+	
+	 <!-- 区域下拉列表 -->
+  	<select id="getAreasSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name,Level from Pub_Area  where 1=1 
+			<dynamic>
+			<isNotEmpty property="sqlWhere">
+				and Level=#sqlWhere#
+			</isNotEmpty>
+			</dynamic>
+	</select>
+	
+	
+	
+	
+	 <!-- 机构类型下拉列表 -->
+  	<select id="getOrganzationKindsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_OrganzationKind
+	</select>
+	<!-- 行業下拉列表 -->
+	<select id="getTradeKindesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from Pub_TradeKind
+	</select>
+
+	<!--终端SIM卡下拉框SQL	-->
+    <select id="initSimCodeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,code as name from Pub_SIMCard 
+	</select>
+	<!--终端类型下拉框SQL	-->
+    <select id="initTerminalKindSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select id,name from dbo.Pub_TerminalKind 
+	</select>
+	<!--报警类型下拉框SQL	-->
+    <select id="initAlarmTypeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select pa.id,pa.name from Pub_AlarmKind pa
+	</select>
+	
+	<!--车队信息下拉框SQL	-->
+    <select id="initVehicleTeamsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select pv.id,pv.name from Pub_VehicleTeam pv where  1=1
+		   <dynamic>
+			<isNotEmpty property="workUnitId">
+				 pv.workUnitID=#workUnitId#
+			</isNotEmpty>
+			</dynamic>
+	</select>
+	<!--选择企业对应的车队信息下拉框SQL	-->
+    <select id="checkVehicleTeamSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select pv.id,pv.name from Pub_VehicleTeam pv where  1=1
+		  
+			<isNotEmpty property="workUnitId">
+				and pv.workUnitID=#workUnitId#
+			</isNotEmpty>
+			
+		
+	</select>
+										<!-- 用作报警设置模块begin -->
+		<!--检测日期类型下拉框列表 -->
+	<select id="initDateTypesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select DT.id,DT.name from TAnalyseDateType as DT
+	</select>
+	
+	<!-- 取用户自定义区域名称 -->
+    <select id="getCustomAreaSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+ 		select PL.id,PL.name from 
+        Pub_CustomMapPlane PL, Pub_CustomMapLayer PM,
+		Pub_User as u 
+		where 1=1
+		and PM.UserID=u.id
+        and PL.MapLayerID=PM.ID 
+<!--		and PM.Kind=3-->
+        <isNotNull property="workUnitID">
+			 and u.WorkUnitID=#workUnitID#
+		</isNotNull>
+    </select>
+    
+    <!-- 取用户自定义线路名称 -->
+    <select id="getCustomLineSQL" parameterClass="java.util.HashMap"  resultClass="java.util.HashMap">
+        select PL.id,PL.name from 
+        Pub_CustomMapLine PL, Pub_CustomMapLayer PM,
+		Pub_User as u 
+        where 1=1
+        and PM.UserID=u.id
+<!--        and PM.Kind=3-->
+        and PL.MapLayerID=PM.ID 
+<!--         <isNotNull property="workUnitID"> -->
+<!-- 			 and u.WorkUnitID=#workUnitID# -->
+<!-- 		</isNotNull> -->
+    </select>
+    
+    <!-- 自定义关键点list -->
+    <select id="getPoints" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select  c.id,c.name
+		from 
+		Pub_CustomMapLayer as ly,
+		Pub_CustomMapPoint as c,
+		Pub_User as u
+		where 1=1
+		and ly.UserID=u.id
+		<isNotNull property="workUnitID">
+			 and u.WorkUnitID=#workUnitID#
+		</isNotNull>
+<!--		and ly.kind = 3-->
+		and c.MapLayerID=ly.ID
+	</select>
+    	<!-- 线路下拉框列表 -->
+	<select id="initLineSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select  l.id,l.name
+		from 
+		Pub_CustomMapLayer as ly,
+		Pub_CustomMapLine as l,
+		Pub_User as u
+		where 1=1
+		and ly.UserID=u.id
+		<isNotNull property="workUnitID">
+			 and u.WorkUnitID=#workUnitID#
+		</isNotNull>
+<!--		and ly.kind = 3-->
+		and l.MapLayerID=ly.ID
+	</select>
+    									<!-- 用作报警设置模块end -->
+    									
+    									
+    									
+    									
+    									<!-- 用作TA报警设置begin-->
+	<!--初始化检测类型下拉框-->
+	<select id="getCheckTimeTypeSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from ANA_BaseCheckTimeTypes as a order by a.id desc
+	</select>		
+	
+	<!--初始化地点组下拉框-->
+	<select id="getPlaceTypeIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from dbo.ANA_BasePlaceTypes as a order by a.id desc
+	</select>	
+	
+	<!--初始化区域下拉框-->
+	<select id="getPlaceTypeByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from dbo.ANA_ParamPolygon as a order by a.id desc
+	</select>		
+	
+	<!-- 初始化轨迹分析组下拉框-->		
+    <select id="getAnalyseGroupSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from ANA_AnalyseGroups  as a 
+		,Ent_AnalyseGroupsIDAddUserID as au 
+ 		where 1=1 and  a.id=au.AnalyseGroupsID
+		<!--企业id-->
+		<isNotEmpty property="workUnitId">
+				and	a.groupid = #workUnitId#
+		</isNotEmpty>
+		<!--普通用户权限-->
+		<isNotEmpty property="userId">
+     			and au.UserID = #userId#
+        </isNotEmpty>
+		 order by a.id desc
+	</select>
+	
+	<!---->
+	<select id="getOverSpeedRoadCYByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from ANA_AnalyserOverSpeedRoad_CY as a order by a.id desc
+	</select>	
+	
+	<!-- 初始化所属分析器下拉框-->	
+	<select id="getAnalyseNamesByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from ANA_AnalyserOverSpeedRoad as a order by a.id desc
+	</select>	
+	
+										    									
+    									<!-- 用作TA报警设置end -->
+    									
+    									
+      <!--初始化设备厂商下拉框-->
+	<select id="initDeviceVendorsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from dbo.Pub_VehicleDeviceVendor as a order by a.id desc
+	</select>
+	
+	
+		<!--初始化设备类型下拉框-->
+	<select id="initDeviceTypesSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select a.id,a.name from dbo.pub_vehicledevicetype as a order by a.id desc
+	</select>
+</sqlMap>

@@ -1,0 +1,311 @@
+package com.etrans.bubiao.action.videoManage;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.BaseAction;
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.Result;
+import com.etrans.bubiao.services.AddAnalyseGroupService;
+import com.etrans.bubiao.services.videoManage.VehicleDeviceSetupServices;
+import com.etrans.bubiao.sys.UserContext;
+import com.etrans.common.util.DateUtil;
+import com.etrans.common.util.FlexiGridUtil;
+import com.etrans.common.util.json.JSONUtil;
+import com.etrans.common.util.vehicleTree.Tree;
+import com.etrans.common.util.vehicleTree.VehicleJsonTree;
+import com.etrans.common.util.web.Struts2Utils;
+
+/**
+ * 车辆外设表管理Action
+ * @author lujunyong
+ *
+ */
+@Controller
+@Scope("prototype")
+@Namespace("/deviceManage")
+public class VehicleDeviceSetupAction extends BaseAction{
+
+	private static final long serialVersionUID = 3595832987485843371L;
+	protected Logger log = LogManager.getLogger(this.getClass().getName());
+	
+	//车辆外设表管理Services
+	private VehicleDeviceSetupServices vehicleDeviceSetupServices;
+	
+	public VehicleDeviceSetupServices getVehicleDeviceSetupServices() {
+		return vehicleDeviceSetupServices;
+	}
+	public void setVehicleDeviceSetupServices(
+			VehicleDeviceSetupServices vehicleDeviceSetupServices) {
+		this.vehicleDeviceSetupServices = vehicleDeviceSetupServices;
+	}
+	
+	//轨迹分析组管理service
+	private AddAnalyseGroupService addAnalyseGroupService;
+
+	public AddAnalyseGroupService getAddAnalyseGroupService() {
+		return addAnalyseGroupService;
+	}
+
+	public void setAddAnalyseGroupService(
+			AddAnalyseGroupService addAnalyseGroupService) {
+		this.addAnalyseGroupService = addAnalyseGroupService;
+	}
+
+
+/*******************数据列表*****************************/	
+	/**
+	 * 外设表信息列表
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value="findVehicleDeviceSetupList")
+	public void findVehicleDeviceSetupList(){
+		try {
+		Map params = FlexiGridUtil.parseParam(this.getGridParams());
+		
+		this.renderJSON(vehicleDeviceSetupServices.findVehicleDeviceSetupList(params,new Random().nextLong()));
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("外设表信息列表异常！"+e.getMessage());
+		}
+		
+	}
+
+/*******************车辆树*****************************/
+	/**
+	 * 根据用户类型获取当前用户下面的车辆【超级管理员、企业管理员、普通用户】【车辆树】
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value="findVehilceListByUserType_Tree_D")
+	public void findVehilceListByUserType_Tree_D(){
+		try {
+			if(getParameter("id")==null){
+				//企业列表
+				List<Map> listMap = new ArrayList<Map>();
+				//查询条件
+				Map<String,Object> map = new HashMap<String,Object>();
+				//获得用户所属企业完整id并且保存到查询条件集合中
+				SessionUser user = UserContext.getLoginUser();
+				//超级管理员
+				if(UserContext.isBsRootUser()){
+					map.put("lengths", 8);
+				}
+				//企业管理员&&user.isWorkUnitSuperAdmin()
+				else if(user != null&&user.isWorkUnitSuperAdmin()){
+					map = user.getParamsOrFullid(map);
+				}
+				//普通用户
+				else{
+					map = user.getParamsOrFullid(map);
+				}
+				//取得权限企业列表最高级
+				listMap = addAnalyseGroupService.findWorkUnitRoot_Tree(map,new Random().nextLong());
+				System.out.println("最高级企业共多少条数据："+listMap.size());
+				
+				VehicleJsonTree tree = new VehicleJsonTree(
+						new String[]{"ID","Name","fullId","workUnitId3","vehicledevicesetupid"},//企业id，企业名称，企业完整id，企业id3,分析组id
+						"getAllWorkUnit_anaryseGroupBy_ParentFullId",//查询下级企业
+						addAnalyseGroupService.getIbatisServices(), //services
+						"parentFullId", //父完整id
+						"checkOKORNO", //是否被选择字段【不等于null表示被选中了】
+						"DeviceSetup.findVehicleInfoByUserTypeSql_Tree_D", //查询车辆
+						false  //复选框没以有自动选中功能
+					);
+				
+				//vv表示最后一级企业【表示当前企业没有下级企业了】workUnitId表示企业id
+				List<Tree> trees = tree.buildJsonTree(listMap,"vv|","1",getParameter("vehicledevicesetupid"));
+				Struts2Utils.renderJson(trees);
+//				Struts2Utils.renderJson(new ArrayList<Tree>());
+			}else{
+				Struts2Utils.renderJson(new ArrayList<Tree>());
+			}
+
+		} catch (Exception e) {
+			log.error("根据用户类型获取当前用户下面的车辆【超级管理员、企业管理员、普通用户】【树】异常！["+e.getMessage()+"]");
+		}	
+	}
+	
+	
+/*****************【新增】***********************/	
+	/**
+	 * 【新增】入口
+	 */
+	@SuppressWarnings("unchecked")
+	@Action(value = "addVehicleDeviceSetupInfo")
+	public void addVehicleDeviceSetupInfo() {
+	try {
+		/**新增参数**/
+		String vehicleDeviceSetupInfo = getParameter("vehicleDeviceSetupInfo");
+		String vehicleIds=getParameter("idStr");
+		String paramValue=getParameter("paramValue");
+		vehicleIds=getvehicleIds(vehicleIds);
+		Map obj = JSONUtil.fromJson(vehicleDeviceSetupInfo, Map.class);
+		obj.put("paramValue", paramValue);
+			
+		/**车辆id验证【验证是否已经为这辆车设置了外设信息】begin**/
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("vehicleID",vehicleIds);//车辆id字符串
+		boolean result = vehicleDeviceSetupServices.validateByVhicleID(paramMap);
+		if(result){//存在就删除
+			vehicleDeviceSetupServices.delVehicleDeviceSetupInfo(paramMap);
+		}
+		/**车辆id验证【验证是否已经为这辆车设置了外设信息】end**/
+		
+		/**新增**/
+		obj.put("vehicleID", vehicleIds);
+		obj.put("setupDate", DateUtil.getCurrentTime("yyyy-M-dd HH:mm:ss"));
+		this.renderJSON(vehicleDeviceSetupServices.addVehicleDeviceSetupInfo(obj));
+			
+	} catch (Exception e) {
+		e.printStackTrace();
+		log.error("新增车辆外设表信息异常！"+e.getMessage());
+	}
+		
+	}
+	
+	
+/*****************【修改】***********************/	
+/**
+ * 查询详细信息
+ */
+@Action(value = "findVehicleDeviceSetupInfos")
+public void findVehicleDeviceSetupInfos() {
+	String id = getParameter("id"); 
+	Map<String, Object> params = new HashMap<String,Object>();
+	params.put("id", id);
+	
+	Result result = new Result();
+	
+	try {
+		Map<String,Object> beanInfo = vehicleDeviceSetupServices.getVehicleDeviceSetupInfos(params);
+		result.setCode(1);
+		result.setData(beanInfo);
+		this.renderJSON(JSONUtil.toJson(result));
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	this.renderJSON(JSONUtil.toJson(result));
+}
+
+/**
+ * 执行修改
+ */
+@SuppressWarnings("unchecked")
+@Action(value = "updVehicleDeviceSetupInfo")
+public void updVehicleDeviceSetupInfo() {
+	try {
+		/**修改参数**/
+		String vehicleDeviceSetupInfo = getParameter("vehicleDeviceSetupInfo");
+		String paramValue=getParameter("paramValue");
+		Map obj = JSONUtil.fromJson(vehicleDeviceSetupInfo, Map.class);
+		obj.put("paramValue", paramValue);
+		
+		this.renderJSON(vehicleDeviceSetupServices.updVehicleDeviceSetupInfoByID(obj));
+		
+	} catch (Exception e) {
+		e.printStackTrace();
+		log.error("修改车辆外设表信息异常！"+e.getMessage());
+	}
+}
+
+/*****************【删除】***********************/	
+/**
+ * 删除
+ */
+@Action(value = "delVehicleDeviceSetupInfo")
+public void delVehicleDeviceSetupInfo() {
+	
+	String id = getParameter("id");
+	Map<String, Object> params = new HashMap<String,Object>();
+	params.put("id", id);
+	
+	try {
+		this.renderJSON(vehicleDeviceSetupServices.delVehicleDeviceSetupInfoByID(params));
+	} catch (Exception e) {
+		e.printStackTrace();
+	}	
+	
+}
+	
+	
+/*****************下拉框初始化begin***********************/
+	/**
+	 * 得到外设类型列表数据
+	 */
+	@Action(value="findVehicledeViceTypeList")
+	public void findVehicledeViceTypeList(){
+		try {
+			this.renderJSON(JSONUtil.toJson(vehicleDeviceSetupServices.getVehicledeViceTypeList()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("得到外设类型列表数据出错！");
+		}	
+	}
+	/**
+	 * 得到安装位置列表数据
+	 */
+	@Action(value="findVehicleSetupPositionList")
+	public void findVehicleSetupPositionList(){
+		try {
+			this.renderJSON(JSONUtil.toJson(vehicleDeviceSetupServices.getVehicleSetupPositionList()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("得到安装位置列表数据出错！");
+		}	
+	}
+	/**
+	 * 得到外设型号列表数据
+	 */
+	@Action(value="findVehicleDeviceModelList")
+	public void findVehicleDeviceModelList(){
+		try {
+			this.renderJSON(JSONUtil.toJson(vehicleDeviceSetupServices.getVehicleDeviceModelList()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.debug("得到外设型号列表数据出错！");
+		}	
+	}
+/*****************下拉框初始化end***********************/	
+
+/*********************【辅助】*************************/		
+	/**
+	 * 处理前台树传过来的id字符串,去掉企业id，只要车辆id
+	 * @param vehicleIds
+	 * @return
+	 */
+	public String getvehicleIds(String vehicleIds){
+		String vehicleId="";
+		String[] ids = StringUtils.split(vehicleIds, ",");
+		System.out.println(ids.length);
+//		if(ids.length>1){
+			 for(String id:ids){
+				 //是否包括vv这个字符
+				 if(id.contains("vv")){
+					 System.out.println(id);
+					 vehicleId +=id.split("\\|")[1];
+					 vehicleId+=",";
+				 }
+			 }
+			vehicleId = vehicleId.substring(0,vehicleId.length()-1);
+//		}else{
+//			vehicleId=vehicleIds;
+//		}
+		return vehicleId;
+		
+	}
+	
+
+	
+}

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--外设型号信息分页查询SQL  -->
+ <select id="getVehicleDeviceModelListSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id desc) RowNo,A.* from (
+		 select * from 
+			(SELECT 
+		        pvd.ID ID, 
+		        pvd.Code as Code, 
+		        pvd.Name as Name,
+		        pvd.BrandName as BrandName,
+		        pvd.ParamValue as ParamValue, 
+		        pvd.Memo as Memo,  
+		        pvt.name as DeviceTypeName,
+		        pvv.name as DeviceVendorName
+		     FROM dbo.pub_vehicledevicemodel pvd
+		       left join pub_vehicledevicetype pvt on pvt.id=pvd.DeviceTypeID
+		       left join Pub_VehicleDeviceVendor pvv on  pvv.id=pvd.DeviceVendorID 
+		       ) C where 1=1
+		<dynamic>
+		    <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+<!--外设型号信息总数量SQL	-->
+	<select id="getVehicleDeviceModelCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		 select count(*) from 
+			(SELECT 
+		        pvd.ID as ID, 
+		        pvd.Code as Code, 
+		        pvd.Name as Name,
+		        pvd.BrandName as BrandName,
+		        pvd.ParamValue as ParamValue, 
+		        pvd.Memo as Memo,  
+		        pvt.name as DeviceTypeName,
+		        pvv.name as DeviceVendorName
+		     FROM dbo.pub_vehicledevicemodel pvd
+		       left join pub_vehicledevicetype pvt on pvt.id=pvd.DeviceTypeID
+		       left join Pub_VehicleDeviceVendor pvv on  pvv.id=pvd.DeviceVendorID 
+		       ) C where 1=1
+        
+         <dynamic>
+            <isNotNull property="name">
+				<isNotEmpty property="name" >
+					and C.Name like '%$name$%'
+				</isNotEmpty>
+			</isNotNull>
+		</dynamic>
+	</select>
+		
+
+<!--插入外设型号信息数据 -->
+	<insert id="insertVehicleDeviceModelSQL" parameterClass="java.util.HashMap">
+		INSERT INTO [pub_vehicledevicemodel]
+           (
+            [Code]
+           ,[Name]
+           ,[BrandName]
+           ,[ParamValue]
+           ,[Memo]
+           ,[DeviceTypeID]
+           ,[DeviceVendorID]
+           )
+     VALUES
+           (
+           	#Code#,
+           	#Name#,
+           	#BrandName#,
+           	#ParamValue#,
+           	#Memo#,
+           	#DeviceTypeID#,
+           	#DeviceVendorID#
+           )
+	</insert>
+	
+<!--根据ID查询外设型号信息	-->
+    <select id="getVehicleDeviceModelByIdSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+ 	select
+ 		        pvd.ID as ID, 
+		        pvd.Code as Code, 
+		        pvd.Name as Name,
+		        pvd.BrandName as BrandName,
+		        pvd.ParamValue as ParamValue, 
+		        pvd.Memo as Memo,  
+		        pvd.DeviceTypeID,
+		        pvd.DeviceVendorID
+        FROM pub_vehicledevicemodel pvd
+       WHERE 1=1
+ 	<dynamic>
+ 	   <isNotNull property="id" prepend="AND">
+				pvd.ID = #id# 
+			</isNotNull>
+ 	</dynamic>
+    </select>
+    
+<!-- 根据ID修改外设型号信息   -->
+     <update id="updateVehicleDeviceModelSQL"  parameterClass="java.util.HashMap"> 
+				
+		UPDATE [pub_vehicledevicemodel]
+             SET 
+             [Code] = '$Code$'
+             ,[Name] = '$Name$'
+             ,[BrandName] = '$BrandName$'
+             ,[ParamValue] = '$ParamValue$'
+             ,[Memo] = '$Memo$'
+             ,[DeviceTypeID] = '$DeviceTypeID$'
+             ,[DeviceVendorID] = '$DeviceVendorID$'
+		 WHERE [ID] = '$id$' 
+		 
+   </update>
+   
+<!-- 根据ID删除外设型号信息  -->
+     <delete id="deleteVehicleDeviceModelSQL"  parameterClass="java.util.HashMap">
+		DELETE  FROM dbo.pub_vehicledevicemodel WHERE ID in ($id$)
+	</delete>
+
+   
+<!-- 验证不能有相同的外设型号名称  -->
+     <select id="checkVehicleDeviceModelNameSQL"  parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT ID,Name  FROM dbo.pub_vehicledevicemodel where Name='$name$'
+		 <isNotNull property="id" >
+				and ID != #id#
+		 </isNotNull>
+	</select>
+
+</sqlMap>

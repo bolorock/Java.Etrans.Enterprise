@@ -1,0 +1,37 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@page import="com.etrans.common.util.web.IpUtils"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+			
+			String ipType="";//ip类型
+			ipType = (String)request.getSession().getAttribute(IpUtils.LOGIN_IP_TYPE);
+%>
+
+<html>
+<head>
+<base href="<%=basePath%>"></base>
+<title>车辆监控</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="expires" content="0">
+
+</head>
+<%--左右分--%>
+<frameset cols="268,*"  frameborder="NO" border="0" framespacing="0" id="frame">
+	<frame src="<%=basePath%>monitorCenter/left.jsp" name="leftFrame" id="leftFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" style="height:100%;width:100%" scrolling="no" />
+	<%--if内网 反之是外网--%>
+	<% if(ipType.equals(IpUtils.INNERIP)){%>
+<%--			<frame src="<%=basePath%>monitorCenter/map.jsp" name="mapFrame" id="mapFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />--%>
+		<frame src="<%=basePath%>monitorCenter/group.jsp?vehicleId=null&registrationNo=null&index=0" name="mapFrame" id="mapFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />
+  	<%} else if(ipType.equals(IpUtils.OUTERIP)){%>
+  		<frame src="<%=basePath%>monitorCenter/P_map.jsp" name="mapFrame" id="mapFrame"  noresize="noresize" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" />
+  	<%} %>
+  	
+  </frameset>
+<body>
+</body>
+</html>

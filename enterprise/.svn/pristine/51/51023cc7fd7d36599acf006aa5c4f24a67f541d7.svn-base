@@ -1,0 +1,56 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ page import="com.etrans.bubiao.sys.Constants"%>
+<%@ page import="com.etrans.bubiao.auth.SessionUser"%>
+<%
+	SessionUser user = new SessionUser(); //用户
+	user = (SessionUser)request.getSession().getAttribute(Constants.LOGIN_USER);
+	if(user == null)
+	{
+		response.sendRedirect("../");
+	}
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<html>
+<head>
+<base href="<%=basePath%>"></base>
+<title>道路运输车辆卫星定位企业平台</title>
+<meta http-equiv=Content-Type content=text/html;charset=utf-8>
+<link href="<%=basePath%>css/command.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="<%=basePath%>js/jq/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="${basePath}js/easyui/jquery.easyui.min.js"></script>
+<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/default/easyui.css">
+<link rel="stylesheet" type="text/css" href="${basePath}js/easyui/themes/icon.css">
+<script type="text/javascript" src="<%=basePath%>js/common/index.js"></script>
+<script type="text/javascript" src="<%=basePath%>js/common/jquery_cookie.js"></script>
+</head>
+	<!-- 上级信息、报警的显示层  class="hiddiv"-->
+   <div id="dialogs"  class="hiddiv"  style="display: none;padding:5px;top:30px;">
+			<iframe src="" id="dialogFrame" name="dialogFrame" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>
+   </div>
+	<%-- 车辆详细信息层--%>
+   	<div id="vehicleInfoDiv" class="hiddiv"  style="display: none;padding:5px;top:30px;" >  
+    	<iframe src="" id="dialogFrame2" name="dialogFrame2" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>  
+	</div>
+	<%-- 指令层--%>
+   	<div id="controlDiv" class="hiddiv"  style="display: none;padding:5px;top:30px;" >  
+    	<iframe src="" id="dialogFrame3" name="dialogFrame3" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>  
+	</div>
+	<%-- 文本下发层--%>
+   	<div id="quicklyDiv" class="hiddiv"  style="display: none;padding:5px;top:30px;" >  
+    	<iframe src="" id="dialogFrame4" name="dialogFrame4" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>  
+	</div>
+	<%-- 拍照层--%>
+   	<div id="photoDiv" class="hiddiv"  style="display: none;padding:5px;top:30px;" >  
+    	<iframe src="" id="dialogFrame5" name="dialogFrame5" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>  
+	</div>
+	<%-- 视频层--%>
+   	<div id="videoDiv" class="hiddiv"  style="display: none;padding:5px;top:30px;" >  
+    	<iframe src="" id="dialogFrame6" name="dialogFrame6" width="100%"  height="100%" frameborder="0" scrolling="yes"></iframe>  
+	</div>
+   <iframe src="common/index3.jsp" id="mainIndexFrame" width=100% height=100% marginwidth=0></iframe>
+ <body>
+ </body>
+</html>

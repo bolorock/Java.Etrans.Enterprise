@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!-- 电子运单 -->
+
+<select id="getElectronicSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$
+			</isNotNull>
+		</dynamic>
+		 )  RowNo,A.* FROM (    
+		select 
+		E.id,
+		PV.RegistrationNO as registrationNO,
+		PW.name AS workUnitName,
+		E.BillInfo as message,	
+		prc.Name AS RegistrationNOColor,
+		convert(varchar, E.ModifyDatetime,120) as createTime
+		from
+		Pub_RegistrationNOColor prc left outer join 
+		Pub_Vehicle PV on prc.id=pv.RegistrationNOColorID LEFT OUTER JOIN
+		Pub_WorkUnit PW ON PV.WorkUnitID=PW.id LEFT OUTER JOIN 
+		Ent_Bus_EWayBill E ON PV.id=E.vehicleId 
+		<isNotNull property="userId">
+		   LEFT OUTER JOIN  (SELECT * FROM Ent_UserVehicle  WHERE UserId=#userId#) UV ON PV.id=UV.VehicleID 
+		</isNotNull>
+		where 1=1
+		<![CDATA[ AND PV.isDeleted <> 1]]>
+		 <isNotNull property="isWorkUnitSuperAdmin" >
+		   <isNotNull property="fullId">
+		       <isNotEmpty property="fullId">
+		          AND PW.fullId LIKE '%$fullId$%'
+		       </isNotEmpty>
+		   </isNotNull>
+		 </isNotNull>
+		  <isNotNull property="userId">
+		           AND UV.VehicleID IS NOT null
+		  </isNotNull>
+		  <isNotEmpty property="startDate" prepend="AND">
+		      E.ModifyDatetime>=#startDate#
+        </isNotEmpty>
+        <isNotEmpty property="endDate" prepend="AND">
+		      #endDate#>=E.ModifyDatetime
+        </isNotEmpty>
+        
+         <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and pv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+		  <isEmpty property="vehicleIds">
+		    and PV.RegistrationNO like '%$registrationNO$%' 
+		  </isEmpty>
+            
+		 
+		)A
+		 ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+ </select>
+ 
+ 
+ <select id="getElectronicCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+    select 
+	count(*)
+	from
+	Pub_Vehicle PV LEFT OUTER JOIN
+	Pub_WorkUnit PW ON PV.WorkUnitID=PW.id LEFT OUTER JOIN 
+	Ent_Bus_EWayBill E ON PV.id=E.vehicleId 
+	<isNotNull property="userId">
+		 LEFT OUTER JOIN  (SELECT * FROM Ent_UserVehicle  WHERE UserId=#userId#) UV ON PV.id=UV.VehicleID 
+	</isNotNull>
+	where 1=1
+	<![CDATA[ AND PV.isDeleted <> 1]]>
+	<isNotNull property="isWorkUnitSuperAdmin" >
+		   <isNotNull property="fullId">
+		       <isNotEmpty property="fullId">
+		          AND PW.fullId LIKE '%$fullId$%'
+		       </isNotEmpty>
+		   </isNotNull>
+	</isNotNull>
+    <isNotNull property="userId">
+           AND UV.VehicleID IS NOT null
+    </isNotNull>
+     <isNotEmpty property="startDate" prepend="AND">
+		      E.ModifyDatetime>=#startDate#
+     </isNotEmpty>
+     <isNotEmpty property="endDate" prepend="AND">
+		     #endDate#>=E.ModifyDatetime
+     </isNotEmpty>
+	<isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and pv.id in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+		  <isEmpty property="vehicleIds">
+		    and PV.RegistrationNO like '%$registrationNO$%' 
+		  </isEmpty>
+ </select>
+ 
+ 
+
+  
+</sqlMap>

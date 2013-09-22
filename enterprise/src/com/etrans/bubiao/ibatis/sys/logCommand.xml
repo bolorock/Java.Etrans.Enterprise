@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+<!--企业管理员用户查询指令日志start  -->
+ <select id="getLogCommandsSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		 SELECT * FROM 
+(select 
+     A.ID,
+     A.VEHICLEID,
+     A.PC_NAME,
+     A.PTK_NAME,
+     A.PTK_ID,
+     A.REGISTRATIONNO,
+     A.SENDCONTENT,
+     A.SENDTIME,
+     A.RECEIVECONTENT,
+     A.RECEIVETIME,
+     A.PU_NAME,
+     A.RegistrationNOColor,
+     PWU.FULLID   
+ from 
+(SELECT 
+    SHC.ID, 
+    SHC.vehicleid,
+    PC.NAME AS PC_NAME,
+    PTK.NAME AS PTK_NAME,
+    PTK.ID AS PTK_ID,
+    PV.REGISTRATIONNO AS REGISTRATIONNO,
+    SHC.SENDCONTENT AS SENDCONTENT,
+    CONVERT(VARCHAR(20),SHC.SENDTIME,120) AS SENDTIME,
+    SHC.RECEIVECONTENT AS RECEIVECONTENT,
+    CONVERT(VARCHAR(20),SHC.RECEIVETIME,120) as RECEIVETIME,
+    PU.NAME AS PU_NAME,
+    prc.Name AS RegistrationNOColor,
+    PU.workUnitId as workUnitId 
+  FROM 
+    dbo.Sys_HistoricalCommand SHC
+    left join dbo.Pub_TerminalKind PTK on SHC.TERMINALKIND=PTK.KIND
+    left join dbo.Pub_Command PC on  SHC.COMMANDID=PC.ID
+    left join dbo.pub_vehicle PV on  SHC.VEHICLEID = PV.ID
+    left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID
+    left join dbo.Pub_User PU on SHC.USERID=PU.ID)A,
+    dbo.Pub_WorkUnit pwu 
+where pwu.id=a.workUnitId) C where 1=1
+        <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="PTK_NAME">
+               <isNotEmpty property="PTK_NAME" >
+                 <isNotEqual property="PTK_NAME" prepend="and" compareValue="-1">
+                    C.PTK_ID = '$PTK_NAME$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+             <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.REGISTRATIONNO like '%$REGISTRATIONNO$%'
+			  </isEmpty>
+            
+            
+            <isNotEmpty property="PC_NAME" prepend="and">
+      			C.PC_NAME like '%$PC_NAME$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeStart" prepend="and">
+      			C.SENDTIME >=#sendTimeStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeEnd" prepend="and">
+      			 #sendTimeEnd#>=C.SENDTIME
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--指令日志总数量SQL	-->
+	<select id="getLogCommandsCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	    select 
+     A.ID,
+     A.VEHICLEID,
+     A.PC_NAME,
+     A.PTK_NAME,
+     A.PTK_ID,
+     A.REGISTRATIONNO,
+     A.SENDCONTENT,
+     A.SENDTIME,
+     A.RECEIVECONTENT,
+     A.RECEIVETIME,
+     A.PU_NAME,
+     A.RegistrationNOColor,
+     PWU.FULLID   
+ from 
+(SELECT 
+    SHC.ID, 
+    SHC.VEHICLEID,
+    PC.NAME AS PC_NAME,
+    PTK.NAME AS PTK_NAME,
+    PTK.ID AS PTK_ID,
+    PV.REGISTRATIONNO AS REGISTRATIONNO,
+    SHC.SENDCONTENT AS SENDCONTENT,
+    CONVERT(VARCHAR(20),SHC.SENDTIME,120) AS SENDTIME,
+    SHC.RECEIVECONTENT AS RECEIVECONTENT,
+    CONVERT(VARCHAR(20),SHC.RECEIVETIME,120) as RECEIVETIME,
+    PU.NAME AS PU_NAME,
+    prc.Name AS RegistrationNOColor,
+    PU.workUnitId as workUnitId 
+  FROM 
+    dbo.Sys_HistoricalCommand SHC
+    left join dbo.Pub_TerminalKind PTK on SHC.TERMINALKIND=PTK.KIND
+    left join dbo.Pub_Command PC on  SHC.COMMANDID=PC.ID
+    left join dbo.pub_vehicle PV on  SHC.VEHICLEID = PV.ID
+    left join Pub_RegistrationNOColor prc on pv.RegistrationNOColorID = prc.ID
+    left join dbo.Pub_User PU on SHC.USERID=PU.ID)A,
+    dbo.Pub_WorkUnit pwu 
+where pwu.id=a.workUnitId) C where 1=1
+      
+      <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+             <isNotNull property="PTK_NAME">
+               <isNotEmpty property="PTK_NAME" >
+                 <isNotEqual property="PTK_NAME" prepend="and" compareValue="-1">
+                    C.PTK_ID ='$PTK_NAME$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.REGISTRATIONNO like '%$REGISTRATIONNO$%'
+			  </isEmpty>
+            
+            
+            <isNotEmpty property="PC_NAME" prepend="and">
+      			C.PC_NAME like '%$PC_NAME$%'
+            </isNotEmpty>
+            
+             <isNotEmpty property="sendTimeStart" prepend="and">
+      			C.SENDTIME >=#sendTimeStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeEnd" prepend="and">
+      			 #sendTimeEnd#>=C.SENDTIME
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--企业管理员用户查询指令日志start  -->	
+
+
+
+<!--普通用户查询指令日志start  -->
+ <select id="getUserLogCommandsSQLSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 id asc) RowNo,A.* from (
+		 SELECT * FROM 
+(select 
+       A.VEHICLEID,
+       A.ID,
+       A.PC_NAME,
+       A.PTK_NAME,
+       A.PTK_ID,
+       A.SENDCONTENT,
+       A.SENDTIME,
+       A.RECEIVECONTENT,
+       A.RECEIVETIME,
+       A.PU_NAME,
+       PUV.REGISTRATIONNO,
+       PUV.workunitID,
+       puv.RegistrationNOColor,
+       PUV.FULLID
+FROM
+(SELECT 
+             SHC.VEHICLEID,
+		     SHC.ID, 
+		     PC.NAME AS PC_NAME,
+             PTK.NAME AS PTK_NAME,
+             PTK.ID AS PTK_ID,
+             SHC.SENDCONTENT AS SENDCONTENT,
+             CONVERT(VARCHAR(20),SHC.SENDTIME,120) AS SENDTIME,
+             SHC.RECEIVECONTENT AS RECEIVECONTENT,
+             CONVERT(VARCHAR(20),SHC.RECEIVETIME,120) as RECEIVETIME,
+             pu.name AS PU_NAME, 
+             puv.RegistrationNOColor,
+             pu.workUnitId as workUnitId
+       FROM 
+            dbo.Sys_HistoricalCommand SHC
+            left join dbo.Pub_TerminalKind PTK on SHC.TERMINALKIND=PTK.KIND
+            left join dbo.Pub_Command PC on  SHC.COMMANDID=PC.ID
+         
+            left join dbo.Pub_User PU on SHC.USERID=PU.ID) A,     
+           (select ev.VEHICLEID,
+                   PV.REGISTRATIONNO ,
+                   PV.workunitID,
+                   prc.Name AS RegistrationNOColor,
+                   pwu.fullId
+            from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu ,Pub_RegistrationNOColor prc
+            where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID 
+            and pv.RegistrationNOColorID = prc.ID) PUV 
+            where  A.VEHICLEID = PUV.VEHICLEID) C where 1=1
+        <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+            <isNotNull property="PTK_NAME">
+               <isNotEmpty property="PTK_NAME" >
+                 <isNotEqual property="PTK_NAME" prepend="and" compareValue="-1">
+                    C.PTK_ID = '$PTK_NAME$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.REGISTRATIONNO like '%$REGISTRATIONNO$%'
+			  </isEmpty>
+            
+            <isNotEmpty property="PC_NAME" prepend="and">
+      			C.PC_NAME like '%$PC_NAME$%'
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeStart" prepend="and">
+      			C.SENDTIME >=#sendTimeStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeEnd" prepend="and">
+      			 #sendTimeEnd#>=C.SENDTIME
+            </isNotEmpty>
+		</dynamic>
+            
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+<!--指令日志总数量SQL	-->
+	<select id="getUserLogCommandsCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+	SELECT COUNT(*) 
+	FROM (
+	   select 
+       A.VEHICLEID,
+       A.ID,
+       A.PC_NAME,
+       A.PTK_NAME,
+       A.PTK_ID,
+       A.SENDCONTENT,
+       A.SENDTIME,
+       A.RECEIVECONTENT,
+       A.RECEIVETIME,
+       A.PU_NAME,
+       PUV.REGISTRATIONNO,
+       PUV.workunitID,
+       puv.RegistrationNOColor,
+       PUV.FULLID
+FROM
+(SELECT 
+             SHC.VEHICLEID,
+		     SHC.ID, 
+		     PC.NAME AS PC_NAME,
+             PTK.NAME AS PTK_NAME,
+             PTK.ID AS PTK_ID,
+             SHC.SENDCONTENT AS SENDCONTENT,
+             CONVERT(VARCHAR(20),SHC.SENDTIME,120) AS SENDTIME,
+             SHC.RECEIVECONTENT AS RECEIVECONTENT,
+             CONVERT(VARCHAR(20),SHC.RECEIVETIME,120) as RECEIVETIME,
+             pu.name AS PU_NAME, 
+              puv.RegistrationNOColor,
+             pu.workUnitId as workUnitId
+       FROM 
+            dbo.Sys_HistoricalCommand SHC
+            left join dbo.Pub_TerminalKind PTK on SHC.TERMINALKIND=PTK.KIND
+            left join dbo.Pub_Command PC on  SHC.COMMANDID=PC.ID
+         
+            left join dbo.Pub_User PU on SHC.USERID=PU.ID) A,     
+           (select ev.VEHICLEID,
+                   PV.REGISTRATIONNO ,
+                   PV.workunitID,
+                   prc.Name AS RegistrationNOColor,
+                   pwu.fullId
+            from ent_UserVehicle ev,dbo.pub_vehicle PV,dbo.Pub_WorkUnit pwu ,Pub_RegistrationNOColor prc
+            where PV.ID=EV.VEHICLEID and pwu.id=pv.workunitID 
+            and pv.RegistrationNOColorID = prc.ID) PUV 
+            where  A.VEHICLEID = PUV.VEHICLEID) C where 1=1
+      
+      <dynamic>
+            <isNotNull property="fullId">
+				<isNotEmpty property="fullId">
+					and C.FULLID like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+			
+             <isNotNull property="PTK_NAME">
+               <isNotEmpty property="PTK_NAME" >
+                 <isNotEqual property="PTK_NAME" prepend="and" compareValue="-1">
+                    C.PTK_ID ='$PTK_NAME$'
+                 </isNotEqual>
+                </isNotEmpty>
+            </isNotNull>
+            
+            <isNotNull property="vehicleIds">
+			   <isNotEmpty property="vehicleIds">
+			   and c.vehicleid in ($vehicleIds$)
+			   </isNotEmpty>
+			</isNotNull>
+			
+			  <isEmpty property="vehicleIds">
+			    and C.REGISTRATIONNO like '%$REGISTRATIONNO$%'
+			  </isEmpty>
+            
+            
+            <isNotEmpty property="PC_NAME" prepend="and">
+      			C.PC_NAME like '%$PC_NAME$%'
+            </isNotEmpty>
+            
+             <isNotEmpty property="sendTimeStart" prepend="and">
+      			C.SENDTIME >=#sendTimeStart#
+            </isNotEmpty>
+            
+            <isNotEmpty property="sendTimeEnd" prepend="and">
+      			 #sendTimeEnd#>=C.SENDTIME
+            </isNotEmpty>
+		</dynamic>
+	</select>
+<!--普通用户用户查询指令日志start  -->	
+</sqlMap>

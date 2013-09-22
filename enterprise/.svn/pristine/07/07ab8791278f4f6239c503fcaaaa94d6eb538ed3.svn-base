@@ -1,0 +1,141 @@
+/**    
+ * CommandRepository.java
+ * Create on 2010-7-30
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+
+import com.etrans.bubiao.auth.SessionUser;
+import com.etrans.bubiao.entities.AlarmModel;
+import com.etrans.bubiao.entities.GpsInfo;
+import com.etrans.bubiao.services.monitorCenter.MonitorCenterServices;
+
+/**
+* 指令操作,网络传输处理层接口
+* @author lihaiyan
+* @version 1.0
+*/
+public interface CommandRepository {
+
+	/**
+	 * 取GSP定位信息
+	 * @param commNOStr 要查询的以','隔开的终端编号串
+	 * @param vehicleMap 用户车辆map
+	 * @return List GPS信息列表
+	 * */
+	public List<GpsInfo> getGpsInfos(String vehicleIdStr, Map<String,String> vehicleMap,String mapType) throws Exception;
+	
+	/**
+	 *  取某车GSP定位信息
+	 *  @param vehicleId 车辆ID
+	 */
+	public GpsInfo getVehicleGpsInfo(String vehicleId,String mapType) throws Exception;
+	
+	/**
+	 * 判断车辆是否在线
+	 * @param vehicleId 车辆id
+	 * @return 在线返回ture,不在线返回flase
+	 * @author lihaiyan
+	 */
+	public boolean getVehicleIsOnline(String vehicleId);
+	
+	/**
+	 * 矩形区域查询
+	 * @param leftLatLon ,矩形区域左上角经纬度(经度|纬度)
+	 * @param rightLatLon , 矩形区域右下角经纬度(经度|纬度)
+	 * @param vehicleMap ,用户车辆map
+	 * @return 车辆列表List(车辆id)
+	 * */
+	public List<String> findRectangleAreaCar(String leftLatLon, String rightLatLon,Map<String,String> vehicleMap,String mapType) throws Exception  ;
+	/**
+	 * 通过SIM号取定位信息
+	 * @param vehicleId ,车辆id
+	 * @return 此SIM号的定位信息
+	 * */
+	public String getGpsInfo(String vehicleId) throws Exception;
+
+	/**
+	 * 通过车辆ID获取报警数据
+	 * @param vehicleId 
+	 * @return 此车辆的报警数据
+	 * */
+	public Queue<String> getAlarm(String vehicleId) throws Exception ;
+	
+	
+	/**
+	 * 通过车辆ID获取指令回复数据
+	 * @param vehicleId 
+	 * @return 此车辆的指令回复
+	 * */
+	public String getCommandResult(String vehicleId) throws Exception;
+	
+
+	
+
+	
+	/**
+	 * 取指令系列号
+	 * */
+	public int getSendSequence();
+
+	/**
+	 * 将发送指令插入发送队列
+	 * @param message 要插入的指令队列
+	 * */
+	public void insertCommandSendQueue(String message) throws Exception;
+	
+	/**
+	 * 通过车辆ID获取指令回复数据(摄像图片信息)
+	 * 
+	 * @param vehicleId
+	 * @return 此车辆的指令回复
+	 * */
+	public String findPictureResult(String vehicleId) throws Exception;
+	
+	
+
+	public MonitorCenterServices getMonitorCenterServices();
+	
+	/**
+	 * 判断是否有报警
+	 * @return
+	 */
+	public boolean findIsHaveAlarm(SessionUser  user);
+
+	
+	/**
+	 * 获取实时报警
+	 * @param user
+	 * @param alarmTypeNo
+	 * @return
+	 */
+	public List<AlarmModel> getRealTimeAlarm(SessionUser  user,String alarmTypeNo,String registrationNo);
+	
+	/**
+	 * 获取用户所有实时报警
+	 * @param alarmTypeNo 过滤报警类型
+	 * @param ls 查询车辆信息 （车牌号、车辆ID、车牌颜色）
+	 * @return
+	 */
+	public List<Map<String,String>> getRealTimeVehicleAlarm(String alarmTypeNo,List<HashMap<String,String>> ls) throws Exception;
+	
+	public List<Map<String,String>> getRealTimeVehicleAlarmTest(String alarmTypeNo,List<HashMap<String,String>> ls) throws Exception;
+	
+	/**
+	 * 获取下级透传数据
+	 */
+	public Queue<String> getLowerFlatQueue();
+
+	/**
+	 * 获取车辆信息
+	 */
+	public String getVehicleMessage(String vehilceId);
+	
+	
+
+}

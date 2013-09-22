@@ -1,0 +1,97 @@
+/**    
+ * PlayBackTrack.java
+ * Create on 2011-4-23
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.entities;
+
+
+/**
+ * @author lihaiyan
+ * @version 1.0
+ * @brief 回放轨迹对象
+ */
+
+public class PlayBackTrack {
+
+	 
+	
+	
+	private long gpsTime; // gps时间秒数
+	private double mileage; // 里程
+	private double gpsSpeed; // 速度
+	private double oil; // 油位
+	private String lat; // 经度
+	private String lon; // 纬度
+	private String status;// 状态
+	private String head;
+	
+	
+
+	public String getHead() {
+		return head;
+	}
+
+	public void setHead(String head) {
+		this.head = head;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public double getOil() {
+		return oil;
+	}
+
+	public void setOil(double oil) {
+		this.oil = oil;
+	}
+
+	public String getLat() {
+		return lat;
+	}
+
+	public void setLat(String lat) {
+		this.lat = lat;
+	}
+
+	public String getLon() {
+		return lon;
+	}
+
+	public void setLon(String lon) {
+		this.lon = lon;
+	}
+
+	public double getMileage() {
+		return mileage;
+	}
+
+	public void setMileage(double mileage) {
+		this.mileage = mileage;
+	}
+
+	 
+
+	public double getGpsSpeed() {
+		return gpsSpeed;
+	}
+
+	public void setGpsSpeed(double gpsSpeed) {
+		this.gpsSpeed = gpsSpeed;
+	}
+
+	public long getGpsTime() {
+		return gpsTime;
+	}
+
+	public void setGpsTime(long gpsTime) {
+		this.gpsTime = gpsTime;
+	}
+
+}

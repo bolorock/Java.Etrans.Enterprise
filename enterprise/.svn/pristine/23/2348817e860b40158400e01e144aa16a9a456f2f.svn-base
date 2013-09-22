@@ -1,0 +1,496 @@
+package com.etrans.common.util;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.cxf.common.util.StringUtils;
+
+import com.etrans.bubiao.repository.parent.ParentCommandRepository;
+
+/**
+ * 常用工具类
+ * 
+ * @author dasuan 2010-7
+ * 
+ */
+public class CommandTools {
+
+	private static final Log log = LogFactory.getLog(CommandTools.class);
+
+	/**
+	 * 前后加逗号
+	 * @return
+	 */
+	public static String cmmaStr(int commandCode){
+		return ","+""+commandCode+",";
+	}
+	
+	/**
+	 * 交换车辆静态信息
+	 */
+	public static String convertSwapVehicleInfo(String msg,ParentCommandRepository parentCommandRepository)
+			throws Exception {
+		try{
+			// ,,……
+			// 略（注：前面车辆ID和类型都为空，只展示后续字串即可）
+			String[] msgArr = msg.split(",");
+			
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：");
+			if(registrationNo!="" || registrationNoColor!=""){
+				str.append(
+						"车牌号码：" + registrationNo)
+						.append(
+								"，车牌颜色：" + registrationNoColor);
+				
+			}
+			str.append(" "+msgArr[2]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：交换车辆静态信息");
+			return null;
+		}
+		
+	}
+
+	/**
+	 * 启动车辆定位信息交换请求
+	 */
+	public static String convertVehicleGpsSwap(String msg, String commandCode)
+			throws Exception {
+		try{
+			// , ,车牌号:测A12345、车牌颜色:黄色、启动交换原因: 应急状态下车辆定位信息回传
+			// （解释：
+			// 测A12345启动车辆定位信息交换
+			// 原因：应急状态下车辆定位信息回传
+			// ）注：通讯类型和车ID为空不管此车存在与否，仅有后续描述，展示即可
+			String[] msgArr = msg.split(",");
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：" + msgArr[2]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：启动车辆定位信息交换请求");
+			return null;
+		}
+	}
+
+	/**
+	 * 结束车辆定位信息交换请求
+	 */
+	public static String convertOverVehicleGpsSwap(String msg,
+			String commandCode) throws Exception {
+		try{
+			// , ,车牌号:测A12345、车牌颜色:黄色、结束交换原因: 紧急监控完成
+			// （解释：
+			// 测A12345结束车辆定位信息交换
+			// 原因：紧急监控完成
+			// ）注：通讯类型和车ID为空不管此车存在与否，仅有后续描述，展示即可
+			String[] msgArr = msg.split(",");
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：" + msgArr[2]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：结束车辆定位信息交换请求");
+			return null;
+		}
+	}
+
+	/**
+	 * 交换车辆实时定位信息
+	 */
+	public static String convertSwapVehicleGps(String msg,ParentCommandRepository parentCommandRepository)
+			throws Exception {
+		try{
+			// 注：定位数据都在参数中带入，如时间、经纬度等，另业务描述为报警描述。
+			String[] msgArr = msg.split(",");
+			
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：");
+			if(registrationNo!="" || registrationNoColor!=""){
+				str.append(
+						"车牌号码：" + registrationNo)
+						.append(
+								"，车牌颜色：" + registrationNoColor);
+				
+			}
+			str.append("，"+msgArr[2]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：交换车辆实时定位信息");
+			return null;
+		}
+
+	}
+
+	/**
+	 * 车辆定位信息交换补发
+	 */
+	public static String convertVehicleGpsSwapSend(String msg,ParentCommandRepository parentCommandRepository) throws Exception {
+		try{
+			// 注：定位数据都在参数中带入，如时间、经纬度等，另业务描述为报警描述。
+			String[] msgArr = msg.split(",");
+			
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：");
+			if(registrationNo!="" || registrationNoColor!=""){
+				str.append(
+						"车牌号码：" + registrationNo)
+						.append(
+								"，车牌颜色：" + registrationNoColor);
+				
+			}
+			str.append("，"+msgArr[2]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：车辆定位信息交换补发");
+			return null;
+		}
+	}
+
+	/**
+	 * 解释查岗
+	 * 
+	 */
+	public static String convertChaGuan(String msg, String commandCode)
+			throws Exception {
+		try{
+			// 查岗请求
+			// ,,3,,12,中国首都在哪？
+			// （解释：
+			// 查岗对象类型：下级平台所有业户
+			// 查岗对象ID：0x000000000000000000000000
+			// 查岗信息ID：12
+			// 查岗信息内容：中国首都在哪？
+			// )
+	
+			// 查岗应答
+			// ,,3,431123987789,12,北京
+			// （解释：
+			// 查岗对象类型：下级平台所有业户
+			// 查岗对象ID：431123987789 (此为业户经营许可证号)
+			// 信息ID：12
+			// 查岗应答内容：北京
+			// )
+	
+			StringBuffer str = new StringBuffer("");
+	
+			String[] msgArr = msg.split(",");
+	
+			str.append("查岗对象类型：" + Tools.flatMap.get(msgArr[2])).append(
+					",查岗对象ID：" + msgArr[3]).append(",查岗信息ID：" + msgArr[4]).append(
+					",查岗信息内容：" + msgArr[5]).append("@@@" + msgArr[2])// 查岗对象类型
+					.append("#" + msgArr[3])// 查岗对象ID
+					.append("#" + msgArr[4]);// 信息ID
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型： 解释查岗");
+			return null;
+		}
+	}
+
+	/**
+	 * 解释报文
+	 * 
+	 */
+	public static String convertPost(String msg, String commandCode)
+			throws Exception {
+		try{
+			// ,,1,100000001002,232,下午开会
+			// （解释：
+			// 报文对象类型：当前连接的下级平台
+			// 报文对象ID：100000001002
+			// 报文信息ID：232
+			// 报文信息内容：下午开会
+			// )
+	
+			StringBuffer str = new StringBuffer("");
+	
+			String[] msgArr = msg.split(",");
+	
+			str.append("报文对象类型：" + Tools.flatPlatMap.get(msgArr[2])).append(
+					",报文对象ID：" + msgArr[3]).append(",报文信息ID：" + msgArr[4]).append(
+					",报文信息内容：" + msgArr[5]).append("@@@");
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型： 解释报文");
+			return null;
+		}
+	}
+
+	/**
+	 * 解释报警督办
+	 * 
+	 */
+	public static String convertOverseeing(String msg,ParentCommandRepository parentCommandRepository) throws Exception {
+		try{
+			// 报警督办请求
+			// 800,112,1,3,20120626123030,2123,
+			// 20120627123030,0,张三,13912345678,TEST@TEST.COM
+			// （解释：
+			// 0通讯类型：800
+			// 1车辆ID：112
+			// 2报警信息来源：车载终端
+			// 3报警类型：紧急报警
+			// 4报警时间：2012年6月26日 12:30:30
+			// 5报警督办ID：2123
+			// 6督办截止时间：2012年6月27日 12:30:30
+			// 7督办级别：紧急
+			// 8督办人：张三
+			// 9督办联系电话：13912345678
+			// 10督办联系电子邮件：TEST@TEST.COM
+			// ）
+	
+			// 报警督办应答
+			// 800,1224,13453,1
+			// （解释：
+			// 终端通讯类型：800
+			// 车辆ID：1224
+			// 报警督办ID：13453
+			// 报警处理结果：已处理完毕
+			// )
+	
+			StringBuffer str = new StringBuffer("");
+			String[] msgArr = msg.split(",");
+	
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+	
+			str.append("通讯类型：" + msgArr[0])
+			.append(
+					"，车牌号码：" + registrationNo)
+			.append(
+					"，车牌颜色：" + registrationNoColor)
+			.append(
+					"，报警信息来源：" + Tools.alarmSourceStrMap.get(msgArr[2]))
+					.append(
+					"，报警类型：" + Tools.alarmTypeMap.get(msgArr[3]))
+					.append(
+					"，报警时间：" + msgArr[4]).append(",督办截止时间:" + msgArr[6])
+					.append(
+					"，督办级别：" + Tools.overseeingMap.get(msgArr[7]))
+					.append(
+					"，督办人：" + msgArr[8]).append(",督办联系电话:" + msgArr[9])
+					.append(
+					"，督办联系电子邮件：" + msgArr[10])
+					.append("@@@" + msgArr[0])// 终端通讯类型
+					.append("#" + msgArr[1])// 车辆ID
+					.append("#" + msgArr[5])// 报警督办ID
+					.append("#" + msgArr[3])// 报警类型ID
+					.append("#" + msgArr[4]);// 报警时间
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型： 解释报警督办");
+			return null;
+		}
+	}
+
+	/**
+	 * 报警预警
+	 */
+	public static String convertAlarmAdvance(String msg,ParentCommandRepository parentCommandRepository) throws Exception {
+		try{
+			// 800,112,3,6,20120626123030,前面道路发生堵塞
+			// （解释：
+			// 0通讯类型：800
+			// 1车ID：112
+			// 2报警信息来源：政府监管平台
+			// 3报警类型：路段堵塞报警
+			// 4报警时间：2012年6月26日 12:30:30
+			// 5报警描述：前面道路发生堵塞
+			// ）
+			String[] msgArr = msg.split(",");
+	
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：");
+			if(registrationNo!="" || registrationNoColor!=""){
+				str.append("通讯类型：" + msgArr[0])
+				.append(
+						"，车牌号码：" + registrationNo)
+						.append(
+								"，车牌颜色：" + registrationNoColor);
+				
+			}
+					str.append(
+					"，报警信息来源：" + Tools.alarmSourceStrMap.get(msgArr[2]))
+					.append(
+					"，报警类型：" + Tools.alarmTypeMap.get(msgArr[3]))
+					.append(
+					"，报警时间：" + msgArr[4])
+					.append("，报警描述：" + msgArr[5]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型： 报警预警");
+			return null;
+		}
+	}
+
+	/**
+	 * 实时交换报警
+	 */
+	public static String convertRealSwapAlarm(String msg,ParentCommandRepository parentCommandRepository) throws Exception {
+		try{
+			// 800,112,1,1,20120626123030,超速门限120km/h
+			// （解释：
+			// 0通讯类型：800
+			// 1车ID：112
+			// 2报警信息来源：车载终端
+			// 3报警类型：超速报警
+			// 4报警时间：2012年6月26日 12:30:30
+			// 5报警描述：超速门限120km/h
+			// ）
+	
+			String[] msgArr = msg.split(",");
+	
+			String registrationNo ="";
+			String registrationNoColor ="";
+			
+			String vehicleInfo  = parentCommandRepository.getVehicleMessage(msgArr[1]);
+			
+			
+			if(!StringUtils.isEmpty(vehicleInfo)){
+				String[] vehicleInfoArr = vehicleInfo.split("\\|");
+				registrationNo = vehicleInfoArr[0];//车牌号码;
+				registrationNoColor = vehicleInfoArr[1];//车牌颜色
+			}
+			
+			StringBuffer str = new StringBuffer("");
+			str.append("描述：");
+			if(registrationNo!="" || registrationNoColor!=""){
+				str.append("通讯类型：" + msgArr[0])
+				.append(
+						"，车牌号码：" + registrationNo)
+						.append(
+								"，车牌颜色：" + registrationNoColor);
+				
+			}
+					str.append(
+					",报警信息来源:" + Tools.alarmSourceStrMap.get(msgArr[2]))
+					.append(
+					",报警类型:" + Tools.alarmTypeMap.get(msgArr[3]))
+					.append(
+					",报警时间:" + msgArr[4])
+					.append(",报警描述:" + msgArr[5]);
+	
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：实时交换报警");
+			return null;
+		}
+	}
+
+	/**
+	 * 上级下发应答信息通用描述：（增加指令）	
+	 */
+	public static String convertUpCustomAnswer(String msg,String commandCode){
+		try{
+			//		,, 37385,成功，上级平台即可补发
+			//		补发车辆定位信息应答：成功，上级平台即可补发
+			//		注：车辆ID和终端类型均为空。
+	
+			String[] msgArr = msg.split(",");
+			StringBuffer str = new StringBuffer("");
+			str.append("上级下发应答类型："+Tools.upAnswerMap.get(msgArr[2]))
+				.append(",描述："+msgArr[3]);
+			
+			return str.toString();
+		}catch(Exception e){
+			log.equals("错误类型：上级下发应答信息通用描述：（增加指令）");
+			return null;
+		}
+	}
+	
+	/**
+	 * 20120711101038
+	 * @param str
+	 * @return
+	 * @throws Exception
+	 */
+	public static String formatStr2Date(String str) throws Exception{
+		StringBuffer date = new StringBuffer("");
+		
+		date.append(str.substring(0,4)+"-")
+			.append(str.substring(4,6)+"-")
+			.append(str.substring(6,8)+" ")
+			.append(str.substring(8,10)+":")
+			.append(str.substring(10,12)+":")
+			.append(str.substring(12,14));
+		return date.toString();
+	}
+	
+	public static void main(String[] args){
+//		20120711101038
+		System.out.print("20120711101038".substring(0,4)+"-");
+		System.out.print("20120711101038".substring(4,6)+"-");
+		System.out.print("20120711101038".substring(6,8)+" ");
+		System.out.print("20120711101038".substring(8,10)+":");
+		System.out.print("20120711101038".substring(10,12)+":");
+		System.out.print("20120711101038".substring(12,14));
+	}
+	
+}

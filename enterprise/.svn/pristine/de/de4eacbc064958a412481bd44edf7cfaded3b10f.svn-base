@@ -1,0 +1,741 @@
+package com.etrans.bubiao.action.http.mobile;
+
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.convention.annotation.Action;
+import org.apache.struts2.convention.annotation.Namespace;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+
+import com.etrans.bubiao.action.http.Config;
+import com.etrans.bubiao.action.http.HttpServiceAction;
+import com.etrans.bubiao.action.http.TicketManager;
+import com.etrans.bubiao.action.http.UserInfoManager;
+import com.etrans.bubiao.entities.HttpResult;
+import com.etrans.bubiao.entities.ParamBean;
+import com.etrans.bubiao.repository.CommandRepository;
+import com.etrans.bubiao.services.IbatisServices;
+import com.etrans.common.util.Tools;
+import com.etrans.common.util.json.JSONUtil;
+
+/**
+ * 报警相关接口程序
+ * 
+ * @author 柚子
+ * @since 2012-11-28
+ * @version 1.0
+ */
+@SuppressWarnings("serial")
+@Controller("eTGetAlarmInfoAction")
+@Scope("prototype")
+@Namespace("/httpMobile")
+public class ETGetAlarmAction extends HttpServiceAction
+{
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	@Autowired(required = true)
+	private IbatisServices ibatisServices;
+	
+	
+	@Autowired
+	private CommandRepository commandRepository;
+	
+	
+//	/**
+//	 * http://localhost:8080/enterprise/httpMobile/ETGetAlarmList.action?jsonParam={"name":"1111","password":"C519F290"}
+//	 * 取用户下所有车辆的最新报警信息
+//	 */
+//	@SuppressWarnings("unchecked")
+//	@Action(value = "ETGetAlarmList")
+//	public void eTGetAlarmList() 
+//	{
+//		 //返回对象
+//		HttpResult result = new HttpResult();
+//		ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+//		Map param=new HashMap<String, Object>();
+//		List<Map<String, Object>> lists = new ArrayList<Map<String,Object>>();
+//		param.put("userName", paramBean.getName().toString().trim());
+//		param.put("passWord", paramBean.getPassword().toString().trim());
+//		
+//		//验证用户
+//		lists=ibatisServices.queryForList(Map.class,"getUserNameSQL",param);
+//		Map<String, Object> map = new  HashMap<String, Object> ();
+//		map =lists.get(0);
+//		
+//		param.put("userId",map.get("userId"));
+//		
+//		System.out.println("userId======:"+map.get("userId"));
+//		
+//		Map<String, Object> paramMap = new  HashMap<String, Object> ();
+//		List<String> alarmStringList=new ArrayList<String>();
+//		if(lists.size()==0){
+//			// 返回json数据
+//			result.setCode(1);//1:帐户有误
+//			this.renderJSON(result);
+//		}else{
+//			lists=ibatisServices.queryForList(Map.class,"getRegistrationNoIDSQL",param);
+//			for (int i = 0; i < lists.size(); i++) {
+//				
+//				map = lists.get(i);
+//				
+//				param.put("vehicleId", map.get("vehicleId"));
+//				param.put("registrationNo", map.get("registrationNo"));
+//				
+//				System.out.println("vehicleId=====:"+map.get("vehicleId").toString());
+//				
+//				System.out.println("registrationNo=====:"+map.get("registrationNo").toString());
+//				try {
+//					
+//					Queue<String> businessQueue=this.commandRepository.getAlarm(String.valueOf(map.get("vehicleId").toString()));
+//					WebServiceAlarmInfo alarms=this.toAlarmInfo(businessQueue);
+//					alarms.setRegistrationNo(map.get("registrationNo").toString());
+//					alarmStringList.add(alarms.toString());
+//					
+//					System.out.println("jsonString=======："+alarms.toString());
+//					
+//					String[] arr=alarms.toString().split(",");
+//					
+//					paramMap.put("registrationNo", arr[0]);//车牌号码
+//					paramMap.put("alarmType", arr[1]);//报警类型
+//					paramMap.put("alarmContent", arr[2]);//报警内容
+//					paramMap.put("longitude", arr[3]);//经度
+//					paramMap.put("latitude", arr[4]);//纬度
+//					paramMap.put("speed", arr[5]);//速度
+//					paramMap.put("head", arr[6]);//方向
+//					paramMap.put("gpsValid", arr[7]);//是否有效定位 盲区或者准确
+//					paramMap.put("gpsState", arr[8]);//状态信息
+//					paramMap.put("gpsMileage", arr[9]);//里程
+//					paramMap.put("gpsOil", arr[10]);//油位
+//					paramMap.put("gpsTime", arr[11]);//定位时间
+//					paramMap.put("alarmDesc", arr[12]);//报警描述
+//					result.setCode(0);
+//					result.setData(paramMap);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			
+//			
+//		}
+//		this.renderJSON(result);
+//	}
+//	
+//	/**
+//	 * http://localhost:8080/enterprise/httpService/ETGetAlarm.action?jsonParam={"name":"1111","password":"C519F290","vehicleNo":"粤A12345"}
+//	 * 取某辆车的最新报警信息
+//	 */
+//	@SuppressWarnings("unchecked")
+//	@Action(value = "ETGetAlarm")
+//	public void eTGetAlarm()
+//	{
+//		 //返回对象
+//		HttpResult result = new HttpResult();
+//		ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+//		Map param=new HashMap<String, Object>();
+//		List<Map<String, Object>> lists = new ArrayList<Map<String,Object>>();
+//		param.put("userName", paramBean.getName().toString().trim());
+//		param.put("passWord", paramBean.getPassword().toString().trim());
+//		
+//		//验证用户
+//		lists=ibatisServices.queryForList(Map.class,"getUserNameSQL",param);
+//		Map<String, Object> map = new  HashMap<String, Object> ();
+//		map =lists.get(0);
+//		
+//		param.put("userId",map.get("userId"));
+//		
+//		System.out.println("userId======:"+map.get("userId"));
+//		
+//		Map<String, Object> paramMap = new  HashMap<String, Object> ();
+//		List<String> alarmStringList=new ArrayList<String>();
+//		if(lists.size()==0){
+//			// 返回json数据
+//			result.setCode(1);//1:帐户有误
+//			this.renderJSON(result);
+//		}else{
+//			String registrationNo="";
+//			//取客户端传来的车牌号码
+//			try {
+//				registrationNo = new String(paramBean.getVehicleNo().getBytes("ISO-8859-1"),"gbk");
+//				param.put("RegistrationNo", new String(paramBean.getVehicleNo().getBytes("ISO-8859-1"),"gbk"));
+//				//验证车牌号码 是否属于这个用户
+//				lists=ibatisServices.queryForList(Map.class,"getRegistrationNoSQL",param);
+//				
+//				if(lists.size()==0){
+//					// 返回json数据
+//					result.setCode(1);//1:帐户有误
+//					this.renderJSON(result);
+//				}else{
+//					//根据车牌号码 查询 车牌ID
+//					lists=ibatisServices.queryForList(Map.class,"getVehicleIdSQL",param);
+//					map =lists.get(0);
+//					try {
+//						Queue<String> businessQueue = this.commandRepository.getAlarm(String.valueOf(map.get("id").toString()));
+//						WebServiceAlarmInfo alarms=this.toAlarmInfo(businessQueue);
+//						alarms.setRegistrationNo(registrationNo.toString());
+//						alarmStringList.add(alarms.toString());
+//						
+//						System.out.println("取某辆车的最新报警信息=======："+alarms.toString());
+//						
+//						String[] arr=alarms.toString().split(",");
+//						
+//						paramMap.put("registrationNo", arr[0]);//车牌号码
+//						paramMap.put("alarmType", arr[1]);//报警类型
+//						paramMap.put("alarmContent", arr[2]);//报警内容
+//						paramMap.put("longitude", arr[3]);//经度
+//						paramMap.put("latitude", arr[4]);//纬度
+//						paramMap.put("speed", arr[5]);//速度
+//						paramMap.put("head", arr[6]);//方向
+//						paramMap.put("gpsValid", arr[7]);//是否有效定位盲区或者准确
+//						paramMap.put("gpsState", arr[8]);//状态信息
+//						paramMap.put("gpsMileage", arr[9]);//里程
+//						paramMap.put("gpsOil", arr[10]);//油位
+//						paramMap.put("gpsTime", arr[11]);//定位时间
+//						paramMap.put("alarmDesc", arr[12]);//报警描述
+//						result.setCode(0);
+//						result.setData(paramMap);
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//					}
+//					
+//				}
+//			} catch (UnsupportedEncodingException e) {
+//				e.printStackTrace();
+//			}
+//			
+//		}
+//		this.renderJSON(result);
+//	}
+//	
+//	
+//	/**
+//	 * 把报警信息组装成报警对象
+//	 * @author lihaiyan
+//	 * @param gpsInfo
+//	 * @return WebServiceAlarmInfo
+//	 * @createTime 2011-12-22
+//	 */
+//	private WebServiceAlarmInfo toAlarmInfo(Queue<String> businessQueue){
+//		WebServiceAlarmInfo gps=new WebServiceAlarmInfo();
+//		if(businessQueue!=null){
+//			
+//				String[] businessQueueStrs = businessQueue.toArray(new String[]{});
+//				if(null != businessQueueStrs)
+//				{
+//					for (String str : businessQueueStrs)
+//				   {   
+//					  	if(StringUtils.isNotEmpty(str))
+//						{  
+//							 String [] tempStr=StringUtils.split(str, "|");
+//						     String dateStr = tempStr[1];//获取时间
+//							 String [] strs =StringUtils.split(tempStr[0], ",");
+//							
+//							if(tempStr[0].contains(",1,")) //业务代码中有,1,开头的才是报警
+//							{
+//								gps.setGpsValid(true);
+//								gps.setAlarmType(strs[2]);
+//								if(strs.length>3){
+//									gps.setAlarmDesc(strs[3]);
+//								}else{
+//									gps.setAlarmDesc(strs[2]);
+//								}
+//								Long date=Long.parseLong(dateStr);//产生时间
+//								gps.setGpsTime(sdf.format(date));
+//							}
+//						}
+//					}
+//			}
+//		}
+//         return gps;
+//	}
+	
+	/**
+	 *http://localhost:80/enterprise/httpService/ETGetRealAlarmByUser.action?jsonParam={"userID":"51","ticket":"1358835197986-5021"}
+	 *{"code":0,"data":[
+		{"gpsMileage1":"13970490","gpsMileage2":"13970490","vehicleID":"861","registrationNO":"湘KY3267","registraionColor":"黄","speed1":"0","speed2":"0","longitude":"112.0","latitude":"28.0","alarmType":"超时停车","head":"西北向","alarmDesc":" ","alarTime":"2013-01-24 11:44:11"},
+		{"gpsMileage1":"13970490","gpsMileage2":"13970490","vehicleID":"861","registrationNO":"湘KY3267","registraionColor":"黄","speed1":"0","speed2":"0","longitude":"112.0","latitude":"28.0","alarmType":"超时停车","head":"西北向","alarmDesc":" ","alarTime":"2013-01-24 11:43:40"}
+	  ]}	 
+	 *1.6.8	获取用户下所有车辆实时报警接口
+	 */
+	@Action(value = "ETGetRealAlarmByUser")
+	public void ETGetRealAlarmByUser() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				Map<String,Object> map = new HashMap<String,Object>();
+				map.put("workUnitID", UserInfoManager.getInstance().getUserInfo(userID));
+				
+				List<HashMap<String,String>> ls = this.ibatisServices.findIbatisList("getUserVehicleIDByWorkUnitIDSQL",map);
+				
+				List<Map<String,String>> resultls = this.commandRepository.getRealTimeVehicleAlarm("-1",ls);
+				
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	
+	/**
+	 *http://localhost:80/enterprise/httpService/ETGetRealAlarmByVehicleID.action?jsonParam={"userID":"51","ticket":"1358835197986-5021",vehicleId="861"}
+	 *{"code":0,"data":[
+		{"gpsMileage1":"13970490","gpsMileage2":"13970490","vehicleID":"861","registrationNO":"湘KY3267","registraionColor":"黄","speed1":"0","speed2":"0","longitude":"112.0","latitude":"28.0","alarmType":"超时停车","head":"西北向","alarmDesc":" ","alarTime":"2013-01-24 11:44:11"},
+		{"gpsMileage1":"13970490","gpsMileage2":"13970490","vehicleID":"861","registrationNO":"湘KY3267","registraionColor":"黄","speed1":"0","speed2":"0","longitude":"112.0","latitude":"28.0","alarmType":"超时停车","head":"西北向","alarmDesc":" ","alarTime":"2013-01-24 11:43:40"}
+	  ]}	 
+	 *1.6.9	获取用户某车辆实时报警接口
+	 */
+	@Action(value = "ETGetRealAlarmByVehicleID")
+	public void ETGetRealAlarmByVehicleID() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			String vehicleID = paramBean.getVehicleId().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				Map<String,Object> map = new HashMap<String,Object>();
+				map.put("workUnitID", UserInfoManager.getInstance().getUserInfo(userID));
+				map.put("vehicleID", vehicleID);
+				
+				List<HashMap<String,String>> ls = this.ibatisServices.findIbatisList("getUserVehicleIDByWorkUnitIDSQL",map);
+				
+				List<Map<String,String>> resultls = this.commandRepository.getRealTimeVehicleAlarmTest("-1",ls);
+				
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	
+	/**
+	 *http://localhost:80/enterprise/httpService/ETGetHistoryAlarm.action?jsonParam={"userID":"51","ticket":"1358835197986-5021" ,vehicleIdList:["301","302"]} 
+	 *1.6.12	获取某辆车的某段时间内的历史报警数据
+	 */
+	@Action(value = "ETGetHistoryAlarm")
+	public void ETGetHistoryAlarm() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		SimpleDateFormat  format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		
+		Date dateStart = null;
+		Date dateEnd = null;
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			String userID = paramBean.getUserID().trim();
+			String vehicleID = paramBean.getVehicleId().trim();
+			String startDate = paramBean.getStartDate();
+			String endDate = paramBean.getEndDate();
+			dateStart = format.parse(startDate);
+			dateEnd = format.parse(endDate);
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			if(dateEnd.getTime()-dateStart.getTime()>1){
+//				int year=dateStart.getYear();
+//				int month=dateStart.getMonth();
+//				int data = dateStart.getDate();
+//				int hour=dateStart.getHours();
+//				int minutes=dateStart.getMinutes();
+//				int seconds=dateStart.getSeconds();
+//				
+//				System.out.println("year："+year+"=month=:"+month+"data:"+data+"==hour:"+hour+"==minutes:"+minutes+"---seconds:"+seconds);
+				
+				Calendar cal= Calendar.getInstance();
+				cal.setTime(dateStart);
+				cal.add(Calendar.HOUR_OF_DAY,1);
+				dateStart = cal.getTime();
+				dateEnd = format.parse(endDate);
+				
+			}
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+//			List<String> paramLs =  null;
+//			
+//			if(paramBean.getVehicleIdList().size()>10){
+//				paramLs =  paramBean.getVehicleIdList().subList(0, 9);
+//			}else{
+//				paramLs =  paramBean.getVehicleIdList();
+//			}
+			
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				Map<String,Object> map = new HashMap<String,Object>();
+				map.put("vehicleID", vehicleID);
+				map.put("startDate", dateStart);
+				map.put("endDate", dateEnd);
+				
+				
+				List<HashMap<String,String>> ls = this.ibatisServices.findIbatisList("getHistoryAlarmSQL",map);
+				
+//				List<Map<String,String>> resultls = this.commandRepository.getRealTimeVehicleAlarm("-1",ls);
+				
+				String str = JSONUtil.toJson(ls);
+				result.setData(str);
+				
+				
+//				result.setData(ls);
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	/**
+	 * http://localhost:8080/enterprise/httpMobile/ETGetAlarmType.action?jsonParam={"ticket":"1358835197986-5021"} 
+	 * 获取报警类型
+	 * @author hgq
+	 */
+	@Action(value = "ETGetAlarmType")
+	public void ETGetAlarmType() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String ticket = paramBean.getTicket().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				
+				List<HashMap<String,String>> resultls = this.ibatisServices.findIbatisList("getAlarmTypeSQL");
+				
+				
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	/**
+	 * http://localhost:8080/enterprise/httpMobile/ETGetAlarmAttaction.action?jsonParam={"userID":"51","ticket":"1358835197986-5021"} 
+	 * 获取报警关注
+	 * @author hgq
+	 */
+	@Action(value = "ETGetAlarmAttaction")
+	public void ETGetAlarmAttaction() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String userId = paramBean.getUserID().trim();
+			String ticket = paramBean.getTicket().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				Map<String,Object> map = new HashMap<String,Object>();
+				map.put("userId", userId);
+				List<HashMap<String,String>> resultls = this.ibatisServices.findIbatisList("getAlarmAttactionSQL", map);
+				
+				
+				String str = JSONUtil.toJson(resultls);
+				result.setData(str);
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	/**
+	 * http://localhost:8080/enterprise/httpMobile/ETSetAlarmAttaction.action?jsonParam={"userID":"51","ticket":"1358835197986-5021",alarmTypeIdList:["1","2","3","4"]} 
+	 * 设置报警关注
+	 * @author hgq
+	 */
+	@Action(value = "ETSetAlarmAttaction")
+	public void ETSetAlarmAttaction() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String userId = paramBean.getUserID().trim();
+			String ticket = paramBean.getTicket().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+				for (String alarmTypeId : paramBean.getAlarmTypeIdList()) {
+					Map<String,Object> map = new HashMap<String,Object>();
+					map.put("userId",userId);
+					map.put("alarmTypeId",alarmTypeId);
+					this.ibatisServices.insertIbatisObject("addAlarmAttactionSQL",map);
+				}
+				
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+	
+	/**
+	 * http://localhost:8080/enterprise/httpMobile/ETDeleteAlarmAttaction.action?jsonParam={"userID":"51","ticket":"1358835197986-5021",alarmTypeIdList:["1","2","3","4"]} 
+	 * 取消报警关注
+	 * @author hgq
+	 */
+	@Action(value = "ETDeleteAlarmAttaction")
+	public void ETDeleteAlarmAttaction() throws Exception 
+	{
+
+		//返回结果
+		HttpResult result = new HttpResult();
+		
+		try{
+			boolean flag = true;
+			result.setCode(Config.SUCCESS);
+			
+			/****************数据验证*********START***************/
+			//步骤一：解释参数
+			ParamBean paramBean = JSONUtil.fromJson(super.jsonParam,ParamBean.class);
+			
+			//步骤二：获取参数
+			String userId = paramBean.getUserID().trim();
+			String ticket = paramBean.getTicket().trim();
+			
+			//步骤三：判断安全票据是否为空
+			if(StringUtils.isEmpty(ticket)){
+				result.setCode(Config.TICKET_ENPTY);
+				flag = false;
+			}
+			
+			//步骤四：验证用户是否失效
+			if(TicketManager.getInstance().checkTicketAble(ticket)){
+				result.setCode(Config.TICKET_UNABLE);
+				flag = false;
+			}
+			/****************数据验证********END****************/
+			if(flag){
+				/****************返回结果********START****************/
+				//步骤五：组装返回对象
+					Map<String,Object> map = new HashMap<String,Object>();
+					map.put("userId",userId);
+					map.put("alarmTypeIdList",paramBean.getAlarmTypeIdList());
+					this.ibatisServices.deleteIbatisObject("deleteAlarmAttactionSQL", map);
+				
+				/****************返回结果********END****************/
+				
+				/****************更新票据有效时间********START****************/
+				//步骤六：更新票据有效时间
+				TicketManager.getInstance().putTicket(ticket);
+				
+				/****************更新票据有效时间********START****************/
+			}
+		}catch(Exception e){
+			result.setCode(Config.OTHER_ERROR);
+			log.error("["+Tools.formatDate(new Date())+"]---->",e);
+		}
+		
+		this.renderJSON(result);
+	}
+}

@@ -1,0 +1,95 @@
+/**    
+ * CommandBusinessQueue.java
+ * Create on 2010-8-18
+ * Copyright (c) 2010 by e_trans. 
+ */
+package com.etrans.bubiao.repository;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.etrans.bubiao.sys.Constants;
+
+/**
+ * 指令接收队列
+ * @author lihaiyan
+ * @version 1.0
+ */
+public class AlarmQueue {
+	private ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();// 队列
+
+	private final Log logger = LogFactory.getLog(AlarmQueue.class.getName());
+
+	/**
+	 * 将值存入队列中
+	 * */
+	public synchronized void produce(String message) {
+		try {
+			if (null != message && message.length() > 3) {
+				while (queue.size() == Constants.BusinessQueueMaxNum) {
+					queue.poll();
+				}
+				queue.add(message);
+				this.notifyAll();
+			}
+		} catch (Exception e) {
+			logger.info("指令数据入队列出错,密文:" + message);
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 取队列
+	 * */
+	public ConcurrentLinkedQueue<String> getBusinessQueue() {
+		while (queue.size() == Constants.BusinessQueueMaxNum) {
+			queue.poll();
+		}
+		// 流水号,业务流水号,业务代码,业务内容,是否定位,纬度,经度,速度,方向,状态,里程,油位,GPS时间,业务描述|当前毫秒数
+		return queue;
+	}
+
+	/**
+	 * 处理后的报警
+	 * */
+	public void alarmProduct(String handleAlarm) {
+		while (queue.size() == Constants.BusinessQueueMaxNum) {
+			queue.poll();
+		}
+		queue.add(handleAlarm);
+	}
+
+	/**
+	 * 取队列值,并删除所取值
+	 * */
+	public synchronized String consume() {
+		String message = null;
+		if (!queue.isEmpty()) {
+			message = (String) queue.poll();
+		}else{
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return message;
+	}
+
+	/**
+	 * 清空队列
+	 * */
+	public void clearBusinessQueue() {
+		queue.clear();
+	}
+
+	/**
+	 * 删除队列中的某值
+	 * */
+	public void removeBusinessQueue(String businessQueue) {
+		queue.remove(businessQueue);
+	}
+}

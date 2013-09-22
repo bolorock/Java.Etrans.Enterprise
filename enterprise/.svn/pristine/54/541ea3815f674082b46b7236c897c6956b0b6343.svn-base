@@ -1,0 +1,58 @@
+package com.etrans.bubiao.sys;
+
+import java.io.PrintWriter;
+import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
+
+import com.etrans.common.util.json.JSONUtil;
+
+public class TrackPlayBackThread implements Runnable {
+	private boolean running = true;
+	private HttpServletResponse connect;
+	private List<String> list;
+	private boolean isEnd=false;
+
+	public TrackPlayBackThread(HttpServletResponse connect,List<String> list,boolean isEnd) {
+		this.connect = connect;
+		this.list=list;
+		this.isEnd=isEnd;
+	}
+
+	@Override
+	public void run() {
+		String jsonString = "false";;
+		while (running && connect!=null) {
+			try {
+				//Thread.sleep(5000);
+				PrintWriter out= connect.getWriter();
+				if (!isEnd){
+					if (list!=null){
+					    jsonString =JSONUtil.toJson(list);
+						System.out.println("send:(size:"+list.size()+")"+jsonString);
+						out.println(jsonString);
+					}
+				}
+				else {
+					System.out.println("send:isEnd");
+					out.println("isEnd");
+				}
+
+				// 必须刷新
+				out.flush();
+				/**
+				 * 基于长轮询的方式，每一次发送完信息，都会建立一个新的请求 当建立了新请求之后，原有repsonse就没有意义了，必须关闭
+				 */
+				out.close();
+				connect = null;
+				list=null;
+				isEnd=false;
+			} catch (Exception e) {
+				connect = null;
+				list=null;
+				isEnd=false;
+				e.printStackTrace();
+			}
+		}
+	}
+}

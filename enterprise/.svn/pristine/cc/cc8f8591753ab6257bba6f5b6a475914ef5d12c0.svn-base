@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+   <!-- 车辆在线率统计 -->
+  <select id="vehicleOnlinePercentTASQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+      SELECT * FROM(
+		 			SELECT ROW_NUMBER() OVER (
+						<dynamic prepend="order by">
+						  	<isNotNull property="VehicleIDOrder" prepend=",">
+								C.VehicleID $VehicleIDOrder$
+							</isNotNull>
+						  	<isNotNull property="registrationNoOrder" prepend=",">
+								C.registrationNo $registrationNoOrder$
+							</isNotNull>
+						  	<isNotNull property="workUnitNameOrder" prepend=",">
+								C.workUnitName $workUnitNameOrder$
+							</isNotNull>
+						  	<isNotNull property="vehiclecountOrder" prepend=",">
+								C.vehiclecount $vehiclecountOrder$
+							</isNotNull>
+						  	<isNotNull property="onLineRateOrder" prepend=",">
+								C.onLineRate $onLineRateOrder$
+							</isNotNull>
+						  	
+				   </dynamic>
+		 			) RowNo,
+				 C.VehicleID as VehicleID     ,C.registrationNo as registrationNo     ,C.workUnitID as workUnitID     ,
+				 C.workUnitName as workUnitName     ,C.vehiclecount as vehiclecount     ,C.onLineRate as onLineRate     ,
+				 (100-C.onLineRate) AS offLineRate      from (
+                  select       B.VehicleID     ,B.registrationNo     ,B.workUnitID     ,B.workUnitName     ,
+				   convert(decimal(10,2),(cast(B.RealOnlineTime as DECIMAL(18,2)))/10) as vehiclecount     ,
+				   convert(decimal(10,2),100*(cast(B.RealOnlineTime as DECIMAL(18,2)))/(144*#timeDay#)) as onLineRate     
+				   from (select bvi.ID as VehicleID     ,bvi.registrationNo as registrationNo     ,bvi.workUnitId as workUnitID     ,
+				   bu.name as workUnitName     ,isnull(A.RealOnlineTime,0) as RealOnlineTime     
+				   from Pub_Vehicle bvi     
+				   left outer join (select sum(bv.RealOnlineTime) as RealOnlineTime ,bv.VehicleID from bi_hta_vehicle_online_rate bv     
+				   where bv.CreateTime >= cast('2013-07-22 00:00:00' AS dateTime)     AND cast('2013-07-22 23:59:59' AS dateTime) >= bv.  CreateTime     
+				   GROUP BY VehicleID) A on A.VehicleID=bvi.id        
+				   left outer join pub_workUnit bu on bu.id=bvi.workUnitId  
+				   <dynamic prepend="where"> 
+			         <![CDATA[bvi.isDeleted <> 1]]> 
+				   </dynamic>
+				    ) B) C  
+				
+			  <isEqual property="isWorkUnitSuperAdmin" compareValue="1">
+			       inner  join (select pv.ID from (select id from pub_workUnit bi where bi.FullID  like '%$fullId$%') pw 
+				   inner  join Pub_Vehicle pv on pv.workUnitId=pw.id) XX on xx.id=C.VehicleID
+			  </isEqual>
+	    	
+			  <isEqual property="isWorkUnitSuperAdmin" compareValue="2">
+			    inner  join (select pv.ID from (select vehicleID from Ent_userVehicle ev where ev.userid  like '%$userId$%') ev    
+                inner  join Pub_Vehicle     pv on pv.id=ev.vehicleID ) XX on xx.id=C.VehicleID 
+			  </isEqual>
+			<dynamic prepend="where 1=1 ">  
+		   <isNotEmpty property="workUnitNameWhere">
+		      <isNotNull property="workUnitNameWhere">
+		          and C.workUnitName='$workUnitNameWhere$'
+		      </isNotNull> 
+		   </isNotEmpty>
+		     
+		     <isNotEmpty property="registrationNo">
+		      <isNotNull property="registrationNo">
+		          and C.registrationNo like '%$registrationNo$%'
+		      </isNotNull> 
+		   </isNotEmpty>
+		</dynamic>
+		)A  
+		<dynamic prepend="where">
+			<isNotNull property="fromRow">
+				A.RowNo BETWEEN $fromRow$ AND $toRow$ 
+			</isNotNull>
+		</dynamic>
+  </select>
+
+  <select id="vehicleOnlinePercentCountTASQL" parameterClass="java.util.HashMap" resultClass="Long">
+            select 
+				 count(*)
+				from (
+				 select bvi.ID as VehicleID
+				,bvi.registrationNo as registrationNo
+				,bvi.workUnitId as workUnitID
+				,bu.name as workUnitName
+				,isnull(A.RealOnlineTime,0) as RealOnlineTime
+				from Pub_Vehicle bvi
+				left outer join (select sum(bv.RealOnlineTime) as RealOnlineTime ,bv.VehicleID from bi_hta_vehicle_online_rate bv
+				where bv.CreateTime >= cast(#startDate# AS dateTime)
+				AND cast(#endDate# AS dateTime) >= bv.CreateTime
+				GROUP BY VehicleID) A on A.VehicleID=bvi.id
+				left outer join pub_workUnit bu on bu.id=bvi.workUnitId
+				 <dynamic prepend="where"> 
+			         <![CDATA[bvi.isDeleted <> 1]]> 
+				   </dynamic>
+				) C 
+				<isEqual property="isWorkUnitSuperAdmin" compareValue="1">
+			       inner  join (select pv.ID from (select id from pub_workUnit bi where bi.FullID  like '%$fullId$%') pw 
+                   inner  join Pub_Vehicle pv on pv.workUnitId=pw.id) XX on xx.id=C.VehicleID
+			  </isEqual>
+			  <isEqual property="isWorkUnitSuperAdmin" compareValue="2">
+			      inner  join (select pv.ID from (select vehicleID from Ent_userVehicle ev where ev.userid  like '%$userId$%') ev    
+                  inner  join Pub_Vehicle     pv on pv.id=ev.vehicleID ) XX on xx.id=C.VehicleID 
+			  </isEqual>
+			  
+		   <dynamic prepend="where 1=1 ">
+		     <isNotEmpty property="workUnitNameWhere">
+		      <isNotNull property="workUnitNameWhere">
+		          and C.workUnitName='$workUnitNameWhere$'
+		      </isNotNull> 
+		   </isNotEmpty>
+		   
+		   <isNotEmpty property="registrationNo">
+		      <isNotNull property="registrationNo">
+		          and C.registrationNo like '%$registrationNo$%'
+		      </isNotNull> 
+		   </isNotEmpty>
+		</dynamic>
+		
+  </select>
+	
+</sqlMap>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+
+   
+	
+	
+    <!-- 定时定区域查车存储过程参数处理 -->
+	<parameterMap id="queryFindTimeArea" class="java.util.HashMap">
+		<parameter property="startTime" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="endTime" mode="IN" jdbcType="varchar" javaType="java.lang.String" />
+		<parameter property="minLongitude" mode="IN" jdbcType="INT" javaType="java.lang.Integer" />
+		<parameter property="maxLongitude" mode="IN" jdbcType="INT" javaType="java.lang.Integer"  />
+		<parameter property="minLatitude" mode="IN"  jdbcType="INT" javaType="java.lang.Integer" />
+		<parameter property="maxLatitude"  mode="IN" jdbcType="INT" javaType="java.lang.Integer"  />
+	</parameterMap>
+
+	<!-- 定时定区域查车(调用存储过程) -->
+	<procedure id="getTimeAreaVehicleSQL" parameterMap="queryFindTimeArea" resultClass="java.util.HashMap">
+		 <![CDATA[{call p_getVehicleInfo(?,?,?,?,?,?)}]]>
+	</procedure>
+    
+</sqlMap>

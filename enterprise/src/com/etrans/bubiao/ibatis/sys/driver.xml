@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap>
+  
+	<select id="getDriverSQL" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		select * from (
+		select ROW_NUMBER() OVER (order by 
+		<dynamic>
+		  	<isNotNull property="sortname">
+				$sortname$ $sortorder$,
+			</isNotNull>
+		</dynamic>
+		 ID desc) RowNo,A.* from (
+		SELECT pd.[ID]
+		      ,pd.[Name]
+		      ,pd.[WorkUnitID]
+			  ,pw.[Name] as WorkUnitName
+		      ,pd.[PhoneNO]
+		      ,pd.[IdentityCard]
+		      ,pd.[WorkLicenceNO]
+		      ,pd.[DriverNO]
+		      ,pd.[DriverCode]
+		      ,pd.[DrivingLicence]
+		      ,pd.[LicenseNoEffective]
+		      ,convert(varchar(10), pd.[YearCheckTime],120) AS YearCheckTime
+		      ,pd.[WorkCertificate]
+		      ,pd.[AdmittanceCertificate]
+		      ,pd.[AdmittanceEffective]
+		      ,convert(varchar(10), pd.[AdmittanceCheckDate],120) AS AdmittanceCheckDate
+		      ,convert(varchar(10), pd.[WorkCertificateExpiryDate],120) AS WorkCertificateExpiryDate
+		  FROM [Pub_Driver] pd
+		LEFT JOIN [Pub_Workunit] pw on pd.[WorkUnitID] = pw.[ID]
+		
+		<dynamic prepend="where">
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId" prepend="and">
+					pw.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            <isNotEmpty property="name" prepend="and">
+      			pd.[Name] like '%$name$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName"  prepend="and">
+      			pw.[Name] like '%$unitName$%'
+            </isNotEmpty>
+		</dynamic>
+		
+		) A ) B where B.RowNo BETWEEN $fromRow$ AND $toRow$ 
+	</select>
+	
+	<select id="getDriverCountSQL" parameterClass="java.util.HashMap" resultClass="java.lang.Long">
+		SELECT 
+			COUNT(*) 
+		FROM [Pub_Driver] pd
+		LEFT JOIN [Pub_Workunit] pw on pd.[WorkUnitID] = pw.[ID]
+		<dynamic prepend="where">
+			<isNotNull property="fullId">
+				<isNotEmpty property="fullId" prepend="and">
+					pw.FullId like '%$fullId$%'
+				</isNotEmpty>
+			</isNotNull>
+            <isNotEmpty property="name" prepend="and">
+      			pd.[Name] like '%$name$%'
+            </isNotEmpty>
+            <isNotEmpty property="unitName"  prepend="and">
+      			pw.[Name] like '%$unitName$%'
+            </isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!-- 查询司机详细 -->
+	<select id="getDriverByIdSQL" resultClass="java.util.HashMap">
+    	SELECT pd.ID as ID
+		      ,pd.Name as Name
+		      ,pd.WorkUnitID as WorkUnitID
+		      ,pw.name  as workUnitIDName
+		      ,pd.PhoneNO as PhoneNO
+		      ,pd.IdentityCard as IdentityCard
+		      ,pd.WorkLicenceNO as WorkLicenceNO
+		      ,pd.DriverNO as DriverNO
+		      ,pd.DriverCode as DriverCode
+		      ,pd.DrivingLicence as  DrivingLicence
+		      ,pd.LicenseNoEffective as LicenseNoEffective
+		      ,convert(varchar(10), pd.YearCheckTime,120) AS YearCheckTime
+		      ,pd.WorkCertificate as WorkCertificate
+		      ,pd.AdmittanceCertificate as AdmittanceCertificate
+		      ,pd.AdmittanceEffective as AdmittanceEffective
+		      ,convert(varchar(10), pd.AdmittanceCheckDate,120) AS AdmittanceCheckDate
+		      ,convert(varchar(10), pd.WorkCertificateExpiryDate,120) AS WorkCertificateExpiryDate
+		  FROM [Pub_Driver]  pd
+		  left join Pub_WorkUnit pw on pw.id=pd.workUnitId
+		WHERE pd.ID=#driverId#
+    </select>
+	
+    <!-- 新增司机 -->
+    <insert id="insertDriverSQL" parameterClass="java.util.HashMap">
+    	INSERT INTO [Pub_Driver]
+	           ([Name]
+	           ,[WorkUnitID]
+	           ,[PhoneNO]
+	           ,[IdentityCard]
+	           ,[WorkLicenceNO]
+	           ,[DriverNO]
+	           ,[DriverCode]
+	           ,[DrivingLicence]
+	           ,[LicenseNoEffective]
+	           <isNotEmpty property="yearCheckTime">,[YearCheckTime]</isNotEmpty>
+	           <isNotEmpty property="admittanceCertificate">,[AdmittanceCertificate]</isNotEmpty>
+	           <isNotEmpty property="admittanceEffective">,[AdmittanceEffective]</isNotEmpty>
+	           <isNotEmpty property="admittanceCheckDate">,[AdmittanceCheckDate]</isNotEmpty>
+	           <isNotEmpty property="workCertificateExpiryDate">,[workCertificateExpiryDate]</isNotEmpty>)
+	     VALUES
+	           (#name#
+	           ,#workUnitId#
+	           ,#phoneNo#
+	           ,#identityCard#
+	           ,#workLicenceNo#
+	           ,#driverNo#
+	           ,#driverCode#
+	           ,#drivingLicence#
+	           ,#licenseNoEffective#
+	           <isNotEmpty property="yearCheckTime">,#yearCheckTime#</isNotEmpty>
+	           <isNotEmpty property="admittanceCertificate">,#admittanceCertificate#</isNotEmpty>
+	           <isNotEmpty property="admittanceEffective">,#admittanceEffective#</isNotEmpty>
+	           <isNotEmpty property="admittanceCheckDate">,#admittanceCheckDate#</isNotEmpty>
+	           <isNotEmpty property="workCertificateExpiryDate">,#workCertificateExpiryDate#</isNotEmpty>
+	           )
+	</insert>
+	
+	<!-- 编辑司机   -->
+	<update id="updateDriverSQL" parameterClass="java.util.HashMap">
+    	UPDATE [Pub_Driver]
+		   SET [Name] = #name#
+		      ,[WorkUnitID] = #workUnitId#
+		      ,[PhoneNO] = #phoneNo#
+		      ,[IdentityCard] = #identityCard#
+		      ,[WorkLicenceNO] = #workLicenceNo#
+		      ,[DriverNO] = #driverNo#
+		      ,[DriverCode] = #driverCode#
+		      ,[DrivingLicence] = #drivingLicence#
+		      ,[LicenseNoEffective] = #licenseNoEffective#
+		      <isNotEmpty property="yearCheckTime">,[YearCheckTime] = #yearCheckTime#</isNotEmpty>
+	          <isNotEmpty property="admittanceCertificate">,[AdmittanceCertificate] = #admittanceCertificate#</isNotEmpty>
+	          <isNotEmpty property="admittanceEffective">,[AdmittanceEffective] = #admittanceEffective#</isNotEmpty>
+	          <isNotEmpty property="admittanceCheckDate">,[AdmittanceCheckDate] = #admittanceCheckDate#</isNotEmpty>
+	          <isNotEmpty property="workCertificateExpiryDate">,[WorkCertificateExpiryDate] = #workCertificateExpiryDate#</isNotEmpty>
+		 WHERE [ID] = #driverId#
+	</update>
+	
+	<!-- 删除司机 -->
+	<delete id="deleteDriverSQL" parameterClass="java.util.HashMap">
+		DELETE FROM [Pub_Driver]
+     	WHERE
+           [ID] = #driverId#
+	</delete>
+	
+</sqlMap>
